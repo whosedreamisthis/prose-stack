@@ -139,7 +139,7 @@ export default defineConfig({
 ```
 
 ```ts
-// src/lib/db.ts
+// lib/db.ts
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 
@@ -237,7 +237,7 @@ Neon PostgreSQL (via Prisma + driver adapter)
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
