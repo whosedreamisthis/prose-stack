@@ -16,8 +16,8 @@ The core writing experience: a collapsible manuscript tree, a rich scene editor,
 - New projects are seeded with Chapter 1 / Scene 1 ("Once upon a time...").
 
 ### Scene editor
-- Tiptap editor with breadcrumbs, undo/redo, find & replace, font size, thesaurus, read-aloud, spell check.
-- Toolbar order: breadcrumbs, toolbar, writing area, stats footer.
+- Tiptap editor with undo/redo, find & replace, font size, thesaurus, read-aloud, spell check. No breadcrumbs: the tree shows where a scene sits. Detailed in [scene-editor-spec.md](scene-editor-spec.md) and [scene-editor-tools-spec.md](scene-editor-tools-spec.md).
+- Layout order: toolbar, scene title, writing area, stats footer.
 - Right sidebar shows and edits plot points linked to the scene (see [plot-spec.md](plot-spec.md)).
 - Debounced autosave (≈1–2 s idle, on blur/navigation, periodic flush while typing); only the changed scene is saved; Saving/Saved indicator; local copy allows retry on failure.
 
