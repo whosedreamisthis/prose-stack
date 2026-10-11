@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { Logo } from "@/components/layout/Logo";
 
 // Signed-in visitors never see this page: proxy.ts redirects them to /continue.
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-      <h1 className="text-4xl font-semibold tracking-tight">ProseStack</h1>
+      <h1 className="sr-only">ProseStack</h1>
+      <Logo className="text-6xl [&_svg]:size-16" />
       <p className="max-w-md text-lg text-zinc-600 dark:text-zinc-400">
         A writing workspace for novels and long-form fiction.
       </p>
