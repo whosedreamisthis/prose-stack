@@ -11,10 +11,12 @@ import { cn } from "@/lib/utils";
 interface ProjectShellProps {
   left: ReactNode;
   right: ReactNode;
+  /** Page-specific tools, centered above the main pane so they line up with the writing area. */
+  toolbar: ReactNode;
   children: ReactNode;
 }
 
-export function ProjectShell({ left, right, children }: ProjectShellProps) {
+export function ProjectShell({ left, right, toolbar, children }: ProjectShellProps) {
   const leftOpen = useLayoutStore((s) => s.leftOpen);
   const rightOpen = useLayoutStore((s) => s.rightOpen);
   const hasRightPanel = useLayoutStore((s) => s.hasRightPanel);
@@ -86,7 +88,11 @@ export function ProjectShell({ left, right, children }: ProjectShellProps) {
           <div className="h-full w-64 overflow-y-auto p-3">{left}</div>
         </aside>
 
-        <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
+        <main className="flex min-w-0 flex-1 flex-col">
+          {/* Centered over the main pane, so it lines up with the writing area whichever sidebars are open. Empty (and hidden) on pages with no tools. */}
+          <div className="flex shrink-0 justify-center border-b px-3 py-2 empty:hidden">{toolbar}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        </main>
 
         <aside
           id="right-sidebar"
