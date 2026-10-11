@@ -7,6 +7,7 @@ Source: [project-overview.md](../project-overview.md) §3 Account & Tools, §4 T
 Sign-in and registration via Clerk, with users mirrored into the database by `clerkId`.
 
 ## Requirements
+- **Sign-in methods:** email/password and Google. Enable both in the Clerk dashboard (User & authentication → Email, and Social connections → Google).
 - **Sign-in** page at `/sign-in` and **register** page at `/register`, using Clerk's components.
 - Env: `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register`.
 - **Clerk middleware** protects app routes (`/projects/**`, APIs) and resolves `userId`.
@@ -27,8 +28,9 @@ Sign-in and registration via Clerk, with users mirrored into the database by `cl
 ## Acceptance criteria
 - Unauthenticated access to a protected route redirects to `/sign-in`.
 - Every query is scoped by the signed-in user's `userId`; never trust client-supplied ownership.
+- A user can register and sign in with email/password and with Google.
 - Webhook rejects requests with an invalid signature.
 - A user who signs in before the webhook arrives is still created in the DB (fall back to creating the `User` on first request).
 
 ## Open questions
-- Sign-in methods (email/password, Google, etc.)?
+- None.

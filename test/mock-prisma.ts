@@ -8,6 +8,8 @@ export const prismaMock = {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
+    upsert: vi.fn(),
   },
   $transaction: vi.fn(),
 };
