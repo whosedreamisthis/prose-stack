@@ -25,7 +25,7 @@ async function NotesLoader({ params, searchParams }: { params: SlotProps["params
   if (!active) return null;
 
   const notes = requestedNotes && active.id === requested ? requestedNotes : await listCharacterNotes(user.id, projectId, active.id);
-  return <CharacterNotesPanel key={active.id} projectId={projectId} characterId={active.id} characterName={active.name} notes={notes} />;
+  return <CharacterNotesPanel key={active.id} projectId={projectId} characterId={active.id} notes={notes} />;
 }
 
 export default function CharacterNotesSlot(props: SlotProps) {

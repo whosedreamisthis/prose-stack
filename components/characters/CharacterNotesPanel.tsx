@@ -27,17 +27,16 @@ const TABS = [{ id: "notes", label: "Notes" }] as const;
 interface NotesPanelProps {
   projectId: string;
   characterId: string;
-  characterName: string;
   notes: CharacterNoteItem[];
 }
 
 /** The right sidebar for the open character. Remounted per character, so the notes state always belongs to one character. */
-export function CharacterNotesPanel({ projectId, characterId, characterName, notes }: NotesPanelProps) {
+export function CharacterNotesPanel({ projectId, characterId, notes }: NotesPanelProps) {
   const baseId = useId();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("notes");
 
   return (
-    <RightPanel title={characterName}>
+    <RightPanel title="Character details" hideTitle>
       <div role="tablist" aria-label="Character details" className="flex gap-1 border-b">
         {TABS.map(({ id, label }) => (
           <button
