@@ -1,20 +1,9 @@
-import { Suspense } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 
-async function RedirectIfSignedIn() {
-  const { userId } = await auth();
-  if (userId) redirect("/projects");
-  return null;
-}
-
+// Signed-in visitors never see this page: proxy.ts redirects them to /continue.
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-      <Suspense>
-        <RedirectIfSignedIn />
-      </Suspense>
       <h1 className="text-4xl font-semibold tracking-tight">ProseStack</h1>
       <p className="max-w-md text-lg text-zinc-600 dark:text-zinc-400">
         A writing workspace for novels and long-form fiction.

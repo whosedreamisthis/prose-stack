@@ -1,13 +1,27 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
+import { ProjectSwitcher } from "@/components/projects/ProjectSwitcher";
+import { getCurrentUser } from "@/lib/auth";
+import { listProjects } from "@/lib/projects";
+
+async function ProjectSwitcherLoader() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return <ProjectSwitcher projects={await listProjects(user.id)} />;
+}
 
 export function Navbar() {
   return (
     <header className="flex h-14 items-center justify-between border-b px-6">
-      <Link href="/" className="text-lg font-semibold">
-        ProseStack
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link href="/" className="text-lg font-semibold">
+          ProseStack
+        </Link>
+        <Suspense fallback={<div className="h-7 w-28 animate-pulse rounded-lg bg-muted" />}>
+          <ProjectSwitcherLoader />
+        </Suspense>
+      </div>
       <Suspense>
         <Show when="signed-in">
           <UserButton />

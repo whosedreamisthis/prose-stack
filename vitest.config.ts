@@ -7,6 +7,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    mockReset: true,
+    unstubEnvs: true,
     include: ["**/*.test.ts"],
     exclude: ["node_modules", ".next", "generated"],
   },

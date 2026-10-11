@@ -11,6 +11,15 @@ export const prismaMock = {
     deleteMany: vi.fn(),
     upsert: vi.fn(),
   },
+  project: {
+    count: vi.fn(),
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  $executeRaw: vi.fn(),
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 };
 
