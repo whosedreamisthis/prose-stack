@@ -24,6 +24,7 @@ import {
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createNode, renameNode } from "@/actions/manuscript";
@@ -100,41 +101,23 @@ function RowMenu({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** Placeholder until Trash & Archive ships: shown so the menu is complete, but disabled. */
+function TrashItem() {
+  return (
+    <>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem variant="destructive" disabled>
+        <Trash2Icon /> Move to trash
+      </DropdownMenuItem>
+    </>
+  );
+}
+
 function RenameItem({ onClick }: { onClick: () => void }) {
   return (
     <DropdownMenuItem onClick={onClick}>
       <PencilIcon /> Rename
     </DropdownMenuItem>
-  );
-}
-
-function AddRow({
-  label,
-  ariaLabel,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  ariaLabel: string;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <li role="none">
-      <button
-        type="button"
-        aria-label={ariaLabel}
-        disabled={disabled}
-        onClick={onClick}
-        className={cn(
-          rowClass,
-          "w-full text-muted-foreground disabled:opacity-50",
-        )}
-      >
-        <PlusIcon className={iconClass} aria-hidden />
-        {label}
-      </button>
-    </li>
   );
 }
 
@@ -154,7 +137,7 @@ export function ManuscriptTree({
   const searchParams = useSearchParams();
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   // Renames show at once and roll back on their own if the server action fails or throws.
   const [nodes, applyRename] = useOptimistic(
     serverNodes,
@@ -319,6 +302,7 @@ export function ManuscriptTree({
             </Link>
             <RowMenu label={`${node.title} options`}>
               <RenameItem onClick={() => setEditingId(node.id)} />
+                <TrashItem />
             </RowMenu>
           </li>
         );
@@ -365,19 +349,12 @@ export function ManuscriptTree({
                   </DropdownMenuItem>
                 )}
                 <RenameItem onClick={() => setEditingId(node.id)} />
+                <TrashItem />
               </RowMenu>
             )}
           </div>
           <ul role="group" hidden={isCollapsed} className="ml-3 border-l pl-1">
             {renderChildren(node.id)}
-            {node.type === "PART" && (
-              <AddRow
-                label="Add chapter"
-                ariaLabel={`Add chapter to ${node.title}`}
-                disabled={pending}
-                onClick={() => addNode(node.id, "CHAPTER")}
-              />
-            )}
           </ul>
         </li>
       );

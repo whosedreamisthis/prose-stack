@@ -13,11 +13,12 @@ Let writers add scenes, chapters and parts and rename any item from the tree. Us
 - Book: Add part, Add chapter, Expand all, Collapse all.
 - Part: Add chapter, Rename.
 - Chapter: Add scene, Rename.
-- Scene: Rename. More options (move, delete, label) arrive with later features.
+- Scene: Rename. More options (move, label) arrive with later features.
+- Part, chapter and scene menus also end with a disabled **Move to trash** item, a placeholder until Trash & Archive ships.
 - Closing a menu does not return focus to its button, so a rename started from the menu keeps focus in its input.
 
 ### Add
-- Add is done from the row menus above. Each part also keeps an **Add chapter** row at the end of its children; chapters have no add button at the bottom.
+- Add is done only from the row menus above; there are no add buttons at the bottom of parts or chapters.
 - Titles are numbered per sibling group ("Chapter 3", "Scene 2"); new items go at the end of their parent.
 - Every new item starts in rename mode with its title selected and focused; a new scene also opens in the editor.
 - The server enforces the hierarchy whatever the client sends.
