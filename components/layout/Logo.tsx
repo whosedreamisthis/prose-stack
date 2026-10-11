@@ -11,11 +11,11 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, collapseText = false }: { className?: string; collapseText?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5 text-2xl font-semibold tracking-tight", className)}>
       <LogoMark />
-      <span>
+      <span className={collapseText ? "hidden sm:inline" : undefined}>
         Prose<span className="text-indigo-400">Stack</span>
       </span>
     </span>

@@ -16,15 +16,15 @@ async function ProjectSwitcherLoader() {
 export function Navbar() {
   return (
     <header className="flex h-14 items-center justify-between border-b px-6">
-      <div className="flex items-center gap-4">
-        <Link href="/" aria-label="ProseStack">
-          <Logo />
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+        <Link href="/" aria-label="ProseStack" className="shrink-0">
+          <Logo collapseText />
         </Link>
         <Suspense fallback={<div className="h-7 w-28 animate-pulse rounded-lg bg-muted" />}>
           <ProjectSwitcherLoader />
         </Suspense>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <Suspense>
           <ProjectNavActions />
         </Suspense>

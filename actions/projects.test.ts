@@ -4,8 +4,10 @@ import { prismaMock } from "@/test/mock-prisma";
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const seedManuscriptMock = vi.fn();
+vi.mock("@/lib/manuscript", () => ({ seedManuscript: (...args: unknown[]) => seedManuscriptMock(...args) }));
 
-import { createProject, deleteProject, markProjectOpened } from "@/actions/projects";
+import { createProject, deleteProject, markProjectOpened, updateProject } from "@/actions/projects";
 import { MAX_PROJECTS_PER_USER, type CreateProjectInput } from "@/lib/project-config";
 
 const input: CreateProjectInput = { title: "My Book", subtitle: "", author: "Ada", coverDesign: "classic", coverColor: "#1e3a5f" };
@@ -48,6 +50,13 @@ describe("createProject", () => {
         data: expect.objectContaining({ userId: "user-1", title: "My Book", subtitle: null }),
       }),
     );
+  });
+
+  it("seeds Chapter 1 / Scene 1 in the new project", async () => {
+    prismaMock.project.count.mockResolvedValue(0);
+    prismaMock.project.create.mockResolvedValue({ id: "p1" });
+    await createProject(input);
+    expect(seedManuscriptMock).toHaveBeenCalledWith(prismaMock, "p1");
   });
 
   it("locks the user row before counting so concurrent creates cannot exceed the limit", async () => {
@@ -138,5 +147,42 @@ describe("markProjectOpened", () => {
     const [strings, ...values] = prismaMock.$executeRaw.mock.calls[0] as [TemplateStringsArray, ...string[]];
     expect(strings.join("?")).toContain('"lastOpenedAt"');
     expect(values).toEqual(["p1", "user-1"]);
+  });
+});
+
+describe("updateProject", () => {
+  const edits = { title: "New Title", subtitle: "", author: "Grace" };
+
+  beforeEach(() => {
+    getCurrentUserMock.mockResolvedValue({ id: "user-1" });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("rejects signed-out callers", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    const result = await updateProject("p1", edits);
+    expect(result.success).toBe(false);
+    expect(prismaMock.project.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("validates input before touching the database", async () => {
+    const result = await updateProject("p1", { ...edits, author: " " });
+    expect(result).toEqual({ success: false, error: "Author is required" });
+    expect(prismaMock.project.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("updates only the owner's project and only the editable fields", async () => {
+    prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
+    const result = await updateProject("p1", { ...edits, coverColor: "#000000" } as typeof edits);
+    expect(result.success).toBe(true);
+    expect(prismaMock.project.updateMany).toHaveBeenCalledWith({
+      where: { id: "p1", userId: "user-1" },
+      data: { title: "New Title", subtitle: null, author: "Grace" },
+    });
+  });
+
+  it("reports not found when the project is not the caller's", async () => {
+    prismaMock.project.updateMany.mockResolvedValue({ count: 0 });
+    expect(await updateProject("p1", edits)).toEqual({ success: false, error: "Project not found." });
   });
 });

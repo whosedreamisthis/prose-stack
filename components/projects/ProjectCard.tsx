@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreVerticalIcon, Trash2Icon } from "lucide-react";
+import { MoreVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { deleteProject } from "@/actions/projects";
 import { BookCover } from "@/components/projects/BookCover";
+import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ import type { ProjectSummary } from "@/types/projects";
 export function ProjectCard({ project }: { project: ProjectSummary }) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleDelete() {
@@ -67,11 +69,15 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
           <MoreVerticalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+            <PencilIcon /> Edit
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
             <Trash2Icon /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <EditProjectDialog project={project} open={editOpen} onOpenChange={setEditOpen} />
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

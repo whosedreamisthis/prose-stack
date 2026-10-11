@@ -31,6 +31,10 @@ export const createProjectSchema = z.object({
 
 export type CreateProjectInput = z.input<typeof createProjectSchema>;
 
+export const updateProjectSchema = createProjectSchema.pick({ title: true, subtitle: true, author: true });
+
+export type UpdateProjectInput = z.input<typeof updateProjectSchema>;
+
 /** Black or white, whichever reads better on the given #rrggbb background. */
 export function getContrastColor(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16);

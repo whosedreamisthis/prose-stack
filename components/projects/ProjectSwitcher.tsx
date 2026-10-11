@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BookOpenIcon, ChevronDownIcon, PlusIcon } from "lucide-react";
+import { BookOpenIcon, ChevronDownIcon, LayoutGridIcon, PlusIcon } from "lucide-react";
 import { NewProjectDialog } from "@/components/projects/NewProjectDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,10 +37,10 @@ export function ProjectSwitcher({ projects }: { projects: ProjectSummary[] }) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-          <BookOpenIcon />
-          <span className="max-w-40 truncate">{active?.title ?? "Projects"}</span>
-          <ChevronDownIcon />
+        <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="min-w-0" />}>
+          <BookOpenIcon className="shrink-0" />
+          <span className="min-w-0 max-w-24 truncate sm:max-w-40">{active?.title ?? "Projects"}</span>
+          <ChevronDownIcon className="shrink-0" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-56">
           <DropdownMenuGroup>
@@ -62,7 +62,9 @@ export function ProjectSwitcher({ projects }: { projects: ProjectSummary[] }) {
             <PlusIcon /> New project
           </DropdownMenuItem>
           {atLimit && <p className="px-2 py-1 text-xs text-muted-foreground">{PROJECT_LIMIT_MESSAGE}</p>}
-          <DropdownMenuItem render={<Link href="/projects" />}>All projects</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/projects" />}>
+            <LayoutGridIcon /> All projects
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <NewProjectDialog />

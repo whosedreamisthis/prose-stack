@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { seedManuscript } from "@/lib/manuscript";
 import {
   MAX_PROJECTS_PER_USER,
   PROJECT_LIMIT_MESSAGE,
   createProjectSchema,
   projectIdSchema,
+  updateProjectSchema,
   type CreateProjectInput,
+  type UpdateProjectInput,
 } from "@/lib/project-config";
 import type { ActionResult } from "@/types/actions";
 
@@ -31,10 +34,12 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
       await tx.$queryRaw`SELECT 1 FROM "User" WHERE "id" = ${user.id} FOR UPDATE`;
       const count = await tx.project.count({ where: { userId: user.id } });
       if (count >= MAX_PROJECTS_PER_USER) return null;
-      return tx.project.create({
+      const created = await tx.project.create({
         data: { userId: user.id, title, subtitle: subtitle || null, author, coverDesign, coverColor },
         select: { id: true },
       });
+      await seedManuscript(tx, created.id);
+      return created;
     });
     if (!project) return { success: false, error: PROJECT_LIMIT_MESSAGE };
 
@@ -43,6 +48,33 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
   } catch (error) {
     console.error("createProject failed:", error);
     return { success: false, error: "Could not create the project. Please try again." };
+  }
+}
+
+export async function updateProject(projectId: string, input: UpdateProjectInput): Promise<ActionResult> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: NOT_SIGNED_IN };
+
+    if (!projectIdSchema.safeParse(projectId).success) return { success: false, error: NOT_FOUND };
+
+    const parsed = updateProjectSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid project details." };
+    }
+    const { title, subtitle, author } = parsed.data;
+
+    const { count } = await prisma.project.updateMany({
+      where: { id: projectId, userId: user.id },
+      data: { title, subtitle: subtitle || null, author },
+    });
+    if (count === 0) return { success: false, error: NOT_FOUND };
+
+    revalidatePath("/", "layout");
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("updateProject failed:", error);
+    return { success: false, error: "Could not save the changes. Please try again." };
   }
 }
 
