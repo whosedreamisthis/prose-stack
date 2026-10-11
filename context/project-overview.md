@@ -87,7 +87,7 @@ ProseStack keeps everything for a book in one workspace, and links the planning 
 
 - Sign in / register with Clerk; avatar in the top navbar.
 - Export to PDF.
-- **Try demo** button: creates a temporary, private Clerk user with a seeded project (parts, chapters, scenes, plot lines, characters, places). Each visitor gets their own demo; returning visitors resume their live demo. Demo data is deleted after 12 hours, limited to 5 new demos per IP per rolling 24 hours. Demos cannot be converted to real accounts. See `context/features/demo-spec.md`.
+- **Try demo** button: creates a temporary, private Clerk user with a seeded project (parts, chapters, scenes, plot lines, characters, places). Each IP gets its own demo, and returning visitors from that IP sign back into it. One demo per IP address at a time (the same IP always gets the same demo); the Clerk user and all of its database rows are deleted after 12 hours. Demos cannot be converted to real accounts. See `context/features/demo-spec.md`.
 - Debounced autosave while writing.
 
 ---
@@ -103,7 +103,7 @@ ProseStack keeps everything for a book in one workspace, and links the planning 
 | ORM          | **Prisma 7**                        | Uses `prisma.config.ts` + Neon driver adapter                         |
 | File storage | **UploadThing**                     | Custom book covers and research images/files                          |
 | Auth         | **Clerk**                           | Sign-in / register pages, user avatar; users synced to DB by `clerkId` |
-| Rate limiting| **Upstash Redis**                   | `@upstash/ratelimit` sliding window; limits demo creation per IP      |
+| Demo IP lock | **Upstash Redis**                   | `SET NX EX 12h` maps hashed IP to its demo; one live demo per IP      |
 | Editor       | **Tiptap**                          | Rich text, undo/redo; find/replace extension                          |
 | Drag & drop  | **dnd-kit**                         | Plot cards and tree reordering                                        |
 | Client state | **Zustand**                         | Preferred over React Context for shared client state                  |
@@ -169,7 +169,7 @@ CLERK_WEBHOOK_SIGNING_SECRET=   # user.created / user.deleted sync
 # File storage (UploadThing)
 UPLOADTHING_TOKEN=
 
-# Rate limiting (Upstash)
+# Demo IP lock (Upstash)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
@@ -189,7 +189,7 @@ Browser (React client components: editor, tree, plot board)
 Next.js server (App Router)
    ├─ Clerk middleware → protects app routes, resolves userId
    ├─ Server Actions / route handlers → Zod validation → Prisma
-   ├─ /api/demo → rate limit (Upstash) → create/resume demo user
+   ├─ /api/demo → IP lookup (Upstash) → create/resume demo user
    ├─ /api/cron/cleanup-demos → deletes expired demo users (12 h)
    ├─ /api/thesaurus → Datamuse proxy
    └─ /api/uploadthing → cover and research uploads
@@ -582,7 +582,7 @@ model DailyWordCount {
 | `/projects/[projectId]/research`       | Research items                                       |
 | `/projects/[projectId]/archive`        | Archived items                                       |
 | `/projects/[projectId]/trash`          | Trashed items (restore / delete permanently)         |
-| `/api/demo`                            | Create or resume a demo (rate limited via Upstash)   |
+| `/api/demo`                            | Create or resume a demo (one per IP via Upstash)   |
 | `/api/cron/cleanup-demos`              | Scheduled cleanup of expired demos (`CRON_SECRET`)   |
 | `/api/thesaurus`                       | Datamuse proxy                                       |
 | `/api/uploadthing`                     | UploadThing handler                                  |
