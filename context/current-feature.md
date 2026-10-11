@@ -1,37 +1,29 @@
-# Current Feature: Manuscript
+# Current Feature: Manuscript Tree: Display & Navigation
 
-The core writing experience: a collapsible manuscript tree, a rich scene editor, and a paginated book view. Spec: `context/features/manuscript-spec.md`.
+Replace the placeholder in `@left/manuscript/page.tsx` with a read-only, collapsible outline of the manuscript. Spec: `context/features/manuscript-tree-display-spec.md` (part 1 of 3 of `manuscript-tree-spec.md`; followed by `manuscript-tree-edit-spec.md` and `manuscript-tree-dnd-spec.md`).
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Collapsible tree: Book → Part → Chapter → Scene (chapters may sit directly under the book).
-- Double-click any tree item to rename.
-- "Add a scene" button at the end of each chapter.
-- Reorder via drag and drop (dnd-kit); siblings ordered by integer `position`, updated in one transaction.
-- Seed new projects with Chapter 1 / Scene 1 ("Once upon a time...").
-- Tiptap scene editor with undo/redo, find & replace, font size, thesaurus, read-aloud, spell check. No breadcrumbs (the sidebar tree shows location); show the scene title above the writing area.
-- Layout order: toolbar, scene title, writing area, stats footer.
-- Right sidebar shows and edits plot points linked to the scene (see plot-spec.md).
-- Debounced autosave (1.5 s idle, forced flush every 10 s while typing, on blur/navigation); only the changed scene is saved; Saving/Saved indicator; local copy allows retry on failure.
-- Footer stats: total words, pages, words today (from `DailyWordCount` snapshots).
-- Book view: root of the tree renders the manuscript as paginated book pages; first page is a title page (title, subtitle, "by", author); each chapter starts on a new page.
-- Routes: `/projects/[projectId]/manuscript`, `/projects/[projectId]/manuscript/book`, `/api/thesaurus` (Datamuse proxy).
-- Acceptance: hierarchy rules validated server-side (Part → Chapter → Scene); rename, reorder and add-scene persist across reload; typing triggers non-blocking autosave with retry on failure; word counts update per scene and roll up to project totals.
+- Hierarchy: Book → Part → Chapter → Scene (chapters may sit directly under the book; parts optional).
+- Load the tree without scene content (`getManuscript`).
+- The root row is the book (the project title) with a chevron: collapsing it hides the whole tree. It replaces a separate "Manuscript" header.
+- "Book view" row at the top links to `/projects/[projectId]/manuscript/book`.
+- Parts and chapters have a chevron and collapse/expand; scenes link to `/projects/[projectId]/manuscript?scene=<id>`.
+- Highlight the open scene; with no `?scene=` (or an unknown id) the first scene in reading order opens (`resolveActiveScene`).
+- Collapsed state is per browser session (not saved).
+- Long titles truncate with an ellipsis; full title as tooltip.
+- In the mobile drawer, choosing a scene closes the drawer.
+- Older projects get Chapter 1 / Scene 1 the first time the manuscript opens (`seedManuscript`).
+- Accessibility: `role="tree"`, rows `role="treeitem"` with `aria-expanded` (parts/chapters), `aria-current="page"` on the open scene; arrow keys move focus, Left/Right collapse/expand (including the root), Enter opens a scene or toggles a parent.
+- Acceptance: tree matches data and nesting after reload; navigating via the tree changes the editor scene and highlight; unit tests for any new tree-building/active-scene helpers.
 
 ## Notes
 
-- Data: `ManuscriptNode` (self-referencing; `type` = PART | CHAPTER | SCENE). Scene fields: `content` (Tiptap JSON), `summary`, `wordCount`, `labelId`. `DailyWordCount` for words-today.
-- Decisions: breadcrumbs dropped; autosave 1.5 s debounce + 10 s max wait; spell check uses the browser's native `spellcheck` attribute, toggled by the navbar Spell check button (`nspell` can be added later); chapters start on a new page in book view.
-- Source: project-overview.md §3 Manuscript, §5 Architecture, §6 Data Model.
-
-## Completed Features
-
-- **Database Setup:** Prisma 7 on Neon via driver adapter, server-only client in `lib/db.ts`, `init_user` migration, Vitest with shared Prisma mock.
-- **Authentication:** Clerk sign-in/register in `app/(auth)`, route protection in `proxy.ts`, webhook user sync, first-request fallback in `lib/auth.ts`.
-- **Projects:** `Project` model and migration, create/delete actions with a 5-project limit, `/projects` cover cards, navbar switcher, `/continue` landing on the last-opened project.
-- **Sidebars & Layout:** project shell in `app/projects/[projectId]/layout.tsx` with collapsible left/right sidebars (parallel routes), mobile drawer, editor column, and project-only navbar stubs.
-- **Project Accent Color:** `lib/accent.ts` derives `--primary`/`--ring` from the cover color, streamed per project as a `<style>` that turns off when the route is hidden; icon tooltips and breadcrumb removal included.
+- Already built: `actions/manuscript.ts` (createNode, renameNode, moveNode), `lib/manuscript-tree.ts` (planMove, applyMove, resolveActiveScene, resolveDrop), `lib/manuscript.ts` (getManuscript, seedManuscript), dnd-kit packages installed.
+- Out of scope: add, rename, reorder, delete (follow-up specs; delete arrives with Trash & Archive).
+- Open questions: remember collapsed state per project in localStorage? Per-chapter word counts?
+- Parent feature "Manuscript" (editor, autosave, book view) remains tracked in `context/features/manuscript-spec.md`.
