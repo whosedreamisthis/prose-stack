@@ -1,7 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
+import { cacheTags } from "@/lib/cache-tags";
 import {
   DEFAULT_CHARACTER_NAME,
   MAX_NOTES_PER_CHARACTER,
@@ -25,7 +26,12 @@ function invalid(error: { issues: { message: string }[] }): { success: false; er
   return { success: false, error: error.issues[0]?.message ?? "Invalid request." };
 }
 
-function refresh(projectId: string) {
+/**
+ * After a write: expire the cached reads it changed (so the next read is fresh, never stale), and refresh the open page.
+ * The tags must match the ones lib/characters.ts reads under.
+ */
+function refresh(projectId: string, ...tags: string[]) {
+  for (const tag of tags) updateTag(tag);
   revalidatePath(`/projects/${projectId}`, "layout");
 }
 
@@ -50,7 +56,7 @@ export async function createCharacter(input: CreateCharacterInput): Promise<Acti
       select: { id: true },
     });
 
-    refresh(projectId);
+    refresh(projectId, cacheTags.characters(projectId));
     return { success: true, data: { id: created.id } };
   } catch (error) {
     console.error("createCharacter failed:", error);
@@ -72,7 +78,7 @@ export async function updateCharacter(input: UpdateCharacterInput): Promise<Acti
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
-    refresh(projectId);
+    refresh(projectId, cacheTags.character(characterId), cacheTags.characters(projectId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("updateCharacter failed:", error);
@@ -94,7 +100,7 @@ async function setHidden(input: { projectId: string; characterId: string }, fiel
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
-    refresh(projectId);
+    refresh(projectId, cacheTags.characters(projectId), cacheTags.character(characterId), cacheTags.characterNotes(characterId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error(`${field} update failed:`, error);
@@ -137,7 +143,7 @@ export async function createCharacterNote(input: {
       select: { id: true },
     });
 
-    refresh(projectId);
+    refresh(projectId, cacheTags.characterNotes(characterId));
     return { success: true, data: { id: created.id } };
   } catch (error) {
     console.error("createCharacterNote failed:", error);
@@ -159,7 +165,7 @@ export async function updateCharacterNote(input: { projectId: string; characterI
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 
-    refresh(projectId);
+    refresh(projectId, cacheTags.characterNotes(characterId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("updateCharacterNote failed:", error);
@@ -180,7 +186,7 @@ export async function deleteCharacterNote(input: { projectId: string; characterI
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 
-    refresh(projectId);
+    refresh(projectId, cacheTags.characterNotes(characterId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("deleteCharacterNote failed:", error);

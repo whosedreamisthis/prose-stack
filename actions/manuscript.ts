@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth";
+import { cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import {
   canParent,
@@ -29,7 +30,9 @@ function invalid(error: { issues: { message: string }[] }): { success: false; er
   return { success: false, error: error.issues[0]?.message ?? "Invalid request." };
 }
 
-function refreshTree(projectId: string) {
+/** After a tree change: expire the cached outline (plus any extra tags), and refresh the open page. Tags must match lib/manuscript.ts. */
+function refreshTree(projectId: string, ...extraTags: string[]) {
+  for (const tag of [cacheTags.manuscript(projectId), ...extraTags]) updateTag(tag);
   revalidatePath(`/projects/${projectId}`, "layout");
 }
 
@@ -85,7 +88,8 @@ export async function renameNode(input: { projectId: string; nodeId: string; tit
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
-    refreshTree(projectId);
+    // A scene's title is part of its cached read too.
+    refreshTree(projectId, cacheTags.scene(nodeId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("renameNode failed:", error);
@@ -159,6 +163,10 @@ export async function saveScene(input: { projectId: string; nodeId: string; cont
     });
     if (updatedAt === null) return { success: false, error: NOT_FOUND };
 
+    // Not the outline: it never shows a scene's word count, so autosave leaves it cached.
+    updateTag(cacheTags.scene(nodeId));
+    updateTag(cacheTags.stats(projectId));
+
     return { success: true, data: { updatedAt } };
   } catch (error) {
     console.error("saveScene failed:", error);
@@ -179,6 +187,7 @@ export async function saveSceneSummary(input: { projectId: string; nodeId: strin
       data: { summary: summary.trim() || null },
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
+    updateTag(cacheTags.scene(nodeId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("saveSceneSummary failed:", error);

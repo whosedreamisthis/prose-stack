@@ -3,7 +3,6 @@ import { prismaMock } from "@/test/mock-prisma";
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const seedManuscriptMock = vi.fn();
 vi.mock("@/lib/manuscript", () => ({ seedManuscript: (...args: unknown[]) => seedManuscriptMock(...args) }));
 

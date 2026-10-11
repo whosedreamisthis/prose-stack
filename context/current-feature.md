@@ -1,20 +1,27 @@
-# Current Feature
+# Current Feature: Read Caching
 
-<!-- Feature name and short description -->
+Cache the database reads behind the project pages so switching between characters, scenes and sections doesn't hit the database every time, and drop exactly the affected entries whenever something changes.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Reads for the opened project are cached with Next.js `use cache` (Cache Components is already on): the project, the manuscript outline, a scene, word totals, the character list, a character's sketch and a character's notes.
+- Each read is tagged with what it depends on, and the Server Action that changes it expires those tags with `updateTag`, so the next read is fresh and a stale entry is never served after a write.
+- Switching back and forth between items that haven't changed does no database query for them.
+- Autosaving a scene expires only that scene and the word totals, not the outline.
+- Deleting or editing a project expires everything cached for it.
+- The user id is part of every cache key, so a user can never read another user's entry.
+- Unit tests pin which tags each action expires.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Follows `node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache.md` and `updateTag.md`: `cacheLife` is set explicitly, tags via `cacheTag`, no request-time APIs inside cached functions.
+- The default in-memory cache handler only persists on a self-hosted server; on serverless hosting entries may not survive between requests (`use cache: remote` or a custom `cacheHandlers` is the fix if so).
+- The word-totals read takes the UTC day as an argument so it rolls over at midnight.
+- The scene editor already refreshes the page after a save and keeps its own text, so expiring the scene on save is safe.
 
 ## Completed Features
 

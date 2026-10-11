@@ -1,7 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/db";
+import { cacheTags } from "@/lib/cache-tags";
 import { getCurrentUser } from "@/lib/auth";
 import { seedManuscript } from "@/lib/manuscript";
 import {
@@ -70,6 +71,8 @@ export async function updateProject(projectId: string, input: UpdateProjectInput
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
+    // Every cached read of the project carries this tag, so this drops its characters, outline and scenes too.
+    updateTag(cacheTags.project(projectId));
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (error) {
@@ -88,6 +91,7 @@ export async function deleteProject(projectId: string): Promise<ActionResult> {
     const { count } = await prisma.project.deleteMany({ where: { id: projectId, userId: user.id } });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
+    updateTag(cacheTags.project(projectId));
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (error) {

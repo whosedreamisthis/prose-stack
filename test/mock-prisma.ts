@@ -52,3 +52,5 @@ export const prismaMock = {
 
 vi.mock("@/lib/db", () => ({ prisma: prismaMock }));
 vi.mock("server-only", () => ({}));
+// `use cache` helpers only work inside Next's cache scope; in unit tests they do nothing and the reads run directly.
+vi.mock("next/cache", () => ({ cacheLife: vi.fn(), cacheTag: vi.fn(), updateTag: vi.fn(), revalidatePath: vi.fn() }));

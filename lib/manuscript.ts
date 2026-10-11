@@ -1,5 +1,6 @@
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
+import { cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { SEED_SCENE_TEXT } from "@/lib/manuscript-config";
 import { countDocWords, docFromText, emptyDoc, type DocNode } from "@/lib/manuscript-text";
@@ -42,8 +43,14 @@ async function ensureSeeded(projectId: string) {
   });
 }
 
-/** Every node of the project, without scene content. Empty when the project is not the user's. Memoized per request. */
-export const getManuscript = cache(async (userId: string, projectId: string): Promise<ManuscriptNodeSummary[]> => {
+/**
+ * Every node of the project, without scene content. Empty when the project is not the user's. Cached until a tree change
+ * (add, rename, move) drops it. Saving a scene does not: the outline never shows a scene's word count.
+ */
+export async function getManuscript(userId: string, projectId: string): Promise<ManuscriptNodeSummary[]> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.manuscript(projectId), cacheTags.project(projectId));
   const owned = await prisma.project.findFirst({ where: { id: projectId, userId }, select: { id: true } });
   if (!owned) return [];
   await ensureSeeded(projectId);
@@ -52,9 +59,13 @@ export const getManuscript = cache(async (userId: string, projectId: string): Pr
     orderBy: [{ position: "asc" }],
     select: summarySelect,
   });
-});
+}
 
+/** One scene with its content. Cached until the scene is saved, renamed or its summary changes. */
 export async function getScene(userId: string, projectId: string, nodeId: string): Promise<SceneDetail | null> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.scene(nodeId), cacheTags.project(projectId));
   const node = await prisma.manuscriptNode.findFirst({
     where: { id: nodeId, projectId, type: "SCENE", project: { userId } },
     select: { id: true, title: true, summary: true, content: true, wordCount: true, updatedAt: true },
@@ -63,11 +74,19 @@ export async function getScene(userId: string, projectId: string, nodeId: string
   return { ...node, content: (node.content as DocNode | null) ?? emptyDoc() };
 }
 
-export async function getWordStats(projectId: string): Promise<WordStats> {
+/** Total words and today's starting count. Cached until a scene is saved; the day is part of the key so it rolls over at UTC midnight. */
+export function getWordStats(projectId: string): Promise<WordStats> {
+  return getWordStatsFor(projectId, todayUtc().toISOString());
+}
+
+async function getWordStatsFor(projectId: string, day: string): Promise<WordStats> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.stats(projectId), cacheTags.project(projectId));
   const [total, today] = await Promise.all([
     prisma.manuscriptNode.aggregate({ where: { projectId, type: "SCENE" }, _sum: { wordCount: true } }),
     prisma.dailyWordCount.findUnique({
-      where: { projectId_date: { projectId, date: todayUtc() } },
+      where: { projectId_date: { projectId, date: new Date(day) } },
       select: { startWords: true },
     }),
   ]);

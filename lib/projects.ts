@@ -1,4 +1,5 @@
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
+import { cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import type { ProjectSummary } from "@/types/projects";
 
@@ -21,14 +22,19 @@ export async function listProjects(userId: string): Promise<ProjectSummary[]> {
   });
 }
 
-/** Null when the project does not exist or belongs to someone else. Memoized per request, so the layout and page share one query. */
-export const getProject = cache(
-  async (userId: string, projectId: string): Promise<ProjectSummary | null> =>
-    prisma.project.findFirst({
-      where: { id: projectId, userId },
-      select: summarySelect,
-    }),
-);
+/**
+ * Null when the project does not exist or belongs to someone else. Cached until updateProject or deleteProject drops it,
+ * so `updatedAt` can lag behind saves; only the project list shows it, and that reads listProjects, which is not cached.
+ */
+export async function getProject(userId: string, projectId: string): Promise<ProjectSummary | null> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.project(projectId));
+  return prisma.project.findFirst({
+    where: { id: projectId, userId },
+    select: summarySelect,
+  });
+}
 
 /** Where a signed-in user lands: their last-opened project, else the project list. */
 export async function getLandingPath(userId: string) {

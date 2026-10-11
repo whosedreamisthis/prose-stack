@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "@/test/mock-prisma";
+import { updateTag } from "next/cache"; // after the shared mock is registered, so this is the mocked one
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { createNode, moveNode, renameNode, saveScene, saveSceneSummary } from "@/actions/manuscript";
 import { docFromText } from "@/lib/manuscript-text";
@@ -164,5 +164,22 @@ describe("saveSceneSummary", () => {
     prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 1 });
     await saveSceneSummary({ projectId: "p1", nodeId: "s1", summary: "   " });
     expect(prismaMock.manuscriptNode.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { summary: null } }));
+  });
+});
+
+describe("cache invalidation", () => {
+  it("expires the scene and the word totals on save, but leaves the outline cached", async () => {
+    prismaMock.manuscriptNode.findFirst.mockResolvedValue({ id: "s1" });
+    prismaMock.manuscriptNode.aggregate.mockResolvedValue({ _sum: { wordCount: 0 } });
+    prismaMock.manuscriptNode.update.mockResolvedValue({ updatedAt: new Date() });
+    prismaMock.project.update.mockResolvedValue({});
+    await saveScene({ projectId: "p1", nodeId: "s1", content: docFromText("Hello there") });
+    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["scene:s1", "stats:p1"]);
+  });
+
+  it("expires the outline and the scene when a node is renamed", async () => {
+    prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 1 });
+    await renameNode({ projectId: "p1", nodeId: "s1", title: "New title" });
+    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["manuscript:p1", "scene:s1"]);
   });
 });

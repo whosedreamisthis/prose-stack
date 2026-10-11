@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "@/test/mock-prisma";
+import { updateTag } from "next/cache"; // after the shared mock is registered, so this is the mocked one
 
 const getCurrentUserMock = vi.fn();
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 
 import {
@@ -157,5 +157,34 @@ describe("character notes", () => {
     prismaMock.characterNote.deleteMany.mockResolvedValue({ count: 0 });
     expect((await updateCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1", content: "x" })).success).toBe(false);
     expect((await deleteCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1" })).success).toBe(false);
+  });
+});
+
+describe("cache invalidation", () => {
+  it("expires the list and the sketch when a character is edited", async () => {
+    prismaMock.character.updateMany.mockResolvedValue({ count: 1 });
+    await updateCharacter({ projectId: "p1", characterId: "c1", changes: { goal: "x" } });
+    expect(updateTag).toHaveBeenCalledWith("character:c1");
+    expect(updateTag).toHaveBeenCalledWith("characters:p1");
+    expect(updateTag).not.toHaveBeenCalledWith("character-notes:c1");
+  });
+
+  it("expires only that character's notes when a note changes", async () => {
+    prismaMock.characterNote.updateMany.mockResolvedValue({ count: 1 });
+    await updateCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1", content: "x" });
+    expect(updateTag).toHaveBeenCalledTimes(1);
+    expect(updateTag).toHaveBeenCalledWith("character-notes:c1");
+  });
+
+  it("expires everything about a character that is trashed", async () => {
+    prismaMock.character.updateMany.mockResolvedValue({ count: 1 });
+    await trashCharacter({ projectId: "p1", characterId: "c1" });
+    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["character-notes:c1", "character:c1", "characters:p1"]);
+  });
+
+  it("expires nothing when the write found no row", async () => {
+    prismaMock.character.updateMany.mockResolvedValue({ count: 0 });
+    await updateCharacter({ projectId: "p1", characterId: "c1", changes: { goal: "x" } });
+    expect(updateTag).not.toHaveBeenCalled();
   });
 });

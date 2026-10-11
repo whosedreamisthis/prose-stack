@@ -1,20 +1,29 @@
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
+import { cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import type { CharacterDetail, CharacterNoteItem, CharacterSummary } from "@/types/characters";
 
 const visible = { trashedAt: null, archivedAt: null } as const;
 
-/** The project's characters that are not trashed or archived. Empty when the project is not the user's. Memoized per request. */
-export const listCharacters = cache(async (userId: string, projectId: string): Promise<CharacterSummary[]> =>
-  prisma.character.findMany({
+// These reads are cached until a Server Action in actions/characters.ts changes what they return (see lib/cache-tags.ts).
+// The user id is an argument, so it is part of each cache key and a user never reads another user's entry.
+
+/** The project's characters that are not trashed or archived. Empty when the project is not the user's. */
+export async function listCharacters(userId: string, projectId: string): Promise<CharacterSummary[]> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.characters(projectId), cacheTags.project(projectId));
+  return prisma.character.findMany({
     where: { projectId, project: { userId }, ...visible },
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, role: true },
-  }),
-);
+  });
+}
 
-/** Memoized per request, so a page that asks for the same character twice reads it once. */
-export const getCharacter = cache(async (userId: string, projectId: string, characterId: string): Promise<CharacterDetail | null> => {
+export async function getCharacter(userId: string, projectId: string, characterId: string): Promise<CharacterDetail | null> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.character(characterId), cacheTags.project(projectId));
   const row = await prisma.character.findFirst({
     where: { id: characterId, projectId, project: { userId }, ...visible },
     select: {
@@ -52,10 +61,13 @@ export const getCharacter = cache(async (userId: string, projectId: string, char
     internalConflicts: text(row.internalConflicts),
     externalConflicts: text(row.externalConflicts),
   };
-});
+}
 
 /** Notes of one character, oldest first. */
 export async function listCharacterNotes(userId: string, projectId: string, characterId: string): Promise<CharacterNoteItem[]> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.characterNotes(characterId), cacheTags.project(projectId));
   return prisma.characterNote.findMany({
     where: { characterId, character: { projectId, project: { userId }, ...visible } },
     orderBy: { createdAt: "asc" },
