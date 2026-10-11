@@ -1,8 +1,8 @@
 "use client";
 
 import { useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { BookIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
@@ -17,9 +17,13 @@ import { requestEditorFocus } from "@/lib/editor-focus";
 import { defaultNodeTitle, nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
 import { applyMove, childrenOf, resolveActiveScene } from "@/lib/manuscript-tree";
 import { useLayoutStore } from "@/lib/stores/layout-store";
+import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
 import { cn } from "@/lib/utils";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
+
+/** The tree's root row is also the sidebar's Manuscript header; the book's own title is already in the navbar. */
+const ROOT_LABEL = "Manuscript";
 
 interface BookRowProps {
   title: string;
@@ -49,10 +53,9 @@ function BookRow({ title, collapsed, dropActive, menu, onToggle, onOpen, childre
         data-node-id={ROOT_KEY}
         data-kind="book"
         onClick={onOpen}
-        className={cn(treeRowClass, "cursor-pointer pl-2 font-semibold select-none", dropActive && "ring-2 ring-primary")}
+        className={cn(treeRowClass, "cursor-pointer pl-2 font-semibold text-primary select-none", dropActive && "ring-2 ring-primary")}
       >
-        <BookIcon className={iconClass} aria-hidden />
-        <span className="truncate">{title}</span>
+        {/* Same disclosure chevron as the other sidebar sections; clicking it toggles, clicking the rest of the row opens the book view. */}
         <button
           type="button"
           tabIndex={-1}
@@ -61,10 +64,11 @@ function BookRow({ title, collapsed, dropActive, menu, onToggle, onOpen, childre
             e.stopPropagation();
             onToggle();
           }}
-          className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-accent"
+          className="grid shrink-0 place-items-center rounded"
         >
           {collapsed ? <ChevronRightIcon className={iconClass} aria-hidden /> : <ChevronDownIcon className={iconClass} aria-hidden />}
         </button>
+        <span className="truncate">{title}</span>
         {menu}
       </div>
       {!collapsed && (
@@ -78,14 +82,13 @@ function BookRow({ title, collapsed, dropActive, menu, onToggle, onOpen, childre
 
 interface ManuscriptTreeProps {
   projectId: string;
-  /** The book's title: the root row that collapses the whole tree. */
-  title: string;
   nodes: ManuscriptNodeSummary[];
 }
 
-export function ManuscriptTree({ projectId, title, nodes: serverNodes }: ManuscriptTreeProps) {
+export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTreeProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const onManuscriptPage = usePathname() === `/projects/${projectId}/manuscript`;
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -104,6 +107,7 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
   const expandAll = useTreeStore((s) => s.expandAll);
   const collapseAll = useTreeStore((s) => s.collapseAll);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
+  const setPending = usePendingNavStore((s) => s.setPending);
   const rootCollapsed = !!collapsed[ROOT_KEY];
 
   const sceneParam = searchParams.get("scene");
@@ -202,6 +206,8 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
           onOpen={() => {
             requestEditorFocus();
             setClicked({ id: node.id, from: sceneParam });
+            if (!onManuscriptPage) setPending("section", "manuscript");
+            if (node.id !== activeId || !onManuscriptPage) setPending("scene", node.id);
             setDrawerOpen(false);
           }}
         >
@@ -223,16 +229,17 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
             className="flex flex-col gap-0.5"
           >
             <BookRow
-              title={title}
+              title={ROOT_LABEL}
               collapsed={rootCollapsed}
               dropActive={dnd.isDropTarget(ROOT_KEY)}
               onToggle={() => toggle(ROOT_KEY)}
               onOpen={() => {
+                if (!onManuscriptPage) setPending("section", "manuscript");
                 router.push(`/projects/${projectId}/manuscript/book`);
                 setDrawerOpen(false);
               }}
               menu={
-                <RowMenu label={`${title} options`}>
+                <RowMenu label={`${ROOT_LABEL} options`}>
                   <AddItem label="Add part" onClick={() => addNode(null, "PART")} />
                   <AddItem label="Add chapter" onClick={() => addNode(null, "CHAPTER")} />
                   <DropdownMenuSeparator />

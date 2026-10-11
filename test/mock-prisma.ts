@@ -29,6 +29,18 @@ export const prismaMock = {
     updateMany: vi.fn(),
     aggregate: vi.fn(),
   },
+  character: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  characterNote: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   dailyWordCount: {
     findUnique: vi.fn(),
     upsert: vi.fn(),
