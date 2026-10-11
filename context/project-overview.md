@@ -54,6 +54,7 @@ ProseStack keeps everything for a book in one workspace, and links the planning 
 
 - Sketch document per character (age, location, role, goal, appearance, personality, occupation, habits, background, internal/external conflicts, notes).
 - Split into **Main** and **Supporting** characters.
+- **Name generator:** a Generate name button returns a random name, powered by `@faker-js/faker` (client-side, no API). See `context/features/name-generator-spec.md`.
 
 ### Places
 
@@ -86,7 +87,7 @@ ProseStack keeps everything for a book in one workspace, and links the planning 
 
 - Sign in / register with Clerk; avatar in the top navbar.
 - Export to PDF.
-- Demo account seeded with parts, chapters, scenes, plot lines, characters, and places.
+- **Try demo** button: creates a temporary, private Clerk user with a seeded project (parts, chapters, scenes, plot lines, characters, places). Each visitor gets their own demo; returning visitors resume their live demo. Demo data is deleted after 12 hours, limited to 5 new demos per IP per rolling 24 hours. Demos cannot be converted to real accounts. See `context/features/demo-spec.md`.
 - Debounced autosave while writing.
 
 ---
@@ -102,9 +103,12 @@ ProseStack keeps everything for a book in one workspace, and links the planning 
 | ORM          | **Prisma 7**                        | Uses `prisma.config.ts` + Neon driver adapter                         |
 | File storage | **UploadThing**                     | Custom book covers and research images/files                          |
 | Auth         | **Clerk**                           | Sign-in / register pages, user avatar; users synced to DB by `clerkId` |
+| Rate limiting| **Upstash Redis**                   | `@upstash/ratelimit` sliding window; limits demo creation per IP      |
 | Editor       | **Tiptap**                          | Rich text, undo/redo; find/replace extension                          |
 | Drag & drop  | **dnd-kit**                         | Plot cards and tree reordering                                        |
+| Client state | **Zustand**                         | Preferred over React Context for shared client state                  |
 | Read aloud   | Web Speech API                      | Free, built into browsers                                             |
+| Name generator | `@faker-js/faker`                 | Client-side, lazy loaded; no API key                                  |
 | Thesaurus    | Datamuse API                        | Free; proxied through a server route                                  |
 | Spell check  | Browser spellcheck (or `nspell`)    | Start with native; swap if more control needed                        |
 | Styling      | **Tailwind CSS v4** + **shadcn/ui** | Lucide icons                                                          |
@@ -165,8 +169,13 @@ CLERK_WEBHOOK_SIGNING_SECRET=   # user.created / user.deleted sync
 # File storage (UploadThing)
 UPLOADTHING_TOKEN=
 
-# Demo account
-DEMO_USER_CLERK_ID=
+# Rate limiting (Upstash)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# Demo
+DEMO_COOKIE_SECRET=         # signs the demo resume cookie
+CRON_SECRET=                # protects the demo cleanup job
 ```
 
 ---
@@ -180,6 +189,8 @@ Browser (React client components: editor, tree, plot board)
 Next.js server (App Router)
    ├─ Clerk middleware → protects app routes, resolves userId
    ├─ Server Actions / route handlers → Zod validation → Prisma
+   ├─ /api/demo → rate limit (Upstash) → create/resume demo user
+   ├─ /api/cron/cleanup-demos → deletes expired demo users (12 h)
    ├─ /api/thesaurus → Datamuse proxy
    └─ /api/uploadthing → cover and research uploads
    ▼
@@ -200,7 +211,7 @@ Neon PostgreSQL (via Prisma + driver adapter)
 
 ### Entities
 
-- **User** — mirrors a Clerk user (`clerkId`); owns projects.
+- **User** — mirrors a Clerk user (`clerkId`); owns projects. Demo users are flagged `isDemo` and carry a `demoExpiresAt`.
 - **Project** — one book: title, subtitle, author, cover (design, color, or uploaded image), formatting settings, theme.
 - **ManuscriptNode** — a Part, Chapter, or Scene in a self-referencing tree. Scenes hold the content, summary, word count, and optional label.
 - **Character** / **Place** — sketches (Place links to related characters).
@@ -277,10 +288,13 @@ model User {
   email     String?  @unique
   name      String?
   isDemo    Boolean  @default(false)
+  demoExpiresAt DateTime? // set for demo users: createdAt + 12 h
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   projects Project[]
+
+  @@index([isDemo, demoExpiresAt])
 }
 
 model Project {
@@ -555,7 +569,7 @@ model DailyWordCount {
 
 | Route                                  | Purpose                                              |
 | -------------------------------------- | ---------------------------------------------------- |
-| `/`                                    | Landing page (redirects to projects when signed in)  |
+| `/`                                    | Landing page with Try demo (redirects to projects when signed in) |
 | `/(auth)/sign-in`                      | Clerk sign-in                                        |
 | `/(auth)/register`                     | Clerk sign-up                                        |
 | `/projects`                            | Project list, switcher, create project               |
@@ -568,6 +582,8 @@ model DailyWordCount {
 | `/projects/[projectId]/research`       | Research items                                       |
 | `/projects/[projectId]/archive`        | Archived items                                       |
 | `/projects/[projectId]/trash`          | Trashed items (restore / delete permanently)         |
+| `/api/demo`                            | Create or resume a demo (rate limited via Upstash)   |
+| `/api/cron/cleanup-demos`              | Scheduled cleanup of expired demos (`CRON_SECRET`)   |
 | `/api/thesaurus`                       | Datamuse proxy                                       |
 | `/api/uploadthing`                     | UploadThing handler                                  |
 | `/api/webhooks/clerk`                  | Clerk user sync                                      |
@@ -621,6 +637,7 @@ Other conventions:
 - All data access is scoped by `userId` (and `projectId`) — never trust client-supplied ownership.
 - Validate all input with a schema library (e.g. Zod) on the server.
 - Deleting moves items to trash (`trashedAt`); only "delete permanently" removes rows.
+- Use **Zustand** for shared client state (sidebar open/closed, active project, editor save status, plot board, modals) instead of React Context wherever state is shared across components. Reserve Context for things Clerk or a library already provides. Server data still comes from server components and Server Actions, not Zustand.
 - Use Neon branches for dev/preview databases so migrations can be tested before prod.
 - Unit test server actions and utilities with Vitest (`npm test`); tests mock the database and never touch Neon.
 - This Next.js version has breaking changes — read the relevant guide in `node_modules/next/dist/docs/` before writing code (see `AGENTS.md`).
@@ -650,6 +667,7 @@ Other conventions:
 | Neon + Prisma           | https://neon.com/docs/guides/prisma                                  |
 | Clerk (Next.js)         | https://clerk.com/docs/nextjs                                        |
 | UploadThing             | https://docs.uploadthing.com                                         |
+| Upstash Ratelimit       | https://upstash.com/docs/redis/sdks/ratelimit-ts/overview            |
 | Tiptap                  | https://tiptap.dev/docs                                              |
 | dnd-kit                 | https://docs.dndkit.com                                              |
 | Web Speech API          | https://developer.mozilla.org/docs/Web/API/Web_Speech_API            |
