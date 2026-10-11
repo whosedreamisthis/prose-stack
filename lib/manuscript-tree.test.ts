@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { applyMove, planMove, resolveActiveScene, resolveDrop, sceneOrder, type TreeNode } from "@/lib/manuscript-tree";
+import {
+  applyMove,
+  BOOK_DROP_ID,
+  planMove,
+  resolveActiveScene,
+  resolveDrop,
+  sceneOrder,
+  type TreeNode,
+} from "@/lib/manuscript-tree";
 
 const node = (id: string, type: TreeNode["type"], parentId: string | null, position: number): TreeNode => ({
   id,
@@ -99,5 +107,33 @@ describe("resolveDrop", () => {
     expect(resolveDrop(nodes, "c1", "s4")).toBeNull();
     expect(resolveDrop(nodes, "s1", "s1")).toBeNull();
     expect(resolveDrop(nodes, "s1", "nope")).toBeNull();
+  });
+});
+
+describe("resolveDrop on the book", () => {
+  const withPart: TreeNode[] = [...nodes, node("p1", "PART", null, 2), node("c3", "CHAPTER", "p1", 0)];
+
+  it("moves a chapter out of a part to the end of the book", () => {
+    expect(resolveDrop(withPart, "c3", BOOK_DROP_ID)).toEqual({ parentId: null, index: 3 });
+  });
+
+  it("moves a top-level chapter to the end of the book", () => {
+    expect(resolveDrop(withPart, "c1", BOOK_DROP_ID)).toEqual({ parentId: null, index: 2 });
+  });
+
+  it("moves a part to the end of the book", () => {
+    expect(resolveDrop(withPart, "p1", BOOK_DROP_ID)).toEqual({ parentId: null, index: 2 });
+  });
+
+  it("does not let a scene sit directly in the book", () => {
+    expect(resolveDrop(withPart, "s1", BOOK_DROP_ID)).toBeNull();
+  });
+
+  it("plans a chapter leaving its part", () => {
+    const drop = resolveDrop(withPart, "c3", BOOK_DROP_ID)!;
+    const plan = planMove(withPart, "c3", drop.parentId, drop.index);
+    expect("error" in plan).toBe(false);
+    const moved = applyMove(withPart, plan as { updates: { id: string; parentId: string | null; position: number }[] });
+    expect(moved.find((n) => n.id === "c3")).toMatchObject({ parentId: null, position: 3 });
   });
 });

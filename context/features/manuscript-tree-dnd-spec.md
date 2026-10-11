@@ -16,6 +16,7 @@ Reorder parts, chapters and scenes by dragging in the tree (dnd-kit). The planni
   - Chapter on a chapter: reorders among that chapter's siblings.
   - Chapter on a part: moves to the end of that part.
   - Part on a part: reorders parts.
+  - Chapter or part on the book row: moves to the end of the book. This is the way to take a chapter out of a part.
   - Anything else does nothing; the hierarchy can never be violated.
 - The tree updates immediately (`applyMove`); the server then renumbers the affected sibling groups in one transaction.
 - If the server rejects the move, the tree rolls back and a toast explains.

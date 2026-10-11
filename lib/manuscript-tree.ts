@@ -81,6 +81,9 @@ export function resolveActiveScene<T extends TreeNode>(nodes: T[], requestedId: 
   return scenes.find((s) => s.id === requestedId) ?? scenes[0] ?? null;
 }
 
+/** The id of the book row as a drop target: dropping a part or chapter on it moves that item to the end of the book. */
+export const BOOK_DROP_ID = "root";
+
 export interface DropTarget {
   parentId: string | null;
   index: number;
@@ -93,6 +96,11 @@ export interface DropTarget {
  */
 export function resolveDrop(nodes: TreeNode[], activeId: string, overId: string): DropTarget | null {
   const active = nodes.find((n) => n.id === activeId);
+  if (overId === BOOK_DROP_ID) {
+    // The way back out of a part (or to the end of the book): scenes cannot sit directly in the book.
+    if (!active || active.type === "SCENE") return null;
+    return { parentId: null, index: childrenOf(nodes, null).filter((n) => n.id !== active.id).length };
+  }
   const over = nodes.find((n) => n.id === overId);
   if (!active || !over || active.id === over.id) return null;
 
