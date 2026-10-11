@@ -4,8 +4,8 @@ export interface AccentTokens {
   ring: string;
 }
 
-/** The dark theme's `--background` (oklch(0.145 0 0)); accents are lightened until they read on it. */
-export const ACCENT_BACKGROUND = "#0a0a0a";
+/** The dark theme's `--background` (oklch(0.27 0 0)) as hex; accents are lightened until they read on it. */
+export const ACCENT_BACKGROUND = "#2b2b2b";
 const MIN_CONTRAST = 4.5;
 const FOREGROUNDS = ["#0a0a0a", "#ffffff"] as const;
 

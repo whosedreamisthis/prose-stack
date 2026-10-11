@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { EditorColumn } from "@/components/layout/EditorColumn";
+import { PendingSwitch } from "@/components/layout/PendingSwitch";
+import { EditorSkeleton } from "@/components/manuscript/EditorSkeleton";
 import { EditorStats } from "@/components/manuscript/EditorStats";
 import { SceneEditor } from "@/components/manuscript/SceneEditor";
 import { ActiveProjectSync } from "@/components/projects/ActiveProjectSync";
@@ -16,16 +18,19 @@ async function SceneLoader({ params, searchParams }: { params: PageParams["param
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const [project, nodes, stats] = await Promise.all([
+  const requested = Array.isArray(query.scene) ? query.scene[0] : query.scene;
+  // The requested scene is fetched alongside the outline instead of after it: one round trip, not two. getScene only
+  // returns the user's own scenes, so a stale id just returns null and the outline's pick is fetched instead.
+  const [project, nodes, stats, requestedScene] = await Promise.all([
     getProject(user.id, projectId),
     getManuscript(user.id, projectId),
     getWordStats(projectId),
+    requested ? getScene(user.id, projectId, requested) : null,
   ]);
   if (!project) notFound();
 
-  const requested = Array.isArray(query.scene) ? query.scene[0] : query.scene;
   const active = resolveActiveScene(nodes, requested);
-  const scene = active ? await getScene(user.id, projectId, active.id) : null;
+  const scene = requestedScene && active?.id === requested ? requestedScene : active ? await getScene(user.id, projectId, active.id) : null;
 
   return (
     <>
@@ -44,7 +49,8 @@ async function SceneLoader({ params, searchParams }: { params: PageParams["param
           <div className="mx-auto flex max-w-md flex-col gap-2 pt-16 text-center">
             <h1 className="text-xl font-semibold">No scenes yet</h1>
             <p className="text-sm text-muted-foreground">
-              Add a chapter from the outline&apos;s book menu, then use the chapter&apos;s menu to add a scene. Your writing lives in scenes.
+              Add a chapter from the outline&apos;s book menu, then use the chapter&apos;s menu to add a scene. Your writing lives in
+              scenes.
             </p>
           </div>
         )}
@@ -53,21 +59,12 @@ async function SceneLoader({ params, searchParams }: { params: PageParams["param
   );
 }
 
-function EditorSkeleton() {
-  return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 p-4" aria-hidden>
-      <div className="h-8 w-1/2 animate-pulse rounded bg-muted motion-reduce:animate-none" />
-      {[100, 95, 100, 80, 90].map((w, i) => (
-        <div key={i} className="h-4 animate-pulse rounded bg-muted motion-reduce:animate-none" style={{ width: `${w}%` }} />
-      ))}
-    </div>
-  );
-}
-
 export default function ManuscriptPage(props: PageParams) {
   return (
-    <Suspense fallback={<EditorSkeleton />}>
-      <SceneLoader params={props.params} searchParams={props.searchParams} />
-    </Suspense>
+    <PendingSwitch kind="scene" fallback={<EditorSkeleton />}>
+      <Suspense fallback={<EditorSkeleton />}>
+        <SceneLoader params={props.params} searchParams={props.searchParams} />
+      </Suspense>
+    </PendingSwitch>
   );
 }

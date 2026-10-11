@@ -58,6 +58,7 @@ model Project {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   nodes           ManuscriptNode[]
   dailyWordCounts DailyWordCount[]
+  characters      Character[]
 
   @@index([userId])
 }
@@ -100,4 +101,52 @@ model DailyWordCount {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, date])
+}
+
+enum CharacterRole {
+  MAIN
+  SUPPORTING
+}
+
+/// A character sketch. Every sketch field is optional text except the name. A character is hidden from the list once trashed or archived.
+model Character {
+  id        String        @id @default(cuid())
+  projectId String
+  role      CharacterRole @default(MAIN)
+  name      String
+  age       String?
+  location  String?
+
+  roleInStory         String?
+  goal                String?
+  physicalDescription String?
+  personality         String?
+  occupation          String?
+  habits              String?
+  background          String?
+  internalConflicts   String?
+  externalConflicts   String?
+
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notes   CharacterNote[]
+
+  @@index([projectId, role])
+}
+
+/// Free-form notes shown in the right sidebar; a character can have several.
+model CharacterNote {
+  id          String   @id @default(cuid())
+  characterId String
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId, createdAt])
 }

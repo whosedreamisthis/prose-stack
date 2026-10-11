@@ -10,7 +10,7 @@ describe("layout store", () => {
 
   it("starts with both sidebars open, the drawer closed, and no right panel", () => {
     const s = useLayoutStore.getState();
-    expect(s).toMatchObject({ leftOpen: true, rightOpen: true, drawerOpen: false, hasRightPanel: false });
+    expect(s).toMatchObject({ leftOpen: true, rightOpen: true, drawerOpen: false, rightDrawerOpen: false, hasRightPanel: false });
   });
 
   it("toggles each sidebar independently", () => {
@@ -27,6 +27,12 @@ describe("layout store", () => {
     expect(useLayoutStore.getState()).toMatchObject({ drawerOpen: true, leftOpen: true });
     useLayoutStore.getState().toggleLeft();
     expect(useLayoutStore.getState().drawerOpen).toBe(true);
+  });
+
+  it("keeps the small-screen right overlay separate from the desktop collapse state", () => {
+    useLayoutStore.getState().setRightDrawerOpen(true);
+    useLayoutStore.getState().toggleRight();
+    expect(useLayoutStore.getState()).toMatchObject({ rightDrawerOpen: true, rightOpen: false });
   });
 
   it("remembers sidebar state across navigations within the session", () => {

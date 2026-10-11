@@ -24,7 +24,7 @@ describe("getAccentTokens", () => {
   });
 
   it("keeps a color that is already readable", () => {
-    expect(getAccentTokens("#ff0000")!.primary).toBe("#ff0000");
+    expect(getAccentTokens("#7ab8ff")!.primary).toBe("#7ab8ff");
   });
 
   it("lightens a near-black navy but keeps it blue", () => {

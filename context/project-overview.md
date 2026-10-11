@@ -52,8 +52,9 @@ ProseStack keeps everything for a book in one workspace, and links the planning 
 
 ### Characters
 
-- Sketch document per character (age, location, role, goal, appearance, personality, occupation, habits, background, internal/external conflicts, notes).
+- Sketch document per character (age, location, role, goal, appearance, personality, occupation, habits, background, internal/external conflicts).
 - Split into **Main** and **Supporting** characters.
+- **Notes tab:** the right sidebar has a Notes tab (more tabs may follow) with a dashed-border "Add a note +" card; a character can have several notes.
 - **Name generator:** a Generate name button returns a random name, powered by `@faker-js/faker` (client-side, no API). See `context/features/name-generator-spec.md`.
 
 ### Places
@@ -399,17 +400,29 @@ model Character {
   background         String?
   internalConflicts  String?
   externalConflicts  String?
-  notes              String?
 
   trashedAt  DateTime?
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  places  Place[] @relation("PlaceCharacters")
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  places  Place[]         @relation("PlaceCharacters")
+  notes   CharacterNote[]
 
   @@index([projectId, role])
+}
+
+model CharacterNote {
+  id          String   @id @default(cuid())
+  characterId String
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
 }
 
 model Place {
