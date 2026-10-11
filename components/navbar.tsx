@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
+import { ProjectNavActions } from "@/components/layout/ProjectNavActions";
 import { ProjectSwitcher } from "@/components/projects/ProjectSwitcher";
 import { getCurrentUser } from "@/lib/auth";
 import { listProjects } from "@/lib/projects";
@@ -22,11 +23,16 @@ export function Navbar() {
           <ProjectSwitcherLoader />
         </Suspense>
       </div>
-      <Suspense>
-        <Show when="signed-in">
-          <UserButton />
-        </Show>
-      </Suspense>
+      <div className="flex items-center gap-2">
+        <Suspense>
+          <ProjectNavActions />
+        </Suspense>
+        <Suspense>
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
+        </Suspense>
+      </div>
     </header>
   );
 }

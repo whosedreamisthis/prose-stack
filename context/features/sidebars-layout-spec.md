@@ -23,4 +23,4 @@ The app shell: left sidebar, right sidebar, and top navbar.
 - Sidebar open/closed state persists across navigation within a session.
 
 ## Open questions
-- Persist sidebar state across sessions (localStorage) or per project?
+- None. Decided: sidebar open/closed state lasts for the session only (Zustand, no localStorage); it is not persisted across sessions or per project.
