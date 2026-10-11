@@ -52,6 +52,24 @@ describe("createNode", () => {
     );
   });
 
+  it("creates the row under the id the client chose, so it can show before the server answers", async () => {
+    prismaMock.manuscriptNode.findFirst.mockResolvedValue({ type: "PART" });
+    prismaMock.manuscriptNode.findMany.mockResolvedValue([]);
+    prismaMock.manuscriptNode.create.mockResolvedValue({ id: "client-id-1" });
+
+    await createNode({ projectId: "p1", parentId: "part1", type: "CHAPTER", id: "client-id-1" });
+
+    expect(prismaMock.manuscriptNode.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ id: "client-id-1", title: "Chapter 1" }) }),
+    );
+  });
+
+  it("rejects a malformed client id", async () => {
+    const result = await createNode({ projectId: "p1", parentId: null, type: "CHAPTER", id: "bad id!" });
+    expect(result.success).toBe(false);
+    expect(prismaMock.manuscriptNode.create).not.toHaveBeenCalled();
+  });
+
   it("reports not found when the project is not the caller's", async () => {
     prismaMock.$queryRaw.mockResolvedValue([]);
     expect(await createNode({ projectId: "p1", parentId: null, type: "CHAPTER" })).toEqual({ success: false, error: "Item not found." });

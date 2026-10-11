@@ -8,7 +8,7 @@ interface TreeKeyActions {
 
 /**
  * Keyboard support for the tree, attached to the tree element. Arrow keys move focus between visible rows, Left and
- * Right collapse and expand, Enter opens a scene or toggles a parent, F2 renames. Keys pressed inside the row's own
+ * Right collapse and expand, Enter opens a scene or the book view, or toggles a parent, F2 renames. Keys pressed inside the row's own
  * controls (grip, menu, rename input) are ignored: only the treeitem itself drives the tree.
  */
 export function handleTreeKeyDown(e: KeyboardEvent<HTMLElement>, { toggle, startRename }: TreeKeyActions) {
@@ -43,7 +43,10 @@ export function handleTreeKeyDown(e: KeyboardEvent<HTMLElement>, { toggle, start
       break;
     case "Enter":
     case " ":
-      if (target.dataset.kind === "scene") {
+      if (target.dataset.kind === "book") {
+        if (e.key === " ") return;
+        target.click();
+      } else if (target.dataset.kind === "scene") {
         if (e.key === " ") return;
         target.querySelector<HTMLAnchorElement>("a")?.click();
       } else if (nodeId) toggle(nodeId);

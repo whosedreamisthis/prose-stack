@@ -1,20 +1,20 @@
 "use client";
 
 import { useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BookIcon, BookOpenTextIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
+import { BookIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { createNode, renameNode } from "@/actions/manuscript";
 import { AddItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
-import { ToggleIcon, TreeRow } from "@/components/manuscript/TreeRow";
+import { TreeRow } from "@/components/manuscript/TreeRow";
 import { handleTreeKeyDown } from "@/components/manuscript/tree-keyboard";
-import { NODE_ICON, ROOT_KEY, iconClass, rowClass, treeRowClass } from "@/components/manuscript/tree-config";
+import { NODE_ICON, ROOT_KEY, iconClass, treeRowClass } from "@/components/manuscript/tree-config";
 import { noShift, useTreeDnd, type TreeChange } from "@/components/manuscript/useTreeDnd";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
+import { requestEditorFocus } from "@/lib/editor-focus";
+import { defaultNodeTitle, nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
 import { applyMove, childrenOf, resolveActiveScene } from "@/lib/manuscript-tree";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
@@ -27,11 +27,12 @@ interface BookRowProps {
   dropActive: boolean;
   menu: ReactNode;
   onToggle: () => void;
+  onOpen: () => void;
   children: ReactNode;
 }
 
 /** The book (the project) as the tree's root: collapses everything below it, and takes drops that move an item out to the book. */
-function BookRow({ title, collapsed, dropActive, menu, onToggle, children }: BookRowProps) {
+function BookRow({ title, collapsed, dropActive, menu, onToggle, onOpen, children }: BookRowProps) {
   const groupId = useId();
   const { setNodeRef } = useDroppable({ id: ROOT_KEY });
   return (
@@ -46,12 +47,24 @@ function BookRow({ title, collapsed, dropActive, menu, onToggle, children }: Boo
         aria-owns={collapsed ? undefined : groupId}
         title={title}
         data-node-id={ROOT_KEY}
-        data-kind="parent"
-        onClick={onToggle}
+        data-kind="book"
+        onClick={onOpen}
         className={cn(treeRowClass, "cursor-pointer pl-2 font-semibold select-none", dropActive && "ring-2 ring-primary")}
       >
-        <ToggleIcon icon={BookIcon} expanded={!collapsed} />
+        <BookIcon className={iconClass} aria-hidden />
         <span className="truncate">{title}</span>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={collapsed ? "Expand book" : "Collapse book"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-accent"
+        >
+          {collapsed ? <ChevronRightIcon className={iconClass} aria-hidden /> : <ChevronDownIcon className={iconClass} aria-hidden />}
+        </button>
         {menu}
       </div>
       {!collapsed && (
@@ -76,11 +89,15 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  /** Rows added but not yet confirmed by the server, each resolving to whether the server created it. */
+  const creating = useRef(new Map<string, Promise<boolean>>());
   // Renames and moves show at once and roll back on their own if the server action fails or throws.
   const [nodes, applyChange] = useOptimistic(serverNodes, (state, change: TreeChange) =>
     change.kind === "rename"
       ? state.map((n) => (n.id === change.id ? { ...n, title: change.title } : n))
-      : applyMove(state, change.plan),
+      : change.kind === "add"
+        ? [...state, change.node]
+        : applyMove(state, change.plan),
   );
   const collapsed = useTreeStore((s) => s.collapsed);
   const toggle = useTreeStore((s) => s.toggle);
@@ -120,23 +137,37 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
     if (parsed.data === node.title) return;
     startTransition(async () => {
       applyChange({ kind: "rename", id: node.id, title: parsed.data });
+      // A row added a moment ago may not exist on the server yet; wait for it, and drop the rename if it failed.
+      if (!(await (creating.current.get(node.id) ?? true))) return;
       const result = await renameNode({ projectId, nodeId: node.id, title: parsed.data });
       if (!result.success) toast.error(result.error);
     });
   }
 
   function addNode(parentId: string | null, type: NodeType) {
+    // The row appears in rename mode at once under an id of our own; the server confirms in the background.
+    const id = crypto.randomUUID();
+    const sameType = nodes.filter((n) => n.parentId === parentId && n.type === type).length;
+    toggle(ROOT_KEY, false);
+    if (parentId) toggle(parentId, false);
+    setEditingId(id);
     startTransition(async () => {
-      const result = await createNode({ projectId, parentId, type });
+      applyChange({
+        kind: "add",
+        node: { id, parentId, type, title: defaultNodeTitle(type, sameType), position: childrenOf(nodes, parentId).length, wordCount: 0 },
+      });
+      const created = createNode({ projectId, parentId, type, id });
+      creating.current.set(id, created.then((r) => r.success));
+      const result = await created;
+      creating.current.delete(id);
       if (!result.success) {
         toast.error(result.error);
-        return;
+        setEditingId((current) => (current === id ? null : current));
+      } else if (type === "SCENE") {
+        // A new scene also opens in the editor.
+        requestEditorFocus();
+        router.push(`/projects/${projectId}/manuscript?scene=${id}`);
       }
-      toggle(ROOT_KEY, false);
-      if (parentId) toggle(parentId, false);
-      // Every new item starts in rename mode; a new scene also opens in the editor.
-      setEditingId(result.data.id);
-      if (type === "SCENE") router.push(`/projects/${projectId}/manuscript?scene=${result.data.id}`);
     });
   }
 
@@ -169,6 +200,7 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
           onStartRename={() => setEditingId(node.id)}
           onFinishRename={(value, refocus) => finishRename(node, value, refocus)}
           onOpen={() => {
+            requestEditorFocus();
             setClicked({ id: node.id, from: sceneParam });
             setDrawerOpen(false);
           }}
@@ -181,14 +213,6 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
 
   return (
     <nav aria-label="Manuscript outline" className="flex flex-col gap-2">
-      <Link
-        href={`/projects/${projectId}/manuscript/book`}
-        onClick={() => setDrawerOpen(false)}
-        className={cn(rowClass, "text-muted-foreground")}
-      >
-        <BookOpenTextIcon className={iconClass} aria-hidden />
-        Book view
-      </Link>
       <DndContext {...dnd.contextProps}>
         <SortableContext items={dnd.items} strategy={noShift}>
           <ul
@@ -203,6 +227,10 @@ export function ManuscriptTree({ projectId, title, nodes: serverNodes }: Manuscr
               collapsed={rootCollapsed}
               dropActive={dnd.isDropTarget(ROOT_KEY)}
               onToggle={() => toggle(ROOT_KEY)}
+              onOpen={() => {
+                router.push(`/projects/${projectId}/manuscript/book`);
+                setDrawerOpen(false);
+              }}
               menu={
                 <RowMenu label={`${title} options`}>
                   <AddItem label="Add part" onClick={() => addNode(null, "PART")} />

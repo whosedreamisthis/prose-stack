@@ -32,6 +32,11 @@ export const createNodeSchema = z.object({
   projectId: idSchema,
   parentId: idSchema.nullable(),
   type: z.enum(["PART", "CHAPTER", "SCENE"]),
+  /** Optional id chosen by the client, so a new row can be shown and renamed before the server answers. */
+  id: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{8,64}$/)
+    .optional(),
 });
 
 export const renameNodeSchema = z.object({ projectId: idSchema, nodeId: idSchema, title: nodeTitleSchema });

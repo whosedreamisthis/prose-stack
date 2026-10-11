@@ -45,7 +45,7 @@ export async function createNode(input: CreateNodeInput): Promise<ActionResult<{
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = createNodeSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, parentId, type } = parsed.data;
+    const { projectId, parentId, type, id } = parsed.data;
 
     const created = await prisma.$transaction(async (tx) => {
       if (!(await lockOwnedProject(tx, user.id, projectId))) return "missing" as const;
@@ -56,7 +56,7 @@ export async function createNode(input: CreateNodeInput): Promise<ActionResult<{
       const siblings = await tx.manuscriptNode.findMany({ where: { projectId, parentId }, select: { type: true } });
       const sameType = siblings.filter((s) => s.type === type).length;
       return tx.manuscriptNode.create({
-        data: { projectId, parentId, type, title: defaultNodeTitle(type, sameType), position: siblings.length },
+        data: { ...(id && { id }), projectId, parentId, type, title: defaultNodeTitle(type, sameType), position: siblings.length },
         select: { id: true },
       });
     });
