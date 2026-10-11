@@ -1,6 +1,6 @@
-# 🗂️ DevStash — Project Overview
+# 📖 ProseStack — Project Overview
 
-> **One fast, searchable, AI-enhanced hub for all your dev knowledge & resources.**
+> **A focused home for writing your novel: manuscript, characters, places, plot, and research in one place.**
 
 ---
 
@@ -24,118 +24,92 @@
 
 ## 1. Problem
 
-Developers keep their essentials scattered across too many places:
+Novelists juggle a manuscript in a word processor, character notes in another document, plot outlines on index cards or spreadsheets, and research scattered across bookmarks and folders. Context is lost every time they switch tools, and it is hard to see how a scene connects to the plot while writing it.
 
-| What | Where it usually lives |
-| --- | --- |
-| Code snippets | VS Code, Notion |
-| AI prompts | Old chat threads |
-| Context files | Buried in project folders |
-| Useful links | Browser bookmarks |
-| Docs | Random folders |
-| Commands | `.txt` files, bash history |
-| Project templates | GitHub Gists |
-
-The result is **context switching, lost knowledge, and inconsistent workflows**.
-
-**DevStash** brings all of it into one place that is fast to search, fast to capture, and enhanced by AI.
+ProseStack keeps everything for a book in one workspace, and links the planning material (plot points, characters, places) directly to the scenes being written.
 
 ---
 
 ## 2. Target Users
 
-| Persona | Primary need |
-| --- | --- |
-| 🧑‍💻 **Everyday Developer** | Quickly grab snippets, prompts, commands and links |
-| 🤖 **AI-first Developer** | Store prompts, context files, workflows, system messages |
-| 🎓 **Content Creator / Educator** | Store code blocks, explanations, course notes |
-| 🏗️ **Full-stack Builder** | Collect patterns, boilerplates, API examples |
+- **Novelists** (first-time and experienced) drafting long-form fiction.
+- **Plotters** who outline with index cards and plot lines before writing.
+- **Pantsers** who want light structure and a place to capture characters and places as they go.
+- **Writers with several projects** on the go who need to switch between books easily.
 
 ---
 
 ## 3. Features
 
-### A. Items & Item Types
+### Manuscript
 
-Every piece of saved content is an **Item**, and every Item has a **Type**.
+- Collapsible tree: **Book → Part → Chapter → Scene**; double-click any item to rename.
+- Scene editor with breadcrumbs, undo/redo, find & replace, font size, thesaurus, read-aloud, and spell check.
+- **Add a scene** button at the end of each chapter.
+- Footer stats: total words, pages, words today.
+- **Book view:** the root of the tree renders the manuscript as paginated book pages, starting with a title page (title, subtitle, "by", author).
+- New projects are seeded with Chapter 1 / Scene 1 ("Once upon a time...").
 
-The app ships with seven **system types** that cannot be edited or deleted. **Custom types** (user-created) come later as a Pro feature.
+### Characters
 
-| Type | Content kind | Icon (Lucide) | Color | Plan |
-| --- | --- | --- | --- | --- |
-| Snippet | Text | `Code` | ![#3b82f6](https://placehold.co/12x12/3b82f6/3b82f6.png) `#3b82f6` blue | Free |
-| Prompt | Text | `Sparkles` | ![#8b5cf6](https://placehold.co/12x12/8b5cf6/8b5cf6.png) `#8b5cf6` purple | Free |
-| Command | Text | `Terminal` | ![#f97316](https://placehold.co/12x12/f97316/f97316.png) `#f97316` orange | Free |
-| Note | Text | `StickyNote` | ![#fde047](https://placehold.co/12x12/fde047/fde047.png) `#fde047` yellow | Free |
-| Link | URL | `Link` | ![#10b981](https://placehold.co/12x12/10b981/10b981.png) `#10b981` emerald | Free |
-| File | File | `File` | ![#6b7280](https://placehold.co/12x12/6b7280/6b7280.png) `#6b7280` gray | **Pro** |
-| Image | File | `Image` | ![#ec4899](https://placehold.co/12x12/ec4899/ec4899.png) `#ec4899` pink | **Pro** |
+- Sketch document per character (age, location, role, goal, appearance, personality, occupation, habits, background, internal/external conflicts, notes).
+- Split into **Main** and **Supporting** characters.
 
-- **Content kinds:** `TEXT` (markdown / code), `URL` (links), `FILE` (uploaded to UploadThing).
-- **Type URLs** use the plural slug: `/items/snippets`, `/items/prompts`, `/items/links`, etc.
-- Items are **created and opened in a drawer** for fast access without leaving the current page.
+### Places
 
-### B. Collections
+- Place cards with sketch fields (location, role, related characters, season, features, description, sights, sounds, smell, notes).
 
-- Users group items into **Collections** (e.g. *React Patterns*, *Context Files*, *Python Snippets*).
-- A collection can hold **items of any type**.
-- An item can belong to **many collections** (many-to-many via a join table).
-  - Example: a React snippet can live in both *React Patterns* and *Interview Prep*.
-- Users can see which collections an item belongs to and add/remove it from several at once.
+### Plot
 
-### C. Search
+- **Plot points:** draggable index cards with optional labels.
+- **Scenes:** cards with a summary, label, and ellipsis menu (send to trash).
+- **Plot lines grid:** scenes down the left, plot lines across; adding a plot point on a scene's row links it to the scene.
+- The scene editor's right sidebar shows and edits the plot points linked to the scene.
 
-Search across **titles, content, tags and types**.
+### Notes & Research
 
-- **Free:** basic search (title / tag / type filtering).
-- **Pro (future):** consider full-text search with Postgres `tsvector` and ranking; possibly semantic search later.
+- Notes: standalone or in folders.
+- Research: notes, links, images, and files, in folders, optionally linked to a character, place, or scene.
 
-### D. Authentication
+### Trash & Archive
 
-- Email + password (credentials, passwords hashed with bcrypt/argon2)
-- GitHub OAuth
+- Deleted items go to **Trash** (restore or delete permanently).
+- Items can be **archived** and viewed (and unarchived) from an archive page.
 
-### E. Core Features
+### Projects & Settings
 
-- ⭐ Favorite items and collections
-- 📌 Pin items to the top
-- 🕒 Recently used items
-- 📥 Import code from a file
-- 📝 Markdown editor for text types, with syntax highlighting
-- 📎 File upload for File / Image types (Pro)
-- 📤 Export data — JSON / ZIP (Pro)
-- 🌙 Dark mode by default, light mode optional
+- Multiple projects per user, with a project switcher.
+- Create-project flow: pick a cover design and color (live recolor) or upload a cover image; enter author, title, subtitle.
+- Settings modal: project title, font, font size (10–18), line spacing (single / 1.5 / double), light/dark theme, labels (name + color); Save and Reset to default.
 
-### F. AI Features (Pro)
+### Account & Tools
 
-Powered by **Google Gemini `gemini-3.8-flash`**.
-
-| Feature | Description |
-| --- | --- |
-| 🏷️ Auto-tag suggestions | Suggest tags based on an item's content |
-| 📄 Summaries | Short summary of long notes, files or prompts |
-| 💡 Explain This Code | Plain-language explanation of a snippet or command |
-| ✨ Prompt Optimizer | Rewrite a prompt to be clearer and more effective |
+- Sign in / register with Clerk; avatar in the top navbar.
+- Export to PDF.
+- Demo account seeded with parts, chapters, scenes, plot lines, characters, and places.
+- Debounced autosave while writing.
 
 ---
 
 ## 4. Tech Stack
 
-| Layer | Choice | Notes |
-| --- | --- | --- |
-| Framework | **Next.js 16** + **React 19** | App Router, SSR pages with dynamic client components |
-| Language | **TypeScript** | End-to-end type safety |
-| Backend | Next.js API routes / Server Actions | Items CRUD, file uploads, AI calls |
-| Database | **Neon** (serverless PostgreSQL) | Cloud-hosted, with branching for dev |
-| ORM | **Prisma 7** | Uses `prisma.config.ts` + Neon driver adapter |
-| Caching | Redis *(optional, later)* | e.g. Upstash if needed |
-| File storage | **UploadThing** | Stores File/Image uploads; downloads go through a signed-URL proxy |
-| Auth | **Auth.js (NextAuth v5)** | Credentials + GitHub, Prisma adapter |
-| AI | **Google Gemini** `gemini-3.8-flash` | Pro features only; `@google/genai` SDK |
-| Payments | **Stripe** | Subscriptions (monthly / yearly) |
-| Styling | **Tailwind CSS v4** + **shadcn/ui** | Lucide icons |
-| Testing | **Vitest** | Unit tests for server actions and utilities (no component tests) |
-| Repo | Single codebase | Less overhead |
+| Layer        | Choice                              | Notes                                                                 |
+| ------------ | ----------------------------------- | --------------------------------------------------------------------- |
+| Framework    | **Next.js 16** + **React 19**       | App Router, SSR pages with dynamic client components                  |
+| Language     | **TypeScript**                      | End-to-end type safety                                                |
+| Backend      | Next.js Server Actions / API routes | Project, manuscript, plot CRUD; uploads; PDF export                   |
+| Database     | **Neon** (serverless PostgreSQL)    | Cloud-hosted, with branching for dev                                  |
+| ORM          | **Prisma 7**                        | Uses `prisma.config.ts` + Neon driver adapter                         |
+| File storage | **UploadThing**                     | Custom book covers and research images/files                          |
+| Auth         | **Clerk**                           | Sign-in / register pages, user avatar; users synced to DB by `clerkId` |
+| Editor       | **Tiptap**                          | Rich text, undo/redo; find/replace extension                          |
+| Drag & drop  | **dnd-kit**                         | Plot cards and tree reordering                                        |
+| Read aloud   | Web Speech API                      | Free, built into browsers                                             |
+| Thesaurus    | Datamuse API                        | Free; proxied through a server route                                  |
+| Spell check  | Browser spellcheck (or `nspell`)    | Start with native; swap if more control needed                        |
+| Styling      | **Tailwind CSS v4** + **shadcn/ui** | Lucide icons                                                          |
+| Testing      | **Vitest**                          | Unit tests for server actions and utilities (no component tests)      |
+| Repo         | Single codebase                     | Less overhead                                                         |
 
 ### Prisma 7 setup notes
 
@@ -181,157 +155,67 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 DATABASE_URL=              # pooled — used by the app
 DATABASE_URL_UNPOOLED=     # direct — used by Prisma CLI / migrations
 
-# Auth.js
-AUTH_SECRET=
-AUTH_GITHUB_ID=
-AUTH_GITHUB_SECRET=
-AUTH_URL=                  # app URL for email links; required in production
-
-# Email (Resend)
-RESEND_API_KEY=
-EMAIL_FROM=                # sender on a Resend-verified domain
-EMAIL_VERIFICATION_ENABLED= # "false" turns verification off; on by default
-
-# Rate limiting (Upstash Redis) — auth limits are skipped when unset
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register
+CLERK_WEBHOOK_SIGNING_SECRET=   # user.created / user.deleted sync
 
 # File storage (UploadThing)
 UPLOADTHING_TOKEN=
 
-# Google Gemini
-GEMINI_API_KEY=
-
-# Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_MONTHLY=
-STRIPE_PRICE_YEARLY=
-ENFORCE_PLANS=             # "true" turns on free-tier limits; anything else = everyone is Pro
-
-# Recruiter demo
-DEMO_ONLY_MODE=            # "true" turns off regular sign-in and registration; only Try the Demo works
-# NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is unused: hosted Checkout is a plain redirect
+# Demo account
+DEMO_USER_CLERK_ID=
 ```
 
 ---
 
 ## 5. Architecture
 
-```mermaid
-flowchart LR
-    subgraph Client["🖥️ Browser"]
-        UI["Next.js UI<br/>React 19 + shadcn/ui"]
-    end
-
-    subgraph Server["⚙️ Next.js 16 Server"]
-        RSC["Server Components<br/>(SSR pages)"]
-        API["API Routes /<br/>Server Actions"]
-        AUTH["Auth.js v5"]
-    end
-
-    subgraph Services["☁️ External Services"]
-        DB[("Neon<br/>PostgreSQL")]
-        UT[("UploadThing<br/>File storage")]
-        OAI["Google Gemini<br/>gemini-3.8-flash"]
-        STRIPE["Stripe"]
-        GH["GitHub OAuth"]
-        REDIS[("Redis<br/>(optional)")]
-    end
-
-    UI --> RSC
-    UI --> API
-    RSC -->|Prisma| DB
-    API -->|Prisma| DB
-    API -->|Upload checks, signed URLs| UT
-    UI -.->|Direct upload| UT
-    API --> OAI
-    API --> STRIPE
-    STRIPE -.->|Webhooks| API
-    AUTH --> GH
-    AUTH -->|Prisma adapter| DB
-    API -.-> REDIS
+```
+Browser (React client components: editor, tree, plot board)
+   │  Server Actions (debounced autosave, CRUD)
+   ▼
+Next.js server (App Router)
+   ├─ Clerk middleware → protects app routes, resolves userId
+   ├─ Server Actions / route handlers → Zod validation → Prisma
+   ├─ /api/thesaurus → Datamuse proxy
+   └─ /api/uploadthing → cover and research uploads
+   ▼
+Neon PostgreSQL (via Prisma + driver adapter)
 ```
 
-### File upload flow (Pro)
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant A as Next.js API
-    participant R as UploadThing
-    participant D as Neon DB
-
-    U->>A: Request upload (/api/uploadthing)
-    A->>A: Middleware: check auth, size/extension limits
-    A-->>U: Upload URL
-    U->>R: Upload file directly
-    R->>A: onUploadComplete: re-check stored file
-    A-->>U: Signed upload token (key, name, size, mime)
-    U->>A: createItem server action (with upload token)
-    A->>A: Verify token belongs to user and type
-    A->>D: Create Item (fileUrl, fileName, fileSize)
-    A-->>U: Item created ✅
-```
-
-### Stripe subscription flow
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant A as Next.js API
-    participant S as Stripe
-    participant D as Neon DB
-
-    U->>A: Click "Upgrade to Pro"
-    A->>S: Create Checkout Session
-    S-->>U: Redirect to Checkout
-    U->>S: Pay
-    S->>A: Webhook: checkout.session.completed
-    A->>D: isPro = true, save customer/subscription IDs
-    S->>A: Webhook: customer.subscription.deleted
-    A->>D: isPro = false
-```
+- **Server components** load the project tree and page data; **client components** handle the editor, drag and drop, and modals.
+- **Project scoping:** every query filters by the signed-in user's `userId` and the active `projectId`.
+- **Autosave:** the editor debounces changes (≈1–2 s idle, plus on blur and navigation, and a periodic flush during continuous typing), saves only the changed scene, and shows a Saving/Saved indicator. A local copy lets failed saves retry.
+- **Soft delete:** deleting sets `trashedAt` (and archiving sets `archivedAt`) instead of removing rows; "delete permanently" removes them. Trashing a part or chapter trashes its descendants.
+- **Ordering:** siblings are ordered by an integer `position`; reordering updates positions in one transaction.
+- **Word counts:** each scene stores its `wordCount`; project totals are sums. "Words today" comes from `DailyWordCount` snapshots.
+- **PDF export:** the book view is rendered with print styles (or a PDF library) from the same paginated content.
 
 ---
 
 ## 6. Data Model
 
-### Entity relationships
+### Entities
 
-```mermaid
-erDiagram
-    USER ||--o{ ITEM : owns
-    USER ||--o{ COLLECTION : owns
-    USER ||--o{ ITEM_TYPE : "creates (custom)"
-    USER ||--o{ TAG : owns
-    USER ||--o{ ACCOUNT : "auth accounts"
-    USER ||--o{ SESSION : sessions
+- **User** — mirrors a Clerk user (`clerkId`); owns projects.
+- **Project** — one book: title, subtitle, author, cover (design, color, or uploaded image), formatting settings, theme.
+- **ManuscriptNode** — a Part, Chapter, or Scene in a self-referencing tree. Scenes hold the content, summary, word count, and optional label.
+- **Character** / **Place** — sketches (Place links to related characters).
+- **PlotLine** → **PlotPoint** — plot points belong to a plot line, are ordered, and can link to a scene.
+- **Label** — name and color; applied to scenes and plot points.
+- **NoteFolder** / **Note**, **ResearchFolder** / **ResearchItem**.
+- **DailyWordCount** — snapshot of the project total at the start of each day, used to compute words today.
 
-    ITEM_TYPE ||--o{ ITEM : categorizes
-    ITEM_TYPE |o--o{ COLLECTION : "default type"
+### Design decisions
 
-    ITEM ||--o{ ITEM_COLLECTION : ""
-    COLLECTION ||--o{ ITEM_COLLECTION : ""
-
-    ITEM ||--o{ ITEM_TAG : ""
-    TAG ||--o{ ITEM_TAG : ""
-```
-
-### Design decisions & cleanup vs. original notes
-
-| Change | Why |
-| --- | --- |
-| `contentType` is an enum `TEXT \| URL \| FILE` | The notes list three kinds of content (text, url, file) but the draft field only allowed `text \| file` |
-| Added `slug` to `ItemType` | Powers routes like `/items/snippets` |
-| Added `lastUsedAt` to `Item` | Needed for the "Recently used" feature |
-| Added `fileMimeType` to `Item` | Needed to validate uploads and render images/files correctly |
-| `Tag` is scoped to a user, with an explicit `ItemTag` join table | Tags are personal; many-to-many between items and tags |
-| Added `password` to `User` | Required for email/password sign-in (stored hashed) |
-| Added `stripeCurrentPeriodEnd` to `User` | Lets you check Pro access without calling Stripe on every request |
-| Added Auth.js tables (`Account`, `Session`, `VerificationToken`) | Required by the Auth.js Prisma adapter |
-| System types have `userId = null` and `isSystem = true` | Shared across all users, seeded once |
-| `onDelete: Cascade` on user-owned data | Deleting a user or item cleans up joins automatically |
+- **One tree table for the manuscript** (rather than Part/Chapter/Scene tables) so rename, reorder, trash, and archive logic is shared. A `type` enum and validation rules keep the hierarchy valid (Part → Chapter → Scene; chapters can sit directly under the book).
+- **Editor content stored as Tiptap JSON** (`Json`), plus plain-text word count for stats.
+- **Trash/archive as nullable timestamps** on each entity, not separate tables, so restoring is a single update.
+- **Settings as columns on Project** (font, size, line spacing, theme) with defaults, so "Reset to default" just rewrites defaults.
+- **Plot point ↔ scene** is one-to-one: `PlotPoint.sceneId` is optional and unique, so a scene has at most one plot point and a plot point links to at most one scene.
 
 ---
 
@@ -354,300 +238,347 @@ datasource db {
 // Enums
 // ─────────────────────────────────────────────
 
-enum ContentType {
-  TEXT
-  URL
+enum NodeType {
+  PART
+  CHAPTER
+  SCENE
+}
+
+enum CharacterRole {
+  MAIN
+  SUPPORTING
+}
+
+enum ResearchType {
+  NOTE
+  LINK
+  IMAGE
   FILE
 }
 
+enum Theme {
+  LIGHT
+  DARK
+}
+
+enum LineSpacing {
+  SINGLE
+  ONE_AND_HALF
+  DOUBLE
+}
+
 // ─────────────────────────────────────────────
-// Auth.js (NextAuth v5) models
+// Users & projects
 // ─────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String? // hashed; null for OAuth-only users
-
-  // Billing
-  isPro                  Boolean   @default(false)
-  stripeCustomerId       String?   @unique
-  stripeSubscriptionId   String?   @unique
-  stripeCurrentPeriodEnd DateTime?
-
-  // Code editor settings; null until the user changes one, then defaults fill the gaps
-  editorPreferences Json?
-
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String?  @unique
+  name      String?
+  isDemo    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts    Account[]
-  sessions    Session[]
-  items       Item[]
-  collections Collection[]
-  itemTypes   ItemType[]
-  tags        Tag[]
+  projects Project[]
 }
 
-model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
+model Project {
+  id       String  @id @default(cuid())
+  userId   String
+  title    String
+  subtitle String?
+  author   String
+
+  // Cover: a design + color, or an uploaded image
+  coverDesign   String  @default("classic")
+  coverColor    String  @default("#1e3a5f")
+  coverImageUrl String?
+
+  // Formatting settings
+  fontFamily  String      @default("Georgia")
+  fontSize    Int         @default(12) // 10–18
+  lineSpacing LineSpacing @default(DOUBLE)
+  theme       Theme       @default(LIGHT)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([provider, providerAccountId])
-  @@index([userId])
-}
-
-model Session {
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes          ManuscriptNode[]
+  characters     Character[]
+  places         Place[]
+  plotLines      PlotLine[]
+  labels         Label[]
+  noteFolders    NoteFolder[]
+  notes          Note[]
+  researchFolders ResearchFolder[]
+  researchItems  ResearchItem[]
+  dailyWordCounts DailyWordCount[]
 
   @@index([userId])
 }
 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
+model Label {
+  id        String  @id @default(cuid())
+  projectId String
+  name      String
+  color     String
 
-  @@id([identifier, token])
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nodes      ManuscriptNode[]
+  plotPoints PlotPoint[]
+
+  @@index([projectId])
 }
 
 // ─────────────────────────────────────────────
-// DevStash models
+// Manuscript
 // ─────────────────────────────────────────────
 
-model ItemType {
-  id          String      @id @default(cuid())
-  name        String // "Snippet"
-  slug        String // "snippets" → /items/snippets
-  icon        String // Lucide icon name, e.g. "Code"
-  color       String // hex, e.g. "#3b82f6"
-  contentType ContentType
-  isSystem    Boolean     @default(false)
-  isProOnly   Boolean     @default(false)
+model ManuscriptNode {
+  id        String   @id @default(cuid())
+  projectId String
+  parentId  String?
+  type      NodeType
+  title     String
+  position  Int      @default(0)
 
-  userId String? // null for system types
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Scene-only fields
+  content   Json?
+  summary   String?
+  wordCount Int      @default(0)
+  labelId   String?
 
-  items              Item[]
-  defaultCollections Collection[] @relation("CollectionDefaultType")
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent     ManuscriptNode?  @relation("NodeTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children   ManuscriptNode[] @relation("NodeTree")
+  label      Label?           @relation(fields: [labelId], references: [id], onDelete: SetNull)
+  plotPoint  PlotPoint?
 
-  @@unique([userId, slug])
-  @@index([userId])
+  @@index([projectId, parentId, position])
 }
 
-model Item {
-  id          String      @id @default(cuid())
+// ─────────────────────────────────────────────
+// Characters & places
+// ─────────────────────────────────────────────
+
+model Character {
+  id        String        @id @default(cuid())
+  projectId String
+  role      CharacterRole @default(MAIN)
+  name      String
+  age       String?
+  location  String?
+
+  roleInStory        String?
+  goal               String?
+  physicalDescription String?
+  personality        String?
+  occupation         String?
+  habits             String?
+  background         String?
+  internalConflicts  String?
+  externalConflicts  String?
+  notes              String?
+
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  places  Place[] @relation("PlaceCharacters")
+
+  @@index([projectId, role])
+}
+
+model Place {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+  location  String?
+
+  roleInStory    String?
+  season         String?
+  uniqueFeatures String?
+  description    String?
+  sights         String?
+  sounds         String?
+  smell          String?
+  notes          String?
+
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project           Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  relatedCharacters Character[] @relation("PlaceCharacters")
+
+  @@index([projectId])
+}
+
+// ─────────────────────────────────────────────
+// Plot
+// ─────────────────────────────────────────────
+
+model PlotLine {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+  color     String?
+  position  Int    @default(0)
+
+  trashedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  points  PlotPoint[]
+
+  @@index([projectId, position])
+}
+
+model PlotPoint {
+  id          String  @id @default(cuid())
+  plotLineId  String
+  sceneId     String? @unique // one-to-one link to a scene in the plot grid
+  labelId     String?
   title       String
   description String?
-  contentType ContentType
+  position    Int     @default(0)
 
-  // TEXT
-  content  String? // markdown / code; null for files
-  language String? // optional, for syntax highlighting
+  trashedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  // URL
-  url String?
+  plotLine PlotLine         @relation(fields: [plotLineId], references: [id], onDelete: Cascade)
+  scene    ManuscriptNode?  @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  label    Label?           @relation(fields: [labelId], references: [id], onDelete: SetNull)
 
-  // FILE
-  fileUrl      String? // UploadThing file key
-  fileName     String? // original filename
-  fileSize     Int? // bytes
-  fileMimeType String?
-
-  isFavorite Boolean   @default(false)
-  isPinned   Boolean   @default(false)
-  lastUsedAt DateTime?
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  itemTypeId String
-  itemType   ItemType @relation(fields: [itemTypeId], references: [id])
-
-  collections ItemCollection[]
-  tags        ItemTag[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([userId, itemTypeId])
-  @@index([userId, isPinned])
-  @@index([userId, lastUsedAt])
-  @@index([itemTypeId])
+  @@index([plotLineId, position])
 }
 
-model Collection {
-  id          String  @id @default(cuid())
-  name        String // "React Hooks", "Prototype Prompts"
+// ─────────────────────────────────────────────
+// Notes & research
+// ─────────────────────────────────────────────
+
+model NoteFolder {
+  id        String  @id @default(cuid())
+  projectId String
+  parentId  String?
+  name      String
+
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   NoteFolder?  @relation("NoteFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children NoteFolder[] @relation("NoteFolderTree")
+  notes    Note[]
+
+  @@index([projectId])
+}
+
+model Note {
+  id        String  @id @default(cuid())
+  projectId String
+  folderId  String?
+  title     String
+  content   Json?
+
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder  NoteFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, folderId])
+}
+
+model ResearchFolder {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   ResearchItem[]
+
+  @@index([projectId])
+}
+
+model ResearchItem {
+  id          String       @id @default(cuid())
+  projectId   String
+  folderId    String?
+  type        ResearchType
+  title       String
+  content     Json?   // for NOTE
+  url         String? // for LINK, IMAGE, FILE
   description String?
-  isFavorite  Boolean @default(false)
 
-  // Used to color the card when the collection has no items yet
-  defaultTypeId String?
-  defaultType   ItemType? @relation("CollectionDefaultType", fields: [defaultTypeId], references: [id], onDelete: SetNull)
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder  ResearchFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
-  items ItemCollection[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([defaultTypeId])
+  @@index([projectId, folderId])
 }
 
-model ItemCollection {
-  itemId       String
-  collectionId String
-  addedAt      DateTime @default(now())
+// ─────────────────────────────────────────────
+// Stats
+// ─────────────────────────────────────────────
 
-  item       Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+model DailyWordCount {
+  id        String   @id @default(cuid())
+  projectId String
+  date      DateTime @db.Date
+  startTotal Int     // project word total at the start of the day
 
-  @@id([itemId, collectionId])
-  @@index([collectionId])
-}
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-model Tag {
-  id   String @id @default(cuid())
-  name String
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  items ItemTag[]
-
-  createdAt DateTime @default(now())
-
-  @@unique([userId, name])
-}
-
-model ItemTag {
-  itemId String
-  tagId  String
-
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([itemId, tagId])
-  @@index([tagId])
+  @@unique([projectId, date])
 }
 ```
-
-### Seed: system item types
-
-```ts
-// prisma/seed.ts
-const systemTypes = [
-  { name: "Snippet", slug: "snippets", icon: "Code",       color: "#3b82f6", contentType: "TEXT", isProOnly: false },
-  { name: "Prompt",  slug: "prompts",  icon: "Sparkles",   color: "#8b5cf6", contentType: "TEXT", isProOnly: false },
-  { name: "Command", slug: "commands", icon: "Terminal",   color: "#f97316", contentType: "TEXT", isProOnly: false },
-  { name: "Note",    slug: "notes",    icon: "StickyNote", color: "#fde047", contentType: "TEXT", isProOnly: false },
-  { name: "Link",    slug: "links",    icon: "Link",       color: "#10b981", contentType: "URL",  isProOnly: false },
-  { name: "File",    slug: "files",    icon: "File",       color: "#6b7280", contentType: "FILE", isProOnly: true  },
-  { name: "Image",   slug: "images",   icon: "Image",      color: "#ec4899", contentType: "FILE", isProOnly: true  },
-] as const;
-// Upsert each with isSystem: true and userId: null
-```
-
-> ⚠️ Postgres treats `NULL`s as distinct in unique constraints, so `@@unique([userId, slug])` won't stop duplicate system types. Make the seed idempotent (look up by `slug` where `userId IS NULL` before creating).
 
 ---
 
 ## 8. Routes
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Marketing / landing page |
-| `/sign-in`, `/register` | Auth |
-| `/forgot-password`, `/reset-password` | Request and complete a password reset |
-| `/verify-email` | Email verification link handler |
-| `/dashboard` | Collections grid + recent / pinned items |
-| `/items/[type]` | All items of a type, e.g. `/items/snippets` |
-| `/collections` | All collections |
-| `/collections/[id]` | Items in a collection |
-| `/search?q=` | Search results |
-| `/profile` | User info, usage stats, change password, delete account |
-| `/settings` | Editor preferences, plan & billing (Stripe Checkout / customer portal), account |
-| `/api/auth/[...nextauth]` | Auth.js handlers |
-| `/api/items/[id]/file` | File download proxy (signed UploadThing URL) |
-| `/api/uploadthing` | UploadThing file router (auth and limit checks) |
-| `/api/ai/*` | Tag suggestions, summaries, explain, prompt optimizer |
-| `/api/webhooks/stripe` | Stripe webhooks |
+| Route                                  | Purpose                                              |
+| -------------------------------------- | ---------------------------------------------------- |
+| `/`                                    | Landing page (redirects to projects when signed in)  |
+| `/(auth)/sign-in`                      | Clerk sign-in                                        |
+| `/(auth)/register`                     | Clerk sign-up                                        |
+| `/projects`                            | Project list, switcher, create project               |
+| `/projects/[projectId]/manuscript`     | Manuscript tree + scene editor                       |
+| `/projects/[projectId]/manuscript/book`| Paginated book view                                  |
+| `/projects/[projectId]/characters`     | Character sketches (main / supporting)               |
+| `/projects/[projectId]/places`         | Place cards                                          |
+| `/projects/[projectId]/plot`           | Plot points, scene cards, and plot lines grid        |
+| `/projects/[projectId]/notes`          | Notes and folders                                    |
+| `/projects/[projectId]/research`       | Research items                                       |
+| `/projects/[projectId]/archive`        | Archived items                                       |
+| `/projects/[projectId]/trash`          | Trashed items (restore / delete permanently)         |
+| `/api/thesaurus`                       | Datamuse proxy                                       |
+| `/api/uploadthing`                     | UploadThing handler                                  |
+| `/api/webhooks/clerk`                  | Clerk user sync                                      |
 
-API routes are only for endpoints that need a real URL (OAuth and UploadThing callbacks, webhooks, file responses). The app's own client components load and change data through server actions in `src/actions/`, e.g. registration (`registerUser`), item drawer details (`getItem`) and collection picker options (`getCollectionOptions`).
-
-Individual items open in a **drawer** over the current page (optionally reflected in the URL, e.g. `?item=<id>`, so they're shareable and survive refresh).
+Project settings open as a modal, not a route. Individual scenes, characters, and places are selected via the sidebar (optionally with a `?id=` query param or nested segment).
 
 ---
 
 ## 9. Monetization
 
-Freemium model.
-
-| | **Free** | **Pro** — $8/mo or $72/yr |
-| --- | --- | --- |
-| Items | 50 total | Unlimited |
-| Collections | 3 | Unlimited |
-| System types | All except File & Image | All |
-| File & Image uploads | ❌ | ✅ |
-| Custom types | ❌ | ✅ *(later)* |
-| Search | Basic | Basic *(full-text later)* |
-| AI auto-tagging | ❌ | ✅ |
-| AI summaries | ❌ | ✅ |
-| AI code explanation | ❌ | ✅ |
-| AI prompt optimizer | ❌ | ✅ |
-| Export (JSON / ZIP) | ❌ | ✅ |
-| Priority support | ❌ | ✅ |
-
-The yearly plan works out to **25% off** ($6/mo).
-
-### Development mode
-
-Build the Pro foundation now (flags, checks, Stripe wiring), but **let all users access everything during development**. Centralize the gating in one place so it's easy to switch on:
-
-```ts
-// src/lib/usage-limits.ts
-export const FREE_LIMITS = { items: 50, collections: 3 } as const;
-
-// Read on each call so tests can switch it with vi.stubEnv
-export function hasProAccess(user: { isPro: boolean }) {
-  if (process.env.ENFORCE_PLANS !== "true") return true; // everyone is Pro during development
-  return user.isPro;
-}
-```
-
-Enforce limits **on the server** (API routes / server actions), not just in the UI.
+Not decided. The app starts free. If monetization is added later, likely levers are the number of projects, cover/research file storage, and PDF export; Stripe subscriptions would be the natural fit.
 
 ---
 
@@ -655,72 +586,19 @@ Enforce limits **on the server** (API routes / server actions), not just in the 
 
 ### General
 
-- Modern, minimal, developer-focused
-- **Dark mode by default**, light mode optional
+- Calm, distraction-free, writer-focused
+- **Light mode by default**, dark mode optional (per-project setting)
 - Clean typography, generous whitespace
 - Subtle borders and shadows
-- Syntax highlighting for code blocks (e.g. Shiki)
-- Inspiration: [Notion](https://www.notion.so), [Linear](https://linear.app), [Raycast](https://www.raycast.com)
 
 ### Layout
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│  🔍 Search…                                  [+ New]  (👤)   │
-├────────────────┬─────────────────────────────────────────────┤
-│  SIDEBAR       │  MAIN                                       │
-│                │                                             │
-│  Types         │  Collections                                │
-│  </> Snippets  │  ┌──────────┐ ┌──────────┐ ┌──────────┐     │
-│  ✨ Prompts    │  │ React    │ │ Prompts  │ │ Context  │     │
-│  >_ Commands   │  │ Patterns │ │ Library  │ │ Files    │     │
-│  📝 Notes      │  │ (blue bg)│ │(purple)  │ │ (gray)   │     │
-│  🔗 Links      │  └──────────┘ └──────────┘ └──────────┘     │
-│  📄 Files  PRO │                                             │
-│  🖼️ Images PRO │  Pinned / Recent items                      │
-│                │  ┌─────────────┐ ┌─────────────┐            │
-│  Collections   │  ┃ useDebounce │ ┃ git reset…  │            │
-│  • React…      │  ┃ blue border │ ┃ orange bdr  │            │
-│  • Prompts…    │  └─────────────┘ └─────────────┘            │
-│                │                                             │
-│  [«] collapse  │                    ┌──────────────────────┐ │
-│                │                    │ ITEM DRAWER →        │ │
-└────────────────┴────────────────────┴──────────────────────┘─┘
-```
-
-- **Sidebar** (collapsible): item types linking to `/items/[type]`, plus latest collections.
-- **Main:** grid of collection cards. Each card's **background color** comes from the item type it contains most of (falls back to `defaultTypeId` when empty).
-- **Item cards** show below collections with a **border color** matching their type.
-- **Items open in a drawer** for quick view and edit.
-
-### Type colors & icons
-
-Icons come from [Lucide](https://lucide.dev/icons) (bundled with shadcn/ui).
-
-| Type | Lucide icon | Color |
-| --- | --- | --- |
-| Snippet | [`Code`](https://lucide.dev/icons/code) | `#3b82f6` |
-| Prompt | [`Sparkles`](https://lucide.dev/icons/sparkles) | `#8b5cf6` |
-| Command | [`Terminal`](https://lucide.dev/icons/terminal) | `#f97316` |
-| Note | [`StickyNote`](https://lucide.dev/icons/sticky-note) | `#fde047` |
-| File | [`File`](https://lucide.dev/icons/file) | `#6b7280` |
-| Image | [`Image`](https://lucide.dev/icons/image) | `#ec4899` |
-| Link | [`Link`](https://lucide.dev/icons/link) | `#10b981` |
-
-> 💡 Yellow `#fde047` is very light — use dark text on it and check contrast in light mode.
-
-### Responsive
-
-- Desktop-first, but usable on mobile
-- Sidebar becomes a drawer (shadcn `Sheet`) on small screens
-
-### Micro-interactions
-
-- Smooth transitions
-- Hover states on cards
-- Toast notifications for actions (shadcn `Sonner`)
-- Loading skeletons (shadcn `Skeleton`)
-- *Nice-to-have:* `⌘K` command palette (shadcn `Command`) for search and quick-create — fits the Raycast/Linear feel
+- **Left sidebar:** collapsible tree/list for the current page; becomes a drawer on small screens.
+- **Right sidebar:** contextual panel (plot connections in the scene editor); also collapsible.
+- **Top navbar:** project switcher, spell check, **Export to PDF**, settings, Clerk avatar (right side).
+- **Editor:** breadcrumbs, then toolbar (undo/redo, find & replace, font size, thesaurus, read aloud), then the writing area, then a stats footer.
+- **Book view:** page-shaped panels with a title page first.
+- Plot cards support drag and drop; ellipsis menus hold per-card actions (trash).
 
 ---
 
@@ -740,41 +618,42 @@ npx prisma migrate deploy
 
 Other conventions:
 
-- All data access is scoped by `userId` — never trust client-supplied ownership.
+- All data access is scoped by `userId` (and `projectId`) — never trust client-supplied ownership.
 - Validate all input with a schema library (e.g. Zod) on the server.
-- Plan/limit checks live in `src/lib/usage-limits.ts` and run server-side.
+- Deleting moves items to trash (`trashedAt`); only "delete permanently" removes rows.
 - Use Neon branches for dev/preview databases so migrations can be tested before prod.
 - Unit test server actions and utilities with Vitest (`npm test`); tests mock the database and never touch Neon.
+- This Next.js version has breaking changes — read the relevant guide in `node_modules/next/dist/docs/` before writing code (see `AGENTS.md`).
 
 ---
 
 ## 12. Open Questions
 
-- **Search:** is Postgres full-text search enough, or is semantic (embedding) search worth it later?
-- **File limits:** max file size and allowed MIME types for uploads?
-- **Downgrade behavior:** what happens to a Pro user's files, extra items and collections if they cancel? (Read-only is a common choice.)
-- **Custom types:** can users pick any Lucide icon and color? Which content kinds can they use?
-- **Tags vs. AI tags:** should AI suggestions be auto-applied or require confirmation?
-- **Redis:** is caching actually needed at launch, or defer until there's a measured bottleneck?
-- **Sharing:** will items/collections ever be shareable publicly or with teams?
+- **Research page:** is the proposed note/link/image/file model right?
+- **Autosave cadence:** confirm the debounce interval (≈1–2 s) and periodic flush.
+- **PDF export:** browser print styles or a PDF library?
+- **Spell check:** native browser spellcheck, or `nspell` for control?
+- **Book view:** should each chapter start on a new page?
+- **Collaboration and monetization:** needed later?
 
 ---
 
 ## 13. Reference Links
 
-| Area | Link |
-| --- | --- |
-| Next.js | https://nextjs.org/docs |
-| React | https://react.dev |
-| Prisma 7 docs | https://www.prisma.io/docs |
-| Prisma 7 upgrade guide | https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7 |
-| Prisma config reference | https://www.prisma.io/docs/orm/v7/reference/prisma-config-reference |
-| Neon + Prisma | https://neon.com/docs/guides/prisma |
-| Auth.js (NextAuth v5) | https://authjs.dev |
-| Auth.js Prisma adapter | https://authjs.dev/getting-started/adapters/prisma |
-| UploadThing | https://docs.uploadthing.com |
-| Gemini API | https://ai.google.dev/gemini-api/docs |
-| Stripe Billing | https://docs.stripe.com/billing |
-| Tailwind CSS v4 | https://tailwindcss.com/docs |
-| shadcn/ui | https://ui.shadcn.com |
-| Lucide icons | https://lucide.dev/icons |
+| Area                    | Link                                                                 |
+| ----------------------- | -------------------------------------------------------------------- |
+| Next.js                 | https://nextjs.org/docs                                              |
+| React                   | https://react.dev                                                    |
+| Prisma 7 docs           | https://www.prisma.io/docs                                           |
+| Prisma 7 upgrade guide  | https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7              |
+| Prisma config reference | https://www.prisma.io/docs/orm/v7/reference/prisma-config-reference  |
+| Neon + Prisma           | https://neon.com/docs/guides/prisma                                  |
+| Clerk (Next.js)         | https://clerk.com/docs/nextjs                                        |
+| UploadThing             | https://docs.uploadthing.com                                         |
+| Tiptap                  | https://tiptap.dev/docs                                              |
+| dnd-kit                 | https://docs.dndkit.com                                              |
+| Web Speech API          | https://developer.mozilla.org/docs/Web/API/Web_Speech_API            |
+| Datamuse API            | https://www.datamuse.com/api                                         |
+| Tailwind CSS v4         | https://tailwindcss.com/docs                                         |
+| shadcn/ui               | https://ui.shadcn.com                                                |
+| Lucide icons            | https://lucide.dev/icons                                             |
