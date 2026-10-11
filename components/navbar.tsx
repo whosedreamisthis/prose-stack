@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Show, UserButton } from "@clerk/nextjs";
 import { Logo } from "@/components/layout/Logo";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { ProjectNavActions } from "@/components/layout/ProjectNavActions";
 import { ProjectSwitcher } from "@/components/projects/ProjectSwitcher";
 import { getCurrentUser } from "@/lib/auth";
@@ -28,11 +28,7 @@ export function Navbar() {
         <Suspense>
           <ProjectNavActions />
         </Suspense>
-        <Suspense>
-          <Show when="signed-in">
-            <UserButton />
-          </Show>
-        </Suspense>
+        <UserMenu />
       </div>
     </header>
   );
