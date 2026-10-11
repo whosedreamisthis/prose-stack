@@ -8,12 +8,18 @@ Let writers add scenes, chapters and parts and rename any item from the tree. Us
 
 ## Requirements
 
+### Row menus
+- Every row has a "…" button on its right, visible only while the row is hovered or focused (or its menu is open).
+- Book: Add part, Add chapter, Expand all, Collapse all.
+- Part: Add chapter, Rename.
+- Chapter: Add scene, Rename.
+- Scene: Rename. More options (move, delete, label) arrive with later features.
+- Closing a menu does not return focus to its button, so a rename started from the menu keeps focus in its input.
+
 ### Add
-- An **Add scene** button at the end of each chapter's children.
-- The header **Add** menu creates a part or a chapter at the end of the book.
-- Each part has an **Add chapter** button at the end of its children.
+- Add is done from the row menus above. Each part also keeps an **Add chapter** row at the end of its children; chapters have no add button at the bottom.
 - Titles are numbered per sibling group ("Chapter 3", "Scene 2"); new items go at the end of their parent.
-- A new item is selected: a new scene opens in the editor; a new chapter or part starts renaming immediately.
+- Every new item starts in rename mode with its title selected and focused; a new scene also opens in the editor.
 - The server enforces the hierarchy whatever the client sends.
 
 ### Rename
@@ -23,7 +29,7 @@ Let writers add scenes, chapters and parts and rename any item from the tree. Us
 
 ## Accessibility
 
-- Add buttons have labels ("Add scene to Chapter 2").
+- Row menu buttons are labelled ("Chapter 2 options") and reachable by keyboard.
 - The rename input is labelled and focused on entry; focus returns to the row on exit.
 
 ## Acceptance criteria

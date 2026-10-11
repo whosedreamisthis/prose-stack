@@ -10,7 +10,7 @@ Replace the placeholder in `@left/manuscript/page.tsx` with a read-only, collaps
 
 - Hierarchy: Book → Part → Chapter → Scene. Chapters may sit directly under the book; parts are optional.
 - Load the tree without scene content (`getManuscript`).
-- The root row is the book (the project title) with a chevron: collapsing it hides the whole tree. It replaces a separate "Manuscript" header.
+- The root row is the book (the project title) with a chevron: collapsing it hides the whole tree. It replaces a separate "Manuscript" header. Rows show an icon for their type (book, part, chapter, scene); hovering a book, part or chapter swaps it for a chevron (down = collapse, right = expand).
 - A **Book view** row at the top links to `/projects/[projectId]/manuscript/book`.
 - Parts and chapters show a chevron and collapse/expand. Scenes are links to `/projects/[projectId]/manuscript?scene=<id>`.
 - The open scene is highlighted. With no `?scene=` (or an unknown id) the first scene in reading order opens (`resolveActiveScene`).

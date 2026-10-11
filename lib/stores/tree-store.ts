@@ -4,6 +4,8 @@ interface TreeStore {
   /** Ids of collapsed parts and chapters. Per browser session: not persisted. */
   collapsed: Record<string, true>;
   toggle: (id: string, collapse?: boolean) => void;
+  expandAll: () => void;
+  collapseAll: (ids: string[]) => void;
 }
 
 export const useTreeStore = create<TreeStore>((set) => ({
@@ -16,4 +18,6 @@ export const useTreeStore = create<TreeStore>((set) => ({
       else delete next[id];
       return { collapsed: next };
     }),
+  expandAll: () => set({ collapsed: {} }),
+  collapseAll: (ids) => set({ collapsed: Object.fromEntries(ids.map((id) => [id, true as const])) }),
 }));

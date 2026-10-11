@@ -11,6 +11,7 @@ Not Started
 - Hierarchy: Book → Part → Chapter → Scene (chapters may sit directly under the book; parts optional).
 - Load the tree without scene content (`getManuscript`).
 - The root row is the book (the project title) with a chevron: collapsing it hides the whole tree. It replaces a separate "Manuscript" header.
+- Rows show an icon for their type (book, part, chapter, scene); hovering a book, part or chapter swaps it for a chevron (down = collapse, right = expand).
 - "Book view" row at the top links to `/projects/[projectId]/manuscript/book`.
 - Parts and chapters have a chevron and collapse/expand; scenes link to `/projects/[projectId]/manuscript?scene=<id>`.
 - Highlight the open scene; with no `?scene=` (or an unknown id) the first scene in reading order opens (`resolveActiveScene`).
