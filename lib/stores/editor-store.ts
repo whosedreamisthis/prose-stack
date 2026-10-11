@@ -18,6 +18,8 @@ interface EditorStore {
   setLiveWords: (words: number | null) => void;
   findOpen: boolean;
   setFindOpen: (open: boolean) => void;
+  thesaurusOpen: boolean;
+  setThesaurusOpen: (open: boolean) => void;
   speech: SpeechState;
   setSpeech: (state: SpeechState) => void;
   /** Writing-area font size in points. Remembered in this browser. */
@@ -39,6 +41,8 @@ export const useEditorStore = create<EditorStore>()(
       setLiveWords: (liveWords) => set({ liveWords }),
       findOpen: false,
       setFindOpen: (findOpen) => set({ findOpen }),
+      thesaurusOpen: false,
+      setThesaurusOpen: (thesaurusOpen) => set({ thesaurusOpen }),
       speech: "idle",
       setSpeech: (speech) => set({ speech }),
       fontSize: 14,

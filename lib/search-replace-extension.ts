@@ -34,6 +34,16 @@ export function findMatches(doc: PMNode, term: string, caseSensitive: boolean): 
   return matches;
 }
 
+/** Replaces every match in `tr`, back to front so earlier positions stay valid as the text changes length. */
+export function replaceMatches<T extends { insertText: (text: string, from: number, to: number) => unknown }>(
+  tr: T,
+  matches: SearchMatch[],
+  replacement: string,
+) {
+  for (const m of [...matches].reverse()) tr.insertText(replacement, m.from, m.to);
+  return tr;
+}
+
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     searchReplace: {
@@ -81,11 +91,7 @@ export const SearchReplace = Extension.create({
           if (!s) return false;
           const matches = findMatches(state.doc, s.term, s.caseSensitive);
           if (matches.length === 0) return false;
-          if (dispatch) {
-            // Back to front, so earlier positions stay valid as the text changes length.
-            for (const m of [...matches].reverse()) tr.insertText(replacement, m.from, m.to);
-            dispatch(tr);
-          }
+          if (dispatch) dispatch(replaceMatches(tr, matches, replacement));
           return true;
         },
     };

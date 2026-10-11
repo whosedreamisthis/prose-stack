@@ -163,3 +163,14 @@
     @apply font-sans;
   }
 }
+/* Find and replace highlights in the editor. */
+.search-match {
+  background: color-mix(in oklab, var(--primary) 30%, transparent);
+  border-radius: 2px;
+}
+.search-match-current {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
