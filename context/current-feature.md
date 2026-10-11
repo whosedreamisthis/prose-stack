@@ -1,30 +1,21 @@
-# Current Feature: Manuscript Tree: Display & Navigation
+# Current Feature: Manuscript Tree: Drag & Drop Reorder
 
-Replace the placeholder in `@left/manuscript/page.tsx` with a read-only, collapsible outline of the manuscript. Spec: `context/features/manuscript-tree-display-spec.md` (part 1 of 3 of `manuscript-tree-spec.md`; followed by `manuscript-tree-edit-spec.md` and `manuscript-tree-dnd-spec.md`).
+Reorder parts, chapters and scenes by dragging in the tree (dnd-kit). Spec: `context/features/manuscript-tree-dnd-spec.md` (part 3 of 3 of `manuscript-tree-spec.md`; display and add/rename are done).
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-- Hierarchy: Book → Part → Chapter → Scene (chapters may sit directly under the book; parts optional).
-- Load the tree without scene content (`getManuscript`).
-- The root row is the book (the project title) with a chevron: collapsing it hides the whole tree. It replaces a separate "Manuscript" header.
-- Rows show an icon for their type (book, part, chapter, scene); hovering a book, part or chapter swaps it for a chevron (down = collapse, right = expand).
-- "Book view" row at the top links to `/projects/[projectId]/manuscript/book`.
-- Parts and chapters have a chevron and collapse/expand; scenes link to `/projects/[projectId]/manuscript?scene=<id>`.
-- Highlight the open scene; with no `?scene=` (or an unknown id) the first scene in reading order opens (`resolveActiveScene`).
-- Collapsed state is per browser session (not saved).
-- Long titles truncate with an ellipsis; full title as tooltip.
-- In the mobile drawer, choosing a scene closes the drawer.
-- Older projects get Chapter 1 / Scene 1 the first time the manuscript opens (`seedManuscript`).
-- Accessibility: `role="tree"`, rows `role="treeitem"` with `aria-expanded` (parts/chapters), `aria-current="page"` on the open scene; arrow keys move focus, Left/Right collapse/expand (including the root), Enter opens a scene or toggles a parent.
-- Acceptance: tree matches data and nesting after reload; navigating via the tree changes the editor scene and highlight; unit tests for any new tree-building/active-scene helpers.
+- Drag handle (grip icon) on each part, chapter and scene; keyboard dragging (space to pick up, arrows to move, space to drop); dnd-kit announcements.
+- Drop rules: scene on scene (next to it, in that chapter), scene on chapter (end of it), chapter on chapter (reorder), chapter on part (end of it), part on part (reorder); anything else does nothing.
+- Optimistic update (`applyMove`), then `moveNode` renumbers the affected sibling groups in one transaction; rollback with a toast on rejection.
+- Drag handles labelled ("Reorder Chapter 2").
+- Acceptance: reorders persist across reload; no gaps or duplicate positions after cross-chapter moves; failed move restores the tree with an error toast; unit tests cover move planning and drop resolution.
 
 ## Notes
 
-- Already built: `actions/manuscript.ts` (createNode, renameNode, moveNode), `lib/manuscript-tree.ts` (planMove, applyMove, resolveActiveScene, resolveDrop), `lib/manuscript.ts` (getManuscript, seedManuscript), dnd-kit packages installed.
-- Out of scope: add, rename, reorder, delete (follow-up specs; delete arrives with Trash & Archive).
-- Open questions: remember collapsed state per project in localStorage? Per-chapter word counts?
-- Parent feature "Manuscript" (editor, autosave, book view) remains tracked in `context/features/manuscript-spec.md`.
+- Already built: `planMove`, `applyMove`, `resolveDrop` (`lib/manuscript-tree.ts`, tested) and `moveNode` (`actions/manuscript.ts`, tested); UI wired in `components/manuscript/ManuscriptTree.tsx` with the classic `@dnd-kit/core` + `@dnd-kit/sortable` packages (not `@dnd-kit/react`).
+- Decision: dropping into a collapsed parent expands it.
+- Out of scope: hover-to-expand while dragging, multi-select.

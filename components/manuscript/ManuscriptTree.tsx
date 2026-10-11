@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useId,
   useOptimistic,
   useRef,
   useState,
@@ -20,6 +21,7 @@ import {
   ChevronsDownUpIcon,
   ChevronsUpDownIcon,
   FileTextIcon,
+  GripVerticalIcon,
   LayersIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -27,7 +29,23 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { createNode, renameNode } from "@/actions/manuscript";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  type SortingStrategy,
+} from "@dnd-kit/sortable";
+import { createNode, moveNode, renameNode } from "@/actions/manuscript";
 import { TitleEditor } from "@/components/manuscript/TitleEditor";
 import {
   DropdownMenu,
@@ -37,14 +55,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
-import { childrenOf, resolveActiveScene } from "@/lib/manuscript-tree";
+import {
+  applyMove,
+  childrenOf,
+  planMove,
+  resolveActiveScene,
+  resolveDrop,
+  type MovePlan,
+} from "@/lib/manuscript-tree";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
 import { cn } from "@/lib/utils";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
 
 const rowClass =
-  "flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring";
+  "flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent focus-visible:ring-2 focus-visible:ring-ring";
 
 const ROOT_KEY = "root";
 
@@ -89,7 +114,7 @@ function RowMenu({ label, children }: { label: string; children: ReactNode }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label}
-        className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded text-muted-foreground opacity-0 outline-none group-focus-within/item:opacity-100 group-hover/item:opacity-100 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:opacity-100"
+        className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded text-muted-foreground opacity-0 outline-none group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:opacity-100"
       >
         <MoreHorizontalIcon className="size-4" aria-hidden />
       </DropdownMenuTrigger>
@@ -121,6 +146,57 @@ function RenameItem({ onClick }: { onClick: () => void }) {
   );
 }
 
+type TreeChange =
+  | { kind: "rename"; id: string; title: string }
+  | { kind: "move"; plan: MovePlan };
+
+const NODE_ICON: Record<NodeType, ComponentType<{ className?: string }>> = {
+  PART: LayersIcon,
+  CHAPTER: BookmarkIcon,
+  SCENE: FileTextIcon,
+};
+
+/** Rows keep their place while dragging; the drop target is shown by a ring and the dragged item by the overlay. */
+const noShift: SortingStrategy = () => null;
+
+/** A row that can be reordered: the grip handle on its left starts a drag (pointer, or space/enter with the keyboard). */
+function SortableItem({
+  id,
+  label,
+  dropActive,
+  children,
+}: {
+  id: string;
+  label: string;
+  dropActive: boolean;
+  children: ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } =
+    useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "group/item relative rounded-md",
+        isDragging && "opacity-40",
+        dropActive && "ring-2 ring-primary",
+      )}
+    >
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        aria-label={`Reorder ${label}`}
+        {...attributes}
+        {...listeners}
+        className="absolute top-1/2 left-0.5 z-10 grid size-5 -translate-y-1/2 cursor-grab touch-none place-items-center rounded text-muted-foreground opacity-0 outline-none group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+      >
+        <GripVerticalIcon className="size-3.5" aria-hidden />
+      </button>
+      {children}
+    </div>
+  );
+}
+
 interface ManuscriptTreeProps {
   projectId: string;
   /** The book's title: the root row that collapses the whole tree. */
@@ -138,13 +214,24 @@ export function ManuscriptTree({
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-  // Renames show at once and roll back on their own if the server action fails or throws.
-  const [nodes, applyRename] = useOptimistic(
+  const dndId = useId();
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+  // Renames and moves show at once and roll back on their own if the server action fails or throws.
+  const [nodes, applyChange] = useOptimistic(
     serverNodes,
-    (state, change: { id: string; title: string }) =>
-      state.map((n) =>
-        n.id === change.id ? { ...n, title: change.title } : n,
-      ),
+    (state, change: TreeChange) =>
+      change.kind === "rename"
+        ? state.map((n) =>
+            n.id === change.id ? { ...n, title: change.title } : n,
+          )
+        : applyMove(state, change.plan),
   );
   const collapsed = useTreeStore((s) => s.collapsed);
   const toggle = useTreeStore((s) => s.toggle);
@@ -152,16 +239,24 @@ export function ManuscriptTree({
   const collapseAll = useTreeStore((s) => s.collapseAll);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const rootCollapsed = !!collapsed[ROOT_KEY];
-  const activeId = resolveActiveScene(
-    nodes,
-    searchParams.get("scene") ?? undefined,
-  )?.id;
+  const sceneParam = searchParams.get("scene");
+  // The URL only changes once the new scene has rendered on the server, which can take a moment. A clicked scene is
+  // highlighted straight away; the choice stops applying as soon as the URL moves on.
+  const [clicked, setClicked] = useState<{ id: string; from: string | null } | null>(null);
+  if (clicked && clicked.from !== sceneParam) setClicked(null);
+  const activeId =
+    clicked && clicked.from === sceneParam
+      ? clicked.id
+      : resolveActiveScene(nodes, sceneParam ?? undefined)?.id;
 
   function focusRow(id: string) {
+    // Two frames: after a move the row is re-rendered (often under a new parent) before it can take focus.
     requestAnimationFrame(() =>
-      treeRef.current
-        ?.querySelector<HTMLElement>(`[data-node-id="${id}"]`)
-        ?.focus(),
+      requestAnimationFrame(() =>
+        treeRef.current
+          ?.querySelector<HTMLElement>(`[data-node-id="${id}"]`)
+          ?.focus(),
+      ),
     );
   }
 
@@ -180,7 +275,7 @@ export function ManuscriptTree({
     }
     if (parsed.data === node.title) return;
     startTransition(async () => {
-      applyRename({ id: node.id, title: parsed.data });
+      applyChange({ kind: "rename", id: node.id, title: parsed.data });
       const result = await renameNode({
         projectId,
         nodeId: node.id,
@@ -205,6 +300,57 @@ export function ManuscriptTree({
         router.push(
           `/projects/${projectId}/manuscript?scene=${result.data.id}`,
         );
+    });
+  }
+
+  /** Ids of the rows on screen, in order: what keyboard dragging can move through. */
+  function visibleIds() {
+    const out: string[] = [];
+    if (rootCollapsed) return out;
+    const walk = (parentId: string | null) => {
+      for (const n of childrenOf(nodes, parentId)) {
+        out.push(n.id);
+        if (n.type !== "SCENE" && !collapsed[n.id]) walk(n.id);
+      }
+    };
+    walk(null);
+    return out;
+  }
+
+  const titleOf = (id: string | number) =>
+    nodes.find((n) => n.id === id)?.title ?? "item";
+  const dragNode = nodes.find((n) => n.id === dragId);
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setDragId(null);
+    setOverId(null);
+    const nodeId = String(active.id);
+    // The dragged item stays in focus, wherever it lands (or if it goes nowhere).
+    focusRow(nodeId);
+    if (!over) return;
+    const drop = resolveDrop(nodes, nodeId, String(over.id));
+    if (!drop) return;
+    const plan = planMove(nodes, nodeId, drop.parentId, drop.index);
+    if ("error" in plan) {
+      toast.error(plan.error);
+      return;
+    }
+    const unchanged = plan.updates.every((u) => {
+      const n = nodes.find((x) => x.id === u.id);
+      return n && n.parentId === u.parentId && n.position === u.position;
+    });
+    if (unchanged) return;
+    // Open the destination so the moved item stays in view.
+    if (drop.parentId) toggle(drop.parentId, false);
+    startTransition(async () => {
+      applyChange({ kind: "move", plan });
+      const result = await moveNode({
+        projectId,
+        nodeId,
+        parentId: drop.parentId,
+        index: drop.index,
+      });
+      if (!result.success) toast.error(result.error);
     });
   }
 
@@ -255,6 +401,11 @@ export function ManuscriptTree({
   function renderChildren(parentId: string | null) {
     return childrenOf(nodes, parentId).map((node) => {
       const editing = editingId === node.id;
+      const dropActive =
+        dragId !== null &&
+        overId === node.id &&
+        dragId !== node.id &&
+        !!resolveDrop(nodes, dragId, node.id);
       const editor = editing && (
         <TitleEditor
           initial={node.title}
@@ -272,7 +423,7 @@ export function ManuscriptTree({
                 role="treeitem"
                 aria-selected={active}
                 data-node-id={node.id}
-                className={cn(rowClass, active && "bg-accent")}
+                className={cn(rowClass, "pl-6", active && "bg-accent")}
               >
                 <FileTextIcon className={iconClass} aria-hidden />
                 {editor}
@@ -281,29 +432,38 @@ export function ManuscriptTree({
           );
         }
         return (
-          <li key={node.id} role="none" className="group/item relative">
-            <Link
-              href={`/projects/${projectId}/manuscript?scene=${node.id}`}
-              role="treeitem"
-              aria-current={active ? "page" : undefined}
-              aria-selected={active}
-              title={node.title}
-              data-node-id={node.id}
-              onClick={() => setDrawerOpen(false)}
-              onDoubleClick={() => setEditingId(node.id)}
-              className={cn(
-                rowClass,
-                "pr-8",
-                active && "bg-accent font-medium text-primary",
-              )}
+          <li key={node.id} role="none">
+            <SortableItem
+              id={node.id}
+              label={node.title}
+              dropActive={dropActive}
             >
-              <FileTextIcon className={iconClass} aria-hidden />
-              <span className="truncate">{node.title}</span>
-            </Link>
-            <RowMenu label={`${node.title} options`}>
-              <RenameItem onClick={() => setEditingId(node.id)} />
+              <Link
+                href={`/projects/${projectId}/manuscript?scene=${node.id}`}
+                role="treeitem"
+                aria-current={active ? "page" : undefined}
+                aria-selected={active}
+                title={node.title}
+                data-node-id={node.id}
+                onClick={() => {
+                  setClicked({ id: node.id, from: sceneParam });
+                  setDrawerOpen(false);
+                }}
+                onDoubleClick={() => setEditingId(node.id)}
+                className={cn(
+                  rowClass,
+                  "pr-8 pl-6",
+                  active && "bg-accent font-medium text-primary",
+                )}
+              >
+                <FileTextIcon className={iconClass} aria-hidden />
+                <span className="truncate">{node.title}</span>
+              </Link>
+              <RowMenu label={`${node.title} options`}>
+                <RenameItem onClick={() => setEditingId(node.id)} />
                 <TrashItem />
-            </RowMenu>
+              </RowMenu>
+            </SortableItem>
           </li>
         );
       }
@@ -311,7 +471,7 @@ export function ManuscriptTree({
       const isCollapsed = !!collapsed[node.id];
       return (
         <li key={node.id} role="none">
-          <div className="group/item relative">
+          <SortableItem id={node.id} label={node.title} dropActive={dropActive}>
             <div
               role="treeitem"
               tabIndex={0}
@@ -323,7 +483,7 @@ export function ManuscriptTree({
               onDoubleClick={() => setEditingId(node.id)}
               className={cn(
                 rowClass,
-                "group/row cursor-pointer pr-8 select-none font-medium",
+                "group/row cursor-pointer pr-8 pl-6 select-none font-medium",
               )}
             >
               <ToggleIcon
@@ -352,10 +512,12 @@ export function ManuscriptTree({
                 <TrashItem />
               </RowMenu>
             )}
-          </div>
-          <ul role="group" hidden={isCollapsed} className="ml-3 border-l pl-1">
-            {renderChildren(node.id)}
-          </ul>
+          </SortableItem>
+          {!isCollapsed && (
+            <ul role="group" className="ml-3 border-l pl-1">
+              {renderChildren(node.id)}
+            </ul>
+          )}
         </li>
       );
     });
@@ -371,62 +533,107 @@ export function ManuscriptTree({
         <BookOpenTextIcon className={iconClass} aria-hidden />
         Book view
       </Link>
-      <ul
-        ref={treeRef}
-        role="tree"
-        aria-label="Manuscript"
-        onKeyDown={onKeyDown}
-        className="flex flex-col gap-0.5"
+      <DndContext
+        id={dndId}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={({ active }) => setDragId(String(active.id))}
+        onDragOver={({ over }) => setOverId(over ? String(over.id) : null)}
+        onDragEnd={handleDragEnd}
+        onDragCancel={({ active }) => {
+          setDragId(null);
+          setOverId(null);
+          focusRow(String(active.id));
+        }}
+        accessibility={{
+          announcements: {
+            onDragStart: ({ active }) =>
+              `Picked up ${titleOf(active.id)}. Use the arrow keys to move it and space to drop it.`,
+            onDragOver: ({ active, over }) => {
+              if (!over) return `${titleOf(active.id)} is not over a target.`;
+              return resolveDrop(nodes, String(active.id), String(over.id))
+                ? `${titleOf(active.id)} is over ${titleOf(over.id)}.`
+                : `${titleOf(active.id)} cannot be dropped on ${titleOf(over.id)}.`;
+            },
+            onDragEnd: ({ active, over }) =>
+              over && resolveDrop(nodes, String(active.id), String(over.id))
+                ? `Dropped ${titleOf(active.id)} at ${titleOf(over.id)}.`
+                : `${titleOf(active.id)} was not moved.`,
+            onDragCancel: ({ active }) =>
+              `Dragging ${titleOf(active.id)} was cancelled.`,
+          },
+        }}
       >
-        <li role="none">
-          <div className="group/item relative">
-            <div
-              role="treeitem"
-              tabIndex={0}
-              aria-expanded={!rootCollapsed}
-              aria-selected={false}
-              title={title}
-              data-node-id={ROOT_KEY}
-              onClick={() => toggle(ROOT_KEY)}
-              className={cn(
-                rowClass,
-                "group/row cursor-pointer pr-8 select-none font-semibold",
-              )}
-            >
-              <ToggleIcon icon={BookIcon} expanded={!rootCollapsed} />
-              <span className="truncate">{title}</span>
-            </div>
-            <RowMenu label={`${title} options`}>
-              <DropdownMenuItem onClick={() => addNode(null, "PART")}>
-                <PlusIcon /> Add part
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => addNode(null, "CHAPTER")}>
-                <PlusIcon /> Add chapter
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={expandAll}>
-                <ChevronsUpDownIcon /> Expand all
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  collapseAll(
-                    nodes.filter((n) => n.type !== "SCENE").map((n) => n.id),
-                  )
-                }
-              >
-                <ChevronsDownUpIcon /> Collapse all
-              </DropdownMenuItem>
-            </RowMenu>
-          </div>
+        <SortableContext items={visibleIds()} strategy={noShift}>
           <ul
-            role="group"
-            hidden={rootCollapsed}
-            className="ml-3 border-l pl-1"
+            ref={treeRef}
+            role="tree"
+            aria-label="Manuscript"
+            onKeyDown={onKeyDown}
+            className="flex flex-col gap-0.5"
           >
-            {renderChildren(null)}
+            <li role="none">
+              <div className="group/item relative">
+                <div
+                  role="treeitem"
+                  tabIndex={0}
+                  aria-expanded={!rootCollapsed}
+                  aria-selected={false}
+                  title={title}
+                  data-node-id={ROOT_KEY}
+                  onClick={() => toggle(ROOT_KEY)}
+                  className={cn(
+                    rowClass,
+                    "group/row cursor-pointer pr-8 select-none font-semibold",
+                  )}
+                >
+                  <ToggleIcon icon={BookIcon} expanded={!rootCollapsed} />
+                  <span className="truncate">{title}</span>
+                </div>
+                <RowMenu label={`${title} options`}>
+                  <DropdownMenuItem onClick={() => addNode(null, "PART")}>
+                    <PlusIcon /> Add part
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addNode(null, "CHAPTER")}>
+                    <PlusIcon /> Add chapter
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={expandAll}>
+                    <ChevronsUpDownIcon /> Expand all
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      collapseAll(
+                        nodes
+                          .filter((n) => n.type !== "SCENE")
+                          .map((n) => n.id),
+                      )
+                    }
+                  >
+                    <ChevronsDownUpIcon /> Collapse all
+                  </DropdownMenuItem>
+                </RowMenu>
+              </div>
+              {!rootCollapsed && (
+                <ul role="group" className="ml-3 border-l pl-1">
+                  {renderChildren(null)}
+                </ul>
+              )}
+            </li>
           </ul>
-        </li>
-      </ul>
+        </SortableContext>
+        <DragOverlay dropAnimation={null}>
+          {dragNode && (
+            <div className="flex items-center gap-1.5 rounded-md bg-popover px-2 py-1.5 text-sm shadow-md ring-1 ring-foreground/10">
+              {(() => {
+                const Icon = NODE_ICON[dragNode.type];
+                return <Icon className={iconClass} aria-hidden />;
+              })()}
+              <span className="truncate">{dragNode.title}</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     </nav>
   );
 }

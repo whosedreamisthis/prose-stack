@@ -8,7 +8,7 @@ Reorder parts, chapters and scenes by dragging in the tree (dnd-kit). The planni
 
 ## Requirements
 
-- Each row has a drag handle (grip icon). Dragging by the handle avoids clashing with click and double-click.
+- Each part, chapter and scene has a drag handle (grip icon) at its left, visible on hover or focus. Dragging by the handle avoids clashing with click and double-click. The book row cannot be dragged. While dragging, a floating chip shows the item and the valid drop target gets a ring.
 - Keyboard dragging works: space to pick up, arrows to move, space to drop. dnd-kit announcements are enabled.
 - Drop rules:
   - Scene on a scene: moves next to it, in that scene's chapter (this moves scenes between chapters).
@@ -34,4 +34,4 @@ Dragging into a collapsed parent by hovering, multi-select.
 
 ## Open questions
 
-- Should dropping a scene on a collapsed chapter expand it?
+- Decided: a drop opens its destination parent if it was collapsed, so the moved item stays visible.
