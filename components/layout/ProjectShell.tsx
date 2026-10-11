@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { PanelLeftIcon, PanelRightIcon } from "lucide-react";
+import { Hint } from "@/components/layout/Hint";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLayoutStore } from "@/lib/stores/layout-store";
@@ -26,40 +27,51 @@ export function ProjectShell({ left, right, children }: ProjectShellProps) {
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between border-b px-2">
         {/* Small screens open the drawer; larger screens collapse the sidebar. Both are CSS-switched, so no viewport detection runs on the client. */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          aria-label="Open sidebar"
-          aria-expanded={drawerOpen}
-          aria-controls="left-drawer"
-          onClick={() => setDrawerOpen(true)}
-        >
-          <PanelLeftIcon className="size-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="hidden md:inline-flex"
-          aria-label={leftOpen ? "Collapse left sidebar" : "Expand left sidebar"}
-          aria-expanded={leftOpen}
-          aria-controls="left-sidebar"
-          onClick={toggleLeft}
-        >
-          <PanelLeftIcon className="size-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="hidden lg:inline-flex"
+        <Hint label="Open sidebar" side="right" wrapperClassName="md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            aria-label="Open sidebar"
+            aria-expanded={drawerOpen}
+            aria-controls="left-drawer"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <PanelLeftIcon className="size-5" />
+          </Button>
+        </Hint>
+        <Hint label={leftOpen ? "Collapse left sidebar" : "Expand left sidebar"} side="right" wrapperClassName="hidden md:inline-flex">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            aria-label={leftOpen ? "Collapse left sidebar" : "Expand left sidebar"}
+            aria-expanded={leftOpen}
+            aria-controls="left-sidebar"
+            onClick={toggleLeft}
+          >
+            <PanelLeftIcon className="size-5" />
+          </Button>
+        </Hint>
+        <Hint
+          label={hasRightPanel ? (rightOpen ? "Collapse right sidebar" : "Expand right sidebar") : "No panel on this page"}
+          side="left"
           disabled={!hasRightPanel}
-          aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
-          aria-expanded={hasRightPanel && rightOpen}
-          aria-controls="right-sidebar"
-          onClick={toggleRight}
+          wrapperClassName="hidden lg:inline-flex"
         >
-          <PanelRightIcon className="size-5" />
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden lg:inline-flex"
+            disabled={!hasRightPanel}
+            aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
+            aria-expanded={hasRightPanel && rightOpen}
+            aria-controls="right-sidebar"
+            onClick={toggleRight}
+          >
+            <PanelRightIcon className="size-5" />
+          </Button>
+        </Hint>
       </div>
 
       <div className="flex min-h-0 flex-1">

@@ -14,7 +14,7 @@ export function RightPanel({ title, children }: { title: string; children: React
 
   return (
     <section aria-label={title} className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium">{title}</h2>
+      <h2 className="text-sm font-medium text-primary">{title}</h2>
       {children}
     </section>
   );

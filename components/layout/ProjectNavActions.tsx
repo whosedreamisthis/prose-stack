@@ -2,6 +2,7 @@
 
 import { FileDownIcon, SettingsIcon, SpellCheckIcon, type LucideIcon } from "lucide-react";
 import { useParams } from "next/navigation";
+import { Hint } from "@/components/layout/Hint";
 import { Button } from "@/components/ui/button";
 
 // Disabled until spell check, PDF export and settings ship; each feature wires its own button.
@@ -19,10 +20,12 @@ export function ProjectNavActions() {
   return (
     <div className="flex items-center gap-1">
       {ACTIONS.map(({ label, icon: Icon }) => (
-        <Button key={label} variant="ghost" size="default" disabled aria-label={label} title={`${label} (coming soon)`} className="disabled:opacity-70">
-          <Icon className="size-5" />
-          <span className="hidden lg:inline">{label}</span>
-        </Button>
+        <Hint key={label} label={`${label} (coming soon)`} disabled>
+          <Button variant="ghost" size="default" disabled aria-label={label} className="disabled:opacity-70">
+            <Icon className="size-5" />
+            <span className="hidden lg:inline">{label}</span>
+          </Button>
+        </Hint>
       ))}
     </div>
   );

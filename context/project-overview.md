@@ -612,7 +612,7 @@ Not decided. The app starts free. If monetization is added later, likely levers 
 - **Left sidebar:** collapsible tree/list for the current page; becomes a drawer on small screens.
 - **Right sidebar:** contextual panel (plot connections in the scene editor); also collapsible.
 - **Top navbar:** project switcher, spell check, **Export to PDF**, settings, Clerk avatar (right side).
-- **Editor:** breadcrumbs, then toolbar (undo/redo, find & replace, font size, thesaurus, read aloud), then the writing area, then a stats footer.
+- **Editor:** toolbar (undo/redo, find & replace, font size, thesaurus, read aloud), then the writing area, then a stats footer.
 - **Book view:** page-shaped panels with a title page first.
 - Plot cards support drag and drop; ellipsis menus hold per-card actions (trash).
 

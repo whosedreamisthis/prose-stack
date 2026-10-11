@@ -16,9 +16,7 @@ async function ManuscriptPlaceholder({ params }: { params: Promise<{ projectId: 
   return (
     <>
       <ActiveProjectSync projectId={project.id} />
-      <EditorColumn
-        breadcrumbs={[{ label: project.title, href: `/projects/${project.id}/manuscript` }, { label: "Manuscript" }]}
-      >
+      <EditorColumn>
         <div className="mx-auto flex max-w-2xl flex-col gap-2 text-center">
           <h1 className="text-2xl font-semibold">{project.title}</h1>
           {project.subtitle && <p className="text-muted-foreground">{project.subtitle}</p>}

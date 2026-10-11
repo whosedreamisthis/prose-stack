@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { BookOpenIcon, ChevronDownIcon, PlusIcon } from "lucide-react";
@@ -14,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { applyAccent, getAccentTokens } from "@/lib/accent";
 import { MAX_PROJECTS_PER_USER, PROJECT_LIMIT_MESSAGE } from "@/lib/project-config";
 import { useProjectStore } from "@/lib/stores/project-store";
 import type { ProjectSummary } from "@/types/projects";
@@ -24,6 +26,13 @@ export function ProjectSwitcher({ projects }: { projects: ProjectSummary[] }) {
   const setNewProjectOpen = useProjectStore((s) => s.setNewProjectOpen);
   const active = projects.find((p) => p.id === activeProjectId);
   const atLimit = projects.length >= MAX_PROJECTS_PER_USER;
+  const activeColor = active?.coverColor;
+
+  // Keeps <html> in step with the route: set inside a project, cleared everywhere else. The server also streams the
+  // same tokens as a <style> for hard loads; this covers in-app navigation without waiting for the server.
+  useEffect(() => {
+    applyAccent(activeColor ? getAccentTokens(activeColor) : null);
+  }, [activeColor]);
 
   return (
     <>
@@ -41,6 +50,7 @@ export function ProjectSwitcher({ projects }: { projects: ProjectSummary[] }) {
               <DropdownMenuItem
                 key={project.id}
                 render={<Link href={`/projects/${project.id}/manuscript`} />}
+                onClick={() => applyAccent(getAccentTokens(project.coverColor))}
                 className={project.id === activeProjectId ? "font-medium" : undefined}
               >
                 <span className="truncate">{project.title}</span>
