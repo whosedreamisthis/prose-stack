@@ -1,32 +1,20 @@
-# Current Feature: Characters
+# Current Feature
 
-A sketch document per character, split into Main and Supporting. Spec: `context/features/characters-spec.md`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Sketch fields: name, age, location, role, goal, appearance, personality, occupation, habits, background, internal conflicts, external conflicts. (No sketch `notes` field; notes live in the right sidebar tab.)
-- Characters grouped into **Main** and **Supporting** (`CharacterRole`).
-- Create, edit, trash, and archive characters.
-- Select a character from the left sidebar list.
-- Right sidebar offers a **Notes** tab (built so more tabs can be added later).
-- Notes tab shows an "Add a note +" card with a dashed border; clicking it adds a note.
-- Several notes per character, each shown as a card; notes belong to the selected character.
-- Route: `/projects/[projectId]/characters`.
-- All queries scoped by `userId` and `projectId`.
-- Input validated with Zod on the server.
-- Trashed/archived characters disappear from the list and appear in Trash/Archive.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Source: `context/project-overview.md` §3 Characters, §6 Data Model.
-- Data: `Character` model (`role`, `name`, `age`, `location`, `roleInStory`, `goal`, `physicalDescription`, `personality`, `occupation`, `habits`, `background`, `internalConflicts`, `externalConflicts`, `trashedAt`, `archivedAt`).
-- Related to `Place` via `PlaceCharacters`.
-- Multiple notes per character need their own model (e.g. `CharacterNote` with `characterId`, `content`; cascades from `Character`). Scoped by `userId`/`projectId` through its character, and validated with Zod.
-- Right sidebar is a parallel route; tabs should be a small extensible list so later tabs can be added.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -38,3 +26,4 @@ In Progress
 - **Manuscript Tree:** left-sidebar outline (book, parts, chapters, scenes) with add, rename and dnd-kit reorder; code in `components/manuscript/`, `lib/manuscript-tree.ts`, `actions/manuscript.ts`.
 - **Scene Editor:** Tiptap editor per scene with debounced autosave, local backup copy and stats footer; code in `components/manuscript/SceneEditor.tsx`, `lib/autosave-scheduler.ts`, `hooks/useSceneAutosave.ts`.
 - **Scene Editor Tools:** toolbar with undo/redo, font size menu, find and replace panel and thesaurus popover; code in `components/layout/EditorToolbar.tsx`, `components/manuscript/FindPanel.tsx`, `app/api/thesaurus/`.
+- **Characters:** auto-saving sketches grouped Main/Supporting, row menu to archive or trash, multi-note Notes tab in the right sidebar; code in `components/characters/`, `actions/characters.ts`, `lib/characters.ts`, `ProjectSidebar.tsx`.
