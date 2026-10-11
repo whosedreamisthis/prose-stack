@@ -35,6 +35,7 @@ The Tiptap editor for the open scene, with debounced autosave and the stats foot
 - Typing is never blocked by a save. Saves run one at a time; edits made during a save trigger another afterwards.
 - Status indicator in the footer: Saving… / Saved / Couldn't save — retrying. Driven by `saveStatus`.
 - A local copy (localStorage, keyed by scene) is written as the writer types, with the server `updatedAt` it is based on and a dirty flag. On a failed save the editor keeps the text, retries with backoff, and a reload or return to the scene restores the local copy per `chooseInitialContent`.
+- A local copy is kept until the server confirms the save; it never expires. Once confirmed and unchanged, it is cleared.
 - A save never overwrites newer server content silently: if the server's `updatedAt` moved on, the local copy loses (see `chooseInitialContent`).
 
 ### Footer stats
@@ -60,7 +61,8 @@ The Tiptap editor for the open scene, with debounced autosave and the stats foot
 
 Toolbar tools (next spec), scene sidebar (see [scene-sidebar-spec.md](scene-sidebar-spec.md)), read-aloud, search, book view, spell check beyond the native toggle.
 
-## Open questions
+## Decisions
 
-- Should typing in an empty scene seed the title from the first line? (Proposed: no.)
-- Should the local copy expire (e.g. after 7 days) or live until saved?
+- The scene title is read-only above the editor; renaming happens in the tree.
+- Typing in an empty scene does not seed the title.
+- Unsaved local copies are kept until saved, with no expiry.
