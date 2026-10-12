@@ -19,6 +19,7 @@ export interface PointValues {
   text: string;
   plotLineId: string;
   sceneId: string;
+  labelId: string | null;
 }
 
 /**
@@ -99,7 +100,7 @@ export function usePlotActions(projectId: string) {
 
       /** Adds a point to a scene, or to a new scene at the end of the manuscript when `sceneId` is null. Returns the ids it was added under. */
       createPoint(values: Omit<PointValues, "sceneId"> & { sceneId: string | null }): { id: string; sceneId: string; done: Promise<void> } | null {
-        const { plotLineId, title, text } = values;
+        const { plotLineId, title, text, labelId } = values;
         const id = crypto.randomUUID();
         const newSceneId = values.sceneId ? undefined : crypto.randomUUID();
         const sceneId = values.sceneId ?? newSceneId!;
@@ -108,10 +109,10 @@ export function usePlotActions(projectId: string) {
           return null;
         }
         const rollback = keepPoints();
-        store().setPoints([...store().points, { id, plotLineId, sceneId, title, text }]);
+        store().setPoints([...store().points, { id, plotLineId, sceneId, labelId, title, text }]);
         if (newSceneId) store().addScene({ id: newSceneId, title: "New scene" });
         const done = commit(
-          () => createPlotPoint({ projectId, plotLineId, id, title, text, ...(newSceneId ? { newSceneId } : { sceneId }) }),
+          () => createPlotPoint({ projectId, plotLineId, id, title, text, labelId, ...(newSceneId ? { newSceneId } : { sceneId }) }),
           () => {
             rollback();
             if (newSceneId) store().removeScene(newSceneId);
@@ -139,6 +140,7 @@ export function usePlotActions(projectId: string) {
               text: values.text,
               plotLineId: values.plotLineId,
               sceneId: values.sceneId,
+              labelId: values.labelId,
             }),
           rollback,
         );

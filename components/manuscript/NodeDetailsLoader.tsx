@@ -5,6 +5,7 @@ import { SceneNotes } from "@/components/manuscript/SceneNotesPanel";
 import { getCurrentUser } from "@/lib/auth";
 import { getManuscript } from "@/lib/manuscript";
 import { childrenOf, sceneOrder } from "@/lib/manuscript-tree";
+import { listLabels } from "@/lib/labels";
 import { getPlot } from "@/lib/plot";
 import { getProject } from "@/lib/projects";
 import { listProjectNotes } from "@/lib/project-notes";
@@ -22,9 +23,10 @@ export async function NodeDetailsLoader({ params, type }: NodeDetailsLoaderProps
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const [nodes, plot, project] = await Promise.all([
+  const [nodes, plot, labels, project] = await Promise.all([
     getManuscript(user.id, projectId),
     getPlot(user.id, projectId),
+    listLabels(user.id, projectId),
     type === "BOOK" ? getProject(user.id, projectId) : null,
   ]);
   const node = type === "BOOK" ? null : nodes.find((n) => n.id === nodeId && n.type === type);
@@ -60,6 +62,7 @@ export async function NodeDetailsLoader({ params, type }: NodeDetailsLoaderProps
       }
       items={items}
       plot={plot}
+      labels={labels}
       scenes={allScenes.map((s) => ({ id: s.id, title: s.title }))}
     />
   );

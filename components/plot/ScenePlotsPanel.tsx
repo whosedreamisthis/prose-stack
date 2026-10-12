@@ -9,7 +9,10 @@ import { RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
 import { usePlotPointEditor } from "@/components/plot/PlotPointEditor";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { usePlotActions } from "@/hooks/usePlotActions";
+import { LabelChip } from "@/components/labels/LabelChip";
+import { useLabelData } from "@/hooks/useLabelData";
 import { usePlotData } from "@/hooks/usePlotData";
+import type { LabelWithUsage } from "@/types/labels";
 import type { PlotData, PlotPointItem, PlotScene } from "@/types/plot";
 
 /** The grid icon at the top right of a Plots tab: opens the plot grid. */
@@ -38,6 +41,7 @@ interface ScenePlotsPanelProps {
   plot: PlotData;
   /** Every scene, in manuscript order, for the scene choice in the dialog. */
   scenes: PlotScene[];
+  labels: LabelWithUsage[];
   /** Show the grid icon. Off for all but the first of several panels on one sidebar. */
   showGridLink?: boolean;
 }
@@ -46,10 +50,11 @@ interface ScenePlotsPanelProps {
  * The Plots tab of a scene's right sidebar: the scene's plot points (at most one per plot line) as compact cards, built
  * like the notes list. A card, or the dashed add card, opens the plot point dialog.
  */
-export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, showGridLink = true }: ScenePlotsPanelProps) {
+export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, labels: serverLabels, showGridLink = true }: ScenePlotsPanelProps) {
   const { lines, points } = usePlotData(plot);
+  const labels = useLabelData(serverLabels);
   const actions = usePlotActions(projectId);
-  const editor = usePlotPointEditor({ projectId, lines, points, scenes });
+  const editor = usePlotPointEditor({ projectId, lines, points, scenes, labels });
   const [confirming, setConfirming] = useState<PlotPointItem | null>(null);
 
   const lineName = (id: string) => lines.find((l) => l.id === id)?.name ?? "";
@@ -70,6 +75,9 @@ export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, showGridLink
               <span className="truncate text-xs font-medium text-primary">{lineName(point.plotLineId)}</span>
               {point.title && <span className="truncate font-semibold">{point.title}</span>}
               {point.text && <span className="line-clamp-4 wrap-break-word whitespace-pre-wrap text-foreground/80">{point.text}</span>}
+              {labels.find((l) => l.id === point.labelId) && (
+                <LabelChip label={labels.find((l) => l.id === point.labelId)!} className="mt-auto self-start" />
+              )}
             </button>
             <RowMenu label={`${point.title || "Plot point"} options`} className="top-2 translate-y-0">
               <TrashItem onClick={() => setConfirming(point)} />

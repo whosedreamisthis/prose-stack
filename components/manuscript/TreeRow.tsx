@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSortable } from "@dnd-kit/sortable";
 import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, GripVerticalIcon } from "lucide-react";
+import { LabelBar } from "@/components/labels/LabelChip";
 import { TitleEditor } from "@/components/manuscript/TitleEditor";
 import { NODE_ICON, TYPE_LABEL, iconClass, treeRowClass } from "@/components/manuscript/tree-config";
 import { cn } from "@/lib/utils";
+import type { LabelItem } from "@/types/labels";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
 import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
@@ -44,6 +46,8 @@ interface TreeRowProps {
   editing: boolean;
   /** Whether the dragged item would land here (shows a ring). */
   dropActive: boolean;
+  /** The label on this part, chapter or scene, shown as a color bar at the right of the row. */
+  label: LabelItem | null;
   /** The row's "…" menu. */
   menu: ReactNode;
   onToggle: () => void;
@@ -69,6 +73,7 @@ export function TreeRow({
   collapsed,
   editing,
   dropActive,
+  label,
   menu,
   onToggle,
   onStartRename,
@@ -172,6 +177,7 @@ export function TreeRow({
             <span className="truncate">{node.title}</span>
           </>
         )}
+        {!editing && label && <LabelBar label={label} className="absolute top-1/2 -right-2 -translate-y-1/2" />}
         {!editing && menu}
       </div>
       {showChildren && (

@@ -33,6 +33,7 @@ export const createPlotPointSchema = z
     sceneId: idSchema.optional(),
     newSceneId: clientIdSchema,
     id: clientIdSchema,
+    labelId: idSchema.nullable().optional(),
     title: titleSchema.optional(),
     text: textSchema,
   })
@@ -48,6 +49,8 @@ export const updatePlotPointSchema = z
     text: textSchema.optional(),
     plotLineId: idSchema.optional(),
     sceneId: idSchema.optional(),
+    /** A label to put on the point, or null to take it off; absent leaves it as it is. */
+    labelId: idSchema.nullable().optional(),
   })
   .refine((v) => !(v.title === "" && v.text === ""), PLOT_POINT_EMPTY);
 export const plotPointRefSchema = z.object({ projectId: idSchema, pointId: idSchema });

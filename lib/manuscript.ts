@@ -6,7 +6,7 @@ import { SEED_SCENE_TEXT } from "@/lib/manuscript-config";
 import { countDocWords, docFromText, emptyDoc, type DocNode } from "@/lib/manuscript-text";
 import type { BookNode, ManuscriptNodeSummary, SceneDetail, WordStats } from "@/types/manuscript";
 
-const summarySelect = { id: true, parentId: true, type: true, title: true, position: true, wordCount: true } as const;
+const summarySelect = { id: true, parentId: true, type: true, title: true, position: true, wordCount: true, labelId: true } as const;
 
 /** The date a save belongs to. UTC, matching how `DailyWordCount.date` is stored. */
 export function todayUtc() {

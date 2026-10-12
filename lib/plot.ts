@@ -24,7 +24,7 @@ export async function getPlot(userId: string, projectId: string): Promise<PlotDa
         scene: { trashedAt: null },
       },
       orderBy: { createdAt: "asc" },
-      select: { id: true, plotLineId: true, sceneId: true, title: true, text: true },
+      select: { id: true, plotLineId: true, sceneId: true, labelId: true, title: true, text: true },
     }),
   ]);
   return { lines, points: points.map((p) => ({ ...p, title: p.title ?? "" })) };

@@ -9,6 +9,8 @@ export interface PlotPointItem {
   id: string;
   plotLineId: string;
   sceneId: string;
+  /** The label on this point, if any. */
+  labelId: string | null;
   /** Empty when the point has no title. */
   title: string;
   text: string;

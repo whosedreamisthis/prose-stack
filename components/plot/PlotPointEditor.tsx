@@ -10,6 +10,7 @@ import { useDialogAutosave } from "@/hooks/useDialogAutosave";
 import { cellTaken, usePlotActions } from "@/hooks/usePlotActions";
 import { MAX_NOTE_TITLE_LENGTH } from "@/lib/note-config";
 import { MAX_PLOT_TEXT_LENGTH, PLOT_POINT_EMPTY } from "@/lib/plot-config";
+import type { LabelItem } from "@/types/labels";
 import type { PlotLineItem, PlotPointItem, PlotScene } from "@/types/plot";
 
 /** The scene choice that adds a scene at the end of the manuscript together with the point. */
@@ -20,6 +21,7 @@ interface DialogValues {
   text: string;
   plotLineId: string;
   sceneId: string;
+  labelId: string | null;
 }
 
 /** Which point the dialog shows: one that exists, or a new one that is only created when it is closed with something in it. */
@@ -31,7 +33,7 @@ interface Open {
   allowNewScene: boolean;
 }
 
-const emptyValues: DialogValues = { title: "", text: "", plotLineId: "", sceneId: "" };
+const emptyValues: DialogValues = { title: "", text: "", plotLineId: "", sceneId: "", labelId: null };
 
 const SELECT =
   "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -42,13 +44,14 @@ interface EditorInput {
   points: PlotPointItem[];
   /** Every scene a point can be moved to, in manuscript order. */
   scenes: PlotScene[];
+  labels: LabelItem[];
 }
 
 /**
  * The plot point dialog, as notes have theirs: a card opens it and it saves as you type, so closing it (Done, the X, Esc, a
  * click outside) only closes. A new point is only created once it has a title or text. Returns the openers and the dialog to render.
  */
-export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorInput): {
+export function usePlotPointEditor({ projectId, lines, points, scenes, labels }: EditorInput): {
   openPoint: (pointId: string) => void;
   openNew: (target: { plotLineId: string; sceneId: string | null }) => void;
   dialog: ReactNode;
@@ -61,13 +64,13 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
   const openPoint = (pointId: string) => {
     const p = points.find((x) => x.id === pointId);
     if (!p) return;
-    const initial = { title: p.title, text: p.text, plotLineId: p.plotLineId, sceneId: p.sceneId };
+    const initial = { title: p.title, text: p.text, plotLineId: p.plotLineId, sceneId: p.sceneId, labelId: p.labelId };
     saved.current = { id: p.id, values: initial, newSceneId: null };
     setOpen({ key: p.id, pointId: p.id, initial, allowNewScene: false });
   };
 
   const openNew = ({ plotLineId, sceneId }: { plotLineId: string; sceneId: string | null }) => {
-    const initial = { title: "", text: "", plotLineId, sceneId: sceneId ?? NEW_SCENE };
+    const initial = { title: "", text: "", plotLineId, sceneId: sceneId ?? NEW_SCENE, labelId: null };
     saved.current = { id: null, values: initial, newSceneId: null };
     setOpen({ key: crypto.randomUUID(), pointId: null, initial, allowNewScene: sceneId === null });
   };
@@ -81,13 +84,27 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
     const sceneId = values.sceneId === NEW_SCENE ? was.newSceneId : values.sceneId;
     if (!was.id) {
       if (blank) return;
-      const created = actions.createPoint({ plotLineId: values.plotLineId, sceneId, title: values.title, text: values.text });
+      const created = actions.createPoint({
+        plotLineId: values.plotLineId,
+        sceneId,
+        labelId: values.labelId,
+        title: values.title,
+        text: values.text,
+      });
       if (!created) return;
       saved.current = { id: created.id, values, newSceneId: values.sceneId === NEW_SCENE ? created.sceneId : null };
       return created.done;
     }
     const b = was.values;
-    if (values.title === b.title && values.text === b.text && values.plotLineId === b.plotLineId && values.sceneId === b.sceneId) return;
+    if (
+      values.title === b.title &&
+      values.text === b.text &&
+      values.plotLineId === b.plotLineId &&
+      values.sceneId === b.sceneId &&
+      values.labelId === b.labelId
+    ) {
+      return;
+    }
     if (blank) {
       if (!quiet) toast.error(`${PLOT_POINT_EMPTY}. Use Move to trash to remove it.`);
       return;
@@ -104,6 +121,7 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
       lines={lines}
       points={points}
       scenes={scenes}
+      labels={labels}
       onAutosave={(values) => save(values, true)}
       onClose={(values) => {
         save(values);
@@ -121,10 +139,11 @@ interface PlotPointDialogProps {
   lines: PlotLineItem[];
   points: PlotPointItem[];
   scenes: PlotScene[];
+  labels: LabelItem[];
   onClose: (values: DialogValues) => void;
 }
 
-function PlotPointDialog({ open, lines, points, scenes, onAutosave, onClose }: PlotPointDialogProps) {
+function PlotPointDialog({ open, lines, points, scenes, labels, onAutosave, onClose }: PlotPointDialogProps) {
   const [values, setValues] = useState(open.initial);
   const { status } = useDialogAutosave(values, onAutosave);
   const isNew = open.pointId === null;
@@ -190,6 +209,21 @@ function PlotPointDialog({ open, lines, points, scenes, onAutosave, onClose }: P
             </select>
           </label>
         </div>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Label</span>
+          <select
+            className={SELECT}
+            value={values.labelId ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, labelId: e.target.value || null }))}
+          >
+            <option value="">No label</option>
+            {labels.map((label) => (
+              <option key={label.id} value={label.id}>
+                {label.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <DialogSaveBar status={status} onDone={() => onClose(values)} />
       </DialogContent>
     </Dialog>

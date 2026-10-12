@@ -13,6 +13,7 @@ export const SETTINGS_TABS = [
   { id: "general", label: "General" },
   { id: "appearance", label: "Appearance" },
   { id: "formatting", label: "Formatting" },
+  { id: "labels", label: "Labels" },
 ] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];
 
@@ -73,6 +74,8 @@ export function getDirtyTabs(saved: SettingsValues, draft: SettingsValues): Reco
     general: GENERAL_KEYS.some((key) => key in project),
     appearance: theme !== undefined,
     formatting: FORMATTING_KEYS.some((key) => key in project),
+    // Labels save on their own as they change, so they are never unsaved.
+    labels: false,
   };
 }
 

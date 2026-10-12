@@ -6,6 +6,7 @@ import { ActiveProjectSync } from "@/components/projects/ActiveProjectSync";
 import { getCurrentUser } from "@/lib/auth";
 import { getManuscript } from "@/lib/manuscript";
 import { sceneOrder } from "@/lib/manuscript-tree";
+import { listLabels } from "@/lib/labels";
 import { getPlot } from "@/lib/plot";
 import { getProject } from "@/lib/projects";
 
@@ -17,10 +18,11 @@ async function PlotLoader({ params }: { params: PageParams["params"] }) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const [project, nodes, plot] = await Promise.all([
+  const [project, nodes, plot, labels] = await Promise.all([
     getProject(user.id, projectId),
     getManuscript(user.id, projectId),
     getPlot(user.id, projectId),
+    listLabels(user.id, projectId),
   ]);
   if (!project) notFound();
 
@@ -28,7 +30,7 @@ async function PlotLoader({ params }: { params: PageParams["params"] }) {
   return (
     <>
       <ActiveProjectSync projectId={project.id} />
-      <PlotGrid projectId={projectId} plot={plot} scenes={scenes} />
+      <PlotGrid projectId={projectId} plot={plot} labels={labels} scenes={scenes} />
     </>
   );
 }

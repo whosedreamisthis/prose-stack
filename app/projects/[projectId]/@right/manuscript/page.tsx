@@ -7,6 +7,7 @@ import { SceneNotesPanel } from "@/components/manuscript/SceneNotesPanel";
 import { getCurrentUser } from "@/lib/auth";
 import { getManuscript } from "@/lib/manuscript";
 import { resolveActiveScene, sceneOrder } from "@/lib/manuscript-tree";
+import { listLabels } from "@/lib/labels";
 import { getPlot } from "@/lib/plot";
 import { listSceneNotes } from "@/lib/scene-notes";
 
@@ -20,10 +21,11 @@ async function NotesLoader({ params, searchParams }: { params: SlotProps["params
   const requested = Array.isArray(query.scene) ? query.scene[0] : query.scene;
   // Notes are fetched alongside the outline (one round trip). They are scoped to the user's own, live scenes, so a stale
   // id just returns nothing and the outline's pick is fetched instead.
-  const [nodes, requestedNotes, plot] = await Promise.all([
+  const [nodes, requestedNotes, plot, labels] = await Promise.all([
     getManuscript(user.id, projectId),
     requested ? listSceneNotes(user.id, projectId, requested) : null,
     getPlot(user.id, projectId),
+    listLabels(user.id, projectId),
   ]);
   const active = resolveActiveScene(nodes, requested);
   if (!active) {
@@ -36,7 +38,7 @@ async function NotesLoader({ params, searchParams }: { params: SlotProps["params
 
   const notes = requestedNotes && active.id === requested ? requestedNotes : await listSceneNotes(user.id, projectId, active.id);
   const scenes = sceneOrder(nodes).map((n) => ({ id: n.id, title: n.title }));
-  return <SceneNotesPanel key={active.id} projectId={projectId} sceneId={active.id} notes={notes} plot={plot} scenes={scenes} />;
+  return <SceneNotesPanel key={active.id} projectId={projectId} sceneId={active.id} notes={notes} plot={plot} scenes={scenes} labels={labels} />;
 }
 
 export default function SceneNotesSlot(props: SlotProps) {

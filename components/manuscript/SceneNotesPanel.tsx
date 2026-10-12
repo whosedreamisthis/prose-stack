@@ -7,6 +7,7 @@ import { RightPanel } from "@/components/layout/RightPanel";
 import { ScenePlotsPanel } from "@/components/plot/ScenePlotsPanel";
 import { MAX_NOTES_PER_SCENE, MAX_NOTE_LENGTH } from "@/lib/scene-note-config";
 import type { SceneNoteItem } from "@/types/manuscript";
+import type { LabelWithUsage } from "@/types/labels";
 import type { PlotData, PlotScene } from "@/types/plot";
 
 interface SceneNotesPanelProps {
@@ -16,6 +17,7 @@ interface SceneNotesPanelProps {
   plot: PlotData;
   /** Every scene in manuscript order, for the plot point dialog. */
   scenes: PlotScene[];
+  labels: LabelWithUsage[];
 }
 
 /** The notes of one scene, as the list every owner of notes uses. Remount it per scene. */
@@ -33,13 +35,13 @@ export function SceneNotes({ projectId, sceneId, notes }: { projectId: string; s
 }
 
 /** The right sidebar for the open scene: a Notes tab (the same list as characters and places) and a Plots tab. Remounted per scene. */
-export function SceneNotesPanel({ projectId, sceneId, notes, plot, scenes }: SceneNotesPanelProps) {
+export function SceneNotesPanel({ projectId, sceneId, notes, plot, scenes, labels }: SceneNotesPanelProps) {
   return (
     <RightPanel title="Scene details" hideTitle>
       <DetailTabs
         label="Scene details"
         notes={<SceneNotes projectId={projectId} sceneId={sceneId} notes={notes} />}
-        plots={<ScenePlotsPanel projectId={projectId} sceneId={sceneId} plot={plot} scenes={scenes} />}
+        plots={<ScenePlotsPanel projectId={projectId} sceneId={sceneId} plot={plot} scenes={scenes} labels={labels} />}
       />
     </RightPanel>
   );

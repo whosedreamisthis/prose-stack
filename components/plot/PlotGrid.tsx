@@ -32,11 +32,14 @@ import { usePlotPointEditor } from "@/components/plot/PlotPointEditor";
 import { RenamePlotLineDialog } from "@/components/plot/RenamePlotLineDialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { cellTaken, usePlotActions } from "@/hooks/usePlotActions";
+import { LabelChip } from "@/components/labels/LabelChip";
+import { useLabelData } from "@/hooks/useLabelData";
 import { usePlotData } from "@/hooks/usePlotData";
 import { nodeTitleSchema } from "@/lib/manuscript-config";
 import { CELL_TAKEN, MAX_PLOT_LINES } from "@/lib/plot-config";
 import { usePlotStore } from "@/lib/stores/plot-store";
 import { cn } from "@/lib/utils";
+import type { LabelItem, LabelWithUsage } from "@/types/labels";
 import type { PlotData, PlotLineItem, PlotPointItem, PlotScene } from "@/types/plot";
 
 const lineDragId = (id: string) => `line:${id}`;
@@ -55,6 +58,7 @@ const CELL_WIDTH = "w-56 min-w-56 max-w-56";
 interface PlotGridProps {
   projectId: string;
   plot: PlotData;
+  labels: LabelWithUsage[];
   /** The project's scenes in manuscript order. */
   scenes: PlotScene[];
 }
@@ -66,8 +70,10 @@ type Dragging = { type: "point"; point: PlotPointItem } | { type: "line"; line: 
  * scene's row meets a plot line. Points are dragged between cells and lines are dragged by the grip in their header (or
  * moved from its menu); the last row adds a point together with a new scene.
  */
-export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
+export function PlotGrid({ projectId, plot, labels: serverLabels, scenes }: PlotGridProps) {
   const { lines, points } = usePlotData(plot);
+  const labels = useLabelData(serverLabels);
+  const labelById = (id: string | null) => labels.find((l) => l.id === id) ?? null;
   const addedScenes = usePlotStore((s) => s.addedScenes);
   const actions = usePlotActions(projectId);
   const focusLineId = useSearchParams().get("line");
@@ -87,7 +93,7 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
   }, [scenes]);
   const rows = [...scenes, ...addedScenes.filter((a) => !scenes.some((s) => s.id === a.id))].map((s) => ({ ...s, title: titles[s.id] ?? s.title }));
 
-  const editor = usePlotPointEditor({ projectId, lines, points, scenes: rows });
+  const editor = usePlotPointEditor({ projectId, lines, points, scenes: rows, labels });
 
   // Mouse and touch drag the cards (a card's own click and keyboard stay a click); the keyboard sensor is only for the header grips.
   const sensors = useSensors(
@@ -122,7 +128,13 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
         toast.error(CELL_TAKEN);
         return;
       }
-      actions.updatePoint(point.id, { title: point.title, text: point.text, plotLineId: target.plotLineId, sceneId: target.sceneId });
+      actions.updatePoint(point.id, {
+        title: point.title,
+        text: point.text,
+        labelId: point.labelId,
+        plotLineId: target.plotLineId,
+        sceneId: target.sceneId,
+      });
     }
   };
 
@@ -152,7 +164,7 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
   if (openLine) {
     return (
       <>
-        <PlotLineView projectId={projectId} line={openLine} points={points} scenes={rows} onOpen={editor.openPoint} onTrash={actions.trashPoint} />
+        <PlotLineView projectId={projectId} line={openLine} points={points} labelById={labelById} scenes={rows} onOpen={editor.openPoint} onTrash={actions.trashPoint} />
         {editor.dialog}
       </>
     );
@@ -236,6 +248,7 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
                         {point ? (
                           <PointCard
                             point={point}
+                            label={labelById(point.labelId)}
                             dimmed={dragging?.type === "point" && dragging.point.id === point.id}
                             onOpen={() => editor.openPoint(point.id)}
                             onTrash={() => actions.trashPoint(point.id)}
@@ -273,7 +286,7 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
           </table>
         </div>
         <DragOverlay>
-          {dragging?.type === "point" && <PointCardBody point={dragging.point} className="cursor-grabbing shadow-lg" />}
+          {dragging?.type === "point" && <PointCardBody point={dragging.point} label={labelById(dragging.point.labelId)} className="cursor-grabbing shadow-lg" />}
           {dragging?.type === "line" && (
             <div className={cn("rounded-lg border bg-background p-2 font-medium shadow-lg", CELL_WIDTH)}>{dragging.line.name}</div>
           )}
@@ -373,29 +386,42 @@ function Cell({ line, scene, children }: { line: PlotLineItem; scene: PlotScene;
   );
 }
 
-function PointCardBody({ point, className }: { point: PlotPointItem; className?: string }) {
+function PointCardBody({ point, label, className }: { point: PlotPointItem; label: LabelItem | null; className?: string }) {
   return (
     <div className={cn("flex max-h-40 min-h-12 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-2.5 text-left text-sm", className)}>
       {point.title && <span className="truncate font-semibold">{point.title}</span>}
       {point.text && <span className="line-clamp-4 wrap-break-word whitespace-pre-wrap text-foreground/80">{point.text}</span>}
+      {label && <LabelChip label={label} className="mt-auto self-start" />}
     </div>
   );
 }
 
 /** A plot point as a card: a click opens it, a drag moves it to another cell. */
-function PointCard({ point, dimmed, onOpen, onTrash }: { point: PlotPointItem; dimmed: boolean; onOpen: () => void; onTrash: () => void }) {
+function PointCard({
+  point,
+  label,
+  dimmed,
+  onOpen,
+  onTrash,
+}: {
+  point: PlotPointItem;
+  label: LabelItem | null;
+  dimmed: boolean;
+  onOpen: () => void;
+  onTrash: () => void;
+}) {
   const { listeners, setNodeRef } = useDraggable({ id: pointDragId(point.id), data: { type: "point", pointId: point.id } });
   const [confirming, setConfirming] = useState(false);
   // Only the pointer handlers: the keyboard keeps a card a plain button, and the dialog moves a point by keyboard.
   const { onMouseDown, onTouchStart } = (listeners ?? {}) as { onMouseDown?: React.MouseEventHandler; onTouchStart?: React.TouchEventHandler };
-  const label = point.title || point.text.slice(0, 40);
+  const name = point.title || point.text.slice(0, 40);
 
   return (
     <div className="group/item relative">
       <button
         type="button"
         ref={setNodeRef}
-        aria-label={`Plot point: ${label}`}
+        aria-label={`Plot point: ${name}`}
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
         onClick={onOpen}
@@ -404,13 +430,13 @@ function PointCard({ point, dimmed, onOpen, onTrash }: { point: PlotPointItem; d
           dimmed && "opacity-40",
         )}
       >
-        <PointCardBody point={point} />
+        <PointCardBody point={point} label={label} />
       </button>
-      <RowMenu label={`${label} options`} className="top-2 translate-y-0">
+      <RowMenu label={`${name} options`} className="top-2 translate-y-0">
         <TrashItem onClick={() => setConfirming(true)} />
       </RowMenu>
       <ConfirmTrashDialog
-        target={confirming ? { kind: "plot point", name: label } : null}
+        target={confirming ? { kind: "plot point", name } : null}
         onCancel={() => setConfirming(false)}
         onConfirm={() => {
           onTrash();

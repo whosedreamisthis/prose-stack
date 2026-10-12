@@ -26,4 +26,6 @@ export const cacheTags = {
   stats: (projectId: string) => `stats:${projectId}`,
   /** The project's plot lines and points: the plot grid, the Plots sidebar section and each scene's Plots tab. */
   plot: (projectId: string) => `plot:${projectId}`,
+  /** The project's labels and how many items carry each. */
+  labels: (projectId: string) => `labels:${projectId}`,
 };

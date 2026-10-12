@@ -1,20 +1,27 @@
-# Current Feature
+# Current Feature: Settings: Labels
 
-<!-- Feature name and short description -->
+Labels tab in the settings modal: named colors writers attach to scenes and plot points. Spec: [features/settings-labels-spec.md](features/settings-labels-spec.md).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Labels tab listing labels with color swatch, name and scene/plot-point usage counts
+- Add (inline name + color), rename in place, recolor (preset palette + custom color with contrast warning), delete with usage-count confirmation (`onDelete: SetNull`)
+- Names unique per project (case-insensitive, trimmed, 1-40 chars); max 20 labels; `#rrggbb` color validated
+- Each change saves immediately with rollback and error toast on failure
+- `Label` model; `ManuscriptNode.labelId` becomes a relation and `PlotPoint.labelId` is added the same way (both `SetNull`); `actions/labels.ts`, cached `lib/labels.ts` with `cacheTags.labels`
+- Label shown as a color bar at the right of scene/chapter/part rows in the left sidebar (tooltip + aria-label)
+- Label chip (bookmark icon + name) on plot point cards (right sidebar Plots tab, and the plot grid and single-line view)
+- Seed the demo user with labels (Draft, Revise, Final) applied to some scenes/chapters/parts and plot points; test in `lib/demo-seed.test.ts`
+- Keyboard-operable; other projects'/users' labels never accessible
 
 ## Notes
 
-<!-- Any extra notes -->
+- Plot already exists, so plot points get `labelId` and the chip now. The pickers that apply a label (scene sidebar, plot point dialog) belong to those features per the spec; open question whether to add the plot point dialog picker here.
+- Open questions: preset-only vs custom colors (spec allows custom), one label per scene (current model), reorderable vs alphabetical.
 
 ## Completed Features
 
