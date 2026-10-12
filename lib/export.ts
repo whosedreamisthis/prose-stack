@@ -11,6 +11,7 @@ import { renderManuscriptPdf, type ManuscriptSection } from "@/lib/pdf/manuscrip
 import { renderSketchPdf } from "@/lib/pdf/sketch";
 import { getPlace, listPlaceNotes } from "@/lib/places";
 import { getProject } from "@/lib/projects";
+import { getResearchItem } from "@/lib/research";
 import { toFormatting } from "@/lib/formatting";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
 
@@ -33,6 +34,7 @@ export async function buildExport(userId: string, type: ExportType, id: string, 
   if (type === "character") return exportCharacter(userId, project.title, id, projectId);
   if (type === "place") return exportPlace(userId, project.title, id, projectId);
   if (type === "book") return exportBook(userId, project);
+  if (type === "research") return exportResearchNote(userId, project, id);
   return exportNode(userId, project, id);
 }
 
@@ -41,6 +43,17 @@ async function exportBook(userId: string, project: NonNullable<Awaited<ReturnTyp
   const nodes = await getBookNodes(userId, project.id);
   const meta = { title: project.title, subtitle: project.subtitle ?? "", author: project.author };
   return { name: project.title, pdf: await renderBookPdf(meta, buildBookItems(nodes), toFormatting(project)) };
+}
+
+/** A research note: its title and text, in the project's formatting. Links have nothing to export. */
+async function exportResearchNote(userId: string, project: NonNullable<Awaited<ReturnType<typeof getProject>>>, id: string) {
+  const item = await getResearchItem(userId, project.id, id);
+  if (!item || item.type !== "NOTE") return null;
+  const sections: ManuscriptSection[] = [
+    { kind: "title", text: item.title, level: 2 },
+    { kind: "scene", doc: item.content },
+  ];
+  return { name: item.title, pdf: await renderManuscriptPdf(toFormatting(project), sections) };
 }
 
 async function exportCharacter(userId: string, projectTitle: string, id: string, projectId: string) {

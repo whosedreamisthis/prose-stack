@@ -6,6 +6,7 @@ import { SketchSkeleton } from "@/components/characters/SketchSkeleton";
 import { EditorSkeleton } from "@/components/manuscript/EditorSkeleton";
 import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
 import { PlotRouteSkeleton } from "@/components/plot/PlotRouteSkeleton";
+import { ResearchSkeleton } from "@/components/research/ResearchSkeleton";
 import { ListSkeleton } from "@/components/trash/ListSkeleton";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 
@@ -13,6 +14,7 @@ const SKELETONS: Record<string, ReactNode> = {
   manuscript: <EditorSkeleton />,
   characters: <SketchSkeleton />,
   places: <PlaceSkeleton />,
+  research: <ResearchSkeleton />,
   trash: <ListSkeleton />,
   archive: <ListSkeleton />,
 };

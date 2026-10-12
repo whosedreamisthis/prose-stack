@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
+import { STARTER_FOLDERS } from "@/lib/research-config";
 import { countDocWords, type DocNode } from "@/lib/manuscript-text";
 
 type NodeType = "PART" | "CHAPTER" | "SCENE";
@@ -274,9 +275,60 @@ const BOOK_NOTES: readonly (readonly [string, string])[] = [
   ["Tone", "Wry and atmospheric. A ghost story that is mostly about work."],
 ];
 
+/** The demo's research: worldbuilding starter folders with a few notes and a link, two of them linked to the story. */
+async function seedResearch(tx: Prisma.TransactionClient, projectId: string, links: { characterId?: string; placeId?: string }) {
+  const folders = STARTER_FOLDERS.map((name, position) => ({ id: id(), projectId, parentId: null, name, position }));
+  await tx.researchFolder.createMany({ data: folders });
+  const folder = (name: (typeof STARTER_FOLDERS)[number]) => folders.find((f) => f.name === name)!.id;
+  const note = (paragraphs: string[]) => docFromParagraphs(paragraphs) as Prisma.InputJsonValue;
+  await tx.researchItem.createMany({
+    data: [
+      {
+        projectId,
+        folderId: folder("History"),
+        type: "NOTE",
+        position: 0,
+        title: "Lighthouse keepers",
+        content: note([
+          "Keepers worked in pairs or with family, trimming wicks and winding the clockwork every few hours through the night.",
+          "Most lights were automated by the 1990s; the last keepers left with them.",
+        ]),
+        characterId: links.characterId,
+      },
+      {
+        projectId,
+        folderId: folder("Magic & Technology"),
+        type: "NOTE",
+        position: 0,
+        title: "The Fresnel lens",
+        content: note(["Rings of prisms bend the lamp's light into one beam that can be seen for twenty miles.", "A first-order lens stands taller than a person."]),
+        placeId: links.placeId,
+      },
+      {
+        projectId,
+        folderId: folder("Magic & Technology"),
+        type: "LINK",
+        position: 1,
+        title: "How a lighthouse lens works",
+        url: "https://en.wikipedia.org/wiki/Fresnel_lens",
+        description: "Background for the lamp room scenes.",
+      },
+      {
+        projectId,
+        folderId: null,
+        type: "NOTE",
+        position: 0,
+        title: "Shipwreck legends",
+        content: note(["Collect local stories of wrecks on the reef: who was saved, who wasn't, and who was blamed."]),
+      },
+    ],
+  });
+}
+
 /**
  * Seeds the demo user's one project: labels applied to some of the outline and plot points, manuscript (with notes on the book, a part, a chapter and scenes), characters and places (each with notes), the places linked to their characters, and plot
- * lines with points on several scenes. Research joins this as that feature ships. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
+ * lines with points on several scenes, and a research library (the starter folders, notes and a link, two of them linked to the story). Runs inside the
+ * caller's transaction; uses a handful of bulk inserts, not a query per row.
  */
 export async function seedDemoProject(tx: Prisma.TransactionClient, userId: string) {
   const project = await tx.project.create({
@@ -372,8 +424,9 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
   if (noteRows.length > 0) await tx.characterNote.createMany({ data: noteRows });
 
   // Few rows, and each connects to characters, which a bulk insert can't do, so these are created one by one.
+  const placeIds: string[] = [];
   for (const { characters: related, ...place } of PLACES) {
-    await tx.place.create({
+    const created = await tx.place.create({
       data: {
         projectId: project.id,
         name: place.name,
@@ -392,7 +445,9 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
       },
       select: { id: true },
     });
+    placeIds.push(created.id);
   }
 
+  await seedResearch(tx, project.id, { characterId: characters[0]?.id, placeId: placeIds[0] });
   return project.id;
 }

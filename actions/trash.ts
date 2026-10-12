@@ -6,7 +6,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { subtreeIds } from "@/lib/manuscript-tree";
-import { archiveRefSchema, trashRefSchema, type ArchiveRef, type TrashRef } from "@/lib/trash-config";
+import {
+  deleteResearchFolder,
+  restoreResearchFolder,
+  restoreResearchItem,
+  trashArchivedResearch,
+} from "@/lib/research-hidden";
+import { archiveRefSchema, emptyTrashSchema, trashRefSchema, type ArchiveRef, type TrashRef } from "@/lib/trash-config";
 import { trashGroupIds, trashedAncestorIds } from "@/lib/trash-tree";
 import type { ActionResult } from "@/types/actions";
 
@@ -143,10 +149,14 @@ export async function restoreItem(input: TrashRef): Promise<ActionResult> {
       const { count } = await prisma.projectNote.updateMany({ where: { id, ...owner, trashedAt: hidden }, data: { trashedAt: null } });
       if (count === 0) return { success: false, error: NOT_FOUND };
       tags = [cacheTags.projectNotes(projectId)];
+    } else if (kind === "researchFolder" || kind === "researchItem") {
+      const restore = kind === "researchFolder" ? restoreResearchFolder : restoreResearchItem;
+      if (!(await restore(user.id, projectId, id, "trashedAt"))) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.research(projectId), cacheTags.researchItem(id)];
     } else if (kind === "plotLine") {
       if (!(await restorePlotLine(user.id, projectId, id))) return { success: false, error: NOT_FOUND };
       tags = [cacheTags.plot(projectId)];
-    } else {
+    } else if (kind === "plotPoint") {
       const point = await prisma.plotPoint.findFirst({
         where: { id, trashedAt: hidden, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
         select: { id: true },
@@ -216,12 +226,19 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       const { count } = await prisma.projectNote.deleteMany({ where: { id, ...owner, trashedAt: hidden } });
       if (count === 0) return { success: false, error: NOT_FOUND };
       tags = [cacheTags.projectNotes(projectId)];
+    } else if (kind === "researchFolder") {
+      if (!(await deleteResearchFolder(user.id, projectId, id))) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.research(projectId)];
+    } else if (kind === "researchItem") {
+      const { count } = await prisma.researchItem.deleteMany({ where: { id, ...owner, trashedAt: hidden } });
+      if (count === 0) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.research(projectId), cacheTags.researchItem(id)];
     } else if (kind === "plotLine") {
       // Its points go with it (they cascade).
       const { count } = await prisma.plotLine.deleteMany({ where: { id, ...owner, trashedAt: hidden } });
       if (count === 0) return { success: false, error: NOT_FOUND };
       tags = [cacheTags.plot(projectId)];
-    } else {
+    } else if (kind === "plotPoint") {
       const { count } = await prisma.plotPoint.deleteMany({
         where: { id, trashedAt: hidden, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
       });
@@ -237,6 +254,13 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
   }
 }
 
+/** The cached reads an archived item shows up in once it is back (or gone). */
+function archiveTags(projectId: string, kind: ArchiveRef["kind"], id: string) {
+  if (kind === "character") return [cacheTags.characters(projectId), cacheTags.character(id), cacheTags.characterNotes(id)];
+  if (kind === "place") return [cacheTags.places(projectId), cacheTags.place(id), cacheTags.placeNotes(id)];
+  return [cacheTags.research(projectId), cacheTags.researchItem(id)];
+}
+
 export async function unarchiveItem(input: ArchiveRef): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
@@ -246,17 +270,19 @@ export async function unarchiveItem(input: ArchiveRef): Promise<ActionResult> {
     const { projectId, kind, id } = parsed.data;
     const where = { id, projectId, project: { userId: user.id }, trashedAt: null, archivedAt: { not: null } };
 
-    const { count } =
-      kind === "character"
-        ? await prisma.character.updateMany({ where, data: { archivedAt: null } })
-        : await prisma.place.updateMany({ where, data: { archivedAt: null } });
-    if (count === 0) return { success: false, error: "That item is not archived." };
+    let restored: boolean;
+    if (kind === "researchFolder") restored = await restoreResearchFolder(user.id, projectId, id, "archivedAt");
+    else if (kind === "researchItem") restored = await restoreResearchItem(user.id, projectId, id, "archivedAt");
+    else {
+      const { count } =
+        kind === "character"
+          ? await prisma.character.updateMany({ where, data: { archivedAt: null } })
+          : await prisma.place.updateMany({ where, data: { archivedAt: null } });
+      restored = count > 0;
+    }
+    if (!restored) return { success: false, error: "That item is not archived." };
 
-    const tags =
-      kind === "character"
-        ? [cacheTags.characters(projectId), cacheTags.character(id), cacheTags.characterNotes(id)]
-        : [cacheTags.places(projectId), cacheTags.place(id), cacheTags.placeNotes(id)];
-    refresh(projectId, [...tags, cacheTags.archive(projectId)]);
+    refresh(projectId, [...archiveTags(projectId, kind, id), cacheTags.archive(projectId)]);
     return { success: true, data: undefined };
   } catch (error) {
     console.error("unarchiveItem failed:", error);
@@ -275,18 +301,63 @@ export async function trashArchivedItem(input: ArchiveRef): Promise<ActionResult
     const where = { id, projectId, project: { userId: user.id }, trashedAt: null, archivedAt: { not: null } };
     const data = { trashedAt: new Date(), archivedAt: null };
 
-    const { count } =
-      kind === "character" ? await prisma.character.updateMany({ where, data }) : await prisma.place.updateMany({ where, data });
-    if (count === 0) return { success: false, error: "That item is not archived." };
+    let moved: boolean;
+    if (kind === "researchFolder" || kind === "researchItem") moved = await trashArchivedResearch(user.id, projectId, kind, id);
+    else {
+      const { count } =
+        kind === "character" ? await prisma.character.updateMany({ where, data }) : await prisma.place.updateMany({ where, data });
+      moved = count > 0;
+    }
+    if (!moved) return { success: false, error: "That item is not archived." };
 
-    const tags =
-      kind === "character"
-        ? [cacheTags.characters(projectId), cacheTags.character(id), cacheTags.characterNotes(id)]
-        : [cacheTags.places(projectId), cacheTags.place(id), cacheTags.placeNotes(id)];
-    refresh(projectId, [...tags, cacheTags.archive(projectId), cacheTags.trash(projectId)]);
+    refresh(projectId, [...archiveTags(projectId, kind, id), cacheTags.archive(projectId), cacheTags.trash(projectId)]);
     return { success: true, data: undefined };
   } catch (error) {
     console.error("trashArchivedItem failed:", error);
     return { success: false, error: "Could not move the item to the trash. Please try again." };
+  }
+}
+
+/**
+ * Deletes everything in the project's trash for good. What was trashed inside a trashed part, folder or plot line goes
+ * with it (the deletes cascade), as it would one by one. Live and archived items are untouched.
+ */
+export async function emptyTrash(input: { projectId: string }): Promise<ActionResult<{ deleted: number }>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: NOT_SIGNED_IN };
+    const parsed = emptyTrashSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const { projectId } = parsed.data;
+    const trashed = { trashedAt: { not: null } };
+
+    const deleted = await prisma.$transaction(async (tx) => {
+      if (!(await lockOwnedProject(tx, user.id, projectId))) return null;
+      // Contents before containers, so what was trashed on its own inside a trashed container is counted too.
+      const steps = [
+        () => tx.characterNote.deleteMany({ where: { ...trashed, character: { projectId } } }),
+        () => tx.placeNote.deleteMany({ where: { ...trashed, place: { projectId } } }),
+        () => tx.sceneNote.deleteMany({ where: { ...trashed, scene: { projectId } } }),
+        () => tx.projectNote.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.plotPoint.deleteMany({ where: { ...trashed, plotLine: { projectId } } }),
+        () => tx.researchItem.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.plotLine.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.researchFolder.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.character.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.place.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.manuscriptNode.deleteMany({ where: { ...trashed, projectId } }),
+      ];
+      let total = 0;
+      for (const step of steps) total += (await step()).count;
+      return total;
+    });
+    if (deleted === null) return { success: false, error: "Project not found." };
+
+    // Anything in the project may have been in the trash, so every project read is expired.
+    refresh(projectId, [cacheTags.project(projectId), cacheTags.trash(projectId)]);
+    return { success: true, data: { deleted } };
+  } catch (error) {
+    console.error("emptyTrash failed:", error);
+    return { success: false, error: "Could not empty the trash. Please try again." };
   }
 }

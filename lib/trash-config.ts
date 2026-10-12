@@ -4,15 +4,17 @@ const idSchema = z.string().min(1).max(64);
 
 export const trashRefSchema = z.object({
   projectId: idSchema,
-  kind: z.enum(["node", "character", "place", "characterNote", "placeNote", "sceneNote", "plotPoint", "plotLine", "projectNote"]),
+  kind: z.enum(["node", "character", "place", "characterNote", "placeNote", "sceneNote", "plotPoint", "plotLine", "projectNote", "researchFolder", "researchItem"]),
   id: idSchema,
 });
 
 export const archiveRefSchema = z.object({
   projectId: idSchema,
-  kind: z.enum(["character", "place"]),
+  kind: z.enum(["character", "place", "researchFolder", "researchItem"]),
   id: idSchema,
 });
+
+export const emptyTrashSchema = z.object({ projectId: idSchema });
 
 export type TrashRef = z.input<typeof trashRefSchema>;
 export type ArchiveRef = z.input<typeof archiveRefSchema>;
@@ -23,7 +25,7 @@ export function noteLabel(note: { title: string | null; content: string }) {
   return text.length > 60 ? `${text.slice(0, 57)}…` : text || "Untitled note";
 }
 
-const ITEM_KINDS = ["node", "character", "place", "characterNote", "placeNote", "sceneNote", "plotPoint", "plotLine", "projectNote"] as const;
+const ITEM_KINDS = ["node", "character", "place", "characterNote", "placeNote", "sceneNote", "plotPoint", "plotLine", "projectNote", "researchFolder", "researchItem"] as const;
 
 /** The `?item=` value that opens a trashed or archived item: `<kind>:<id>`. */
 export function itemParam(kind: (typeof ITEM_KINDS)[number], id: string) {

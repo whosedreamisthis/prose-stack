@@ -1,4 +1,4 @@
-import { FileTextIcon, GitBranchIcon, MapPinIcon, MilestoneIcon, StickyNoteIcon, UserIcon, type LucideIcon } from "lucide-react";
+import { FileTextIcon, FolderIcon, NotebookTextIcon, GitBranchIcon, MapPinIcon, MilestoneIcon, StickyNoteIcon, UserIcon, type LucideIcon } from "lucide-react";
 import type { TrashKind } from "@/types/trash";
 
 /** The icon for each kind of item shown in the Trash and Archive lists. */
@@ -12,4 +12,6 @@ export const KIND_ICON: Record<TrashKind, LucideIcon> = {
   plotPoint: MilestoneIcon,
   plotLine: GitBranchIcon,
   projectNote: StickyNoteIcon,
+  researchFolder: FolderIcon,
+  researchItem: NotebookTextIcon,
 };

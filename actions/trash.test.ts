@@ -5,7 +5,7 @@ import { updateTag } from "next/cache"; // after the shared mock is registered, 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 
-import { deleteItemPermanently, restoreItem, trashArchivedItem, unarchiveItem } from "@/actions/trash";
+import { deleteItemPermanently, emptyTrash, restoreItem, trashArchivedItem, unarchiveItem } from "@/actions/trash";
 
 const owner = { projectId: "p1", project: { userId: "user-1" } };
 const T0 = new Date("2026-01-01T10:00:00Z");
@@ -214,5 +214,45 @@ describe("plot lines and points in the trash", () => {
 
     prismaMock.plotPoint.deleteMany.mockResolvedValue({ count: 0 });
     expect((await deleteItemPermanently({ projectId: "p1", kind: "plotPoint", id: "pt1" })).success).toBe(false);
+  });
+});
+
+describe("emptyTrash", () => {
+  const models = [
+    "characterNote",
+    "placeNote",
+    "sceneNote",
+    "projectNote",
+    "plotPoint",
+    "researchItem",
+    "plotLine",
+    "researchFolder",
+    "character",
+    "place",
+    "manuscriptNode",
+  ] as const;
+
+  it("rejects signed-out callers", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    expect((await emptyTrash({ projectId: "p1" })).success).toBe(false);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("refuses a project that is not the user's and deletes nothing", async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    expect(await emptyTrash({ projectId: "p1" })).toEqual({ success: false, error: "Project not found." });
+    for (const model of models) expect(prismaMock[model].deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("deletes only trashed rows of the project, of every kind, and reports how many", async () => {
+    for (const model of models) prismaMock[model].deleteMany.mockResolvedValue({ count: 1 });
+    expect(await emptyTrash({ projectId: "p1" })).toEqual({ success: true, data: { deleted: models.length } });
+    for (const model of models) {
+      const { where } = prismaMock[model].deleteMany.mock.calls[0][0];
+      expect(where.trashedAt).toEqual({ not: null });
+      expect(JSON.stringify(where)).toContain('"projectId":"p1"');
+    }
+    expect(updateTag).toHaveBeenCalledWith("project:p1");
+    expect(updateTag).toHaveBeenCalledWith("trash:p1");
   });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import "@/test/mock-prisma";
 import { seedDemoProject } from "@/lib/demo-seed";
+import { STARTER_FOLDERS } from "@/lib/research-config";
 
 function fakeTx() {
   return {
@@ -14,6 +15,8 @@ function fakeTx() {
     character: { createMany: vi.fn() },
     characterNote: { createMany: vi.fn() },
     place: { create: vi.fn().mockResolvedValue({ id: "pl1" }) },
+    researchFolder: { createMany: vi.fn() },
+    researchItem: { createMany: vi.fn() },
   };
 }
 
@@ -166,5 +169,25 @@ describe("seedDemoProject", () => {
       expect(place.relatedCharacters.connect.length).toBeGreaterThan(0);
       for (const { id } of place.relatedCharacters.connect) expect(characters.some((c) => c.id === id)).toBe(true);
     }
+  });
+
+  it("seeds research: the starter folders, with notes and a link inside them, two linked to the story", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const folders = tx.researchFolder.createMany.mock.calls[0][0].data as { id: string; projectId: string; name: string }[];
+    const items = tx.researchItem.createMany.mock.calls[0][0].data as {
+      projectId: string;
+      folderId: string | null;
+      type: string;
+      url?: string;
+      characterId?: string;
+      placeId?: string;
+    }[];
+    expect(folders.map((f) => f.name)).toEqual([...STARTER_FOLDERS]);
+    for (const row of [...folders, ...items]) expect(row.projectId).toBe("p1");
+    for (const item of items) if (item.folderId) expect(folders.some((f) => f.id === item.folderId)).toBe(true);
+    expect(items.some((i) => i.type === "LINK" && i.url?.startsWith("https://"))).toBe(true);
+    expect(items.some((i) => i.characterId)).toBe(true);
+    expect(items.some((i) => i.placeId === "pl1")).toBe(true);
   });
 });

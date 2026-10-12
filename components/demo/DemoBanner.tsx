@@ -9,8 +9,12 @@ export async function DemoBanner() {
 
   const hours = hoursLeft(user.demoExpiresAt);
   return (
-    <div role="status" className="border-b bg-primary/10 px-6 py-1.5 text-center text-sm">
-      Demo — your data is deleted in {hours} {hours === 1 ? "hour" : "hours"}. <DemoRegisterButton />
+    <div
+      role="status"
+      className="border-b bg-primary/10 px-6 py-1.5 text-center text-sm"
+    >
+      Demo — your data will be deleted in {hours}{" "}
+      {hours === 1 ? "hour" : "hours"}. <DemoRegisterButton />
     </div>
   );
 }
