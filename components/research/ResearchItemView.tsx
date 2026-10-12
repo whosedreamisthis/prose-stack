@@ -196,6 +196,7 @@ function LinkFields({ projectId, itemId, url, description }: { projectId: string
             onChange={(e) => setValues((v) => ({ ...v, url: e.target.value }))}
           />
           <Button
+            nativeButton={false}
             variant="outline"
             disabled={!trimmed || !isWebUrl(trimmed)}
             render={<a href={isWebUrl(trimmed) ? trimmed : undefined} target="_blank" rel="noopener noreferrer" />}
