@@ -11,6 +11,9 @@ const summarySelect = {
   coverDesign: true,
   coverColor: true,
   coverImageUrl: true,
+  fontFamily: true,
+  fontSize: true,
+  lineSpacing: true,
   updatedAt: true,
 } as const;
 

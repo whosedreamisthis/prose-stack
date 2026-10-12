@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
+import { toast } from "sonner";
+import { updateProjectSettings } from "@/actions/settings";
 import { useEditorState } from "@tiptap/react";
 import { BookAIcon, CheckIcon, HeadphonesIcon, RedoIcon, SearchIcon, TypeIcon, UndoIcon, type LucideIcon } from "lucide-react";
 import { Hint } from "@/components/layout/Hint";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useModKey } from "@/hooks/useModKey";
-import { FONT_SIZES, useEditorStore } from "@/lib/stores/editor-store";
+import { TOOLBAR_FONT_SIZES, DEFAULT_FORMATTING } from "@/lib/project-config";
+import { useEditorStore } from "@/lib/stores/editor-store";
+import { useFormattingStore } from "@/lib/stores/formatting-store";
 import { cn } from "@/lib/utils";
 
 const toolClass = "aria-disabled:cursor-default aria-disabled:opacity-50 aria-pressed:bg-primary/15 aria-pressed:text-primary";
@@ -51,8 +55,9 @@ export function EditorToolbar() {
   const findOpen = useEditorStore((s) => s.findOpen);
   const setFindOpen = useEditorStore((s) => s.setFindOpen);
   const setThesaurusOpen = useEditorStore((s) => s.setThesaurusOpen);
-  const fontSize = useEditorStore((s) => s.fontSize);
-  const setFontSize = useEditorStore((s) => s.setFontSize);
+  const projectId = useFormattingStore((s) => s.projectId);
+  const fontSize = useFormattingStore((s) => s.preview?.fontSize ?? s.saved?.fontSize ?? DEFAULT_FORMATTING.fontSize);
+  const setPreview = useFormattingStore((s) => s.setPreview);
   const [stop, setStop] = useState(0);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
 
@@ -61,6 +66,24 @@ export function EditorToolbar() {
     selector: ({ editor }) => ({ canUndo: !!editor?.can().undo(), canRedo: !!editor?.can().redo() }),
   }) ?? { canUndo: false, canRedo: false };
   const hasEditor = !!editor;
+
+  // The size is a project setting (the same one as in Settings), so a pick is saved at once. It shows straight away and
+  // the saved value takes over when the action returns.
+  async function chooseFontSize(size: number) {
+    if (!projectId || size === fontSize) return;
+    setPreview({ ...useFormattingStore.getState().preview, fontSize: size });
+    const result = await updateProjectSettings(projectId, { fontSize: size });
+    const { preview } = useFormattingStore.getState();
+    if (preview) {
+      const rest = { ...preview };
+      delete rest.fontSize;
+      setPreview(Object.keys(rest).length > 0 ? rest : null);
+    }
+    if (!result.success) toast.error(result.error);
+  }
+
+  // A size set in Settings that is not one of the usual sizes (such as 15) still shows, as the current value.
+  const fontSizes = [...new Set([...TOOLBAR_FONT_SIZES, fontSize])].sort((a, b) => a - b);
 
   // Arrow keys, Home and End move between tools; Tab leaves the toolbar.
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -114,8 +137,8 @@ export function EditorToolbar() {
           </DropdownMenuTrigger>
         </Hint>
         <DropdownMenuContent align="center" className="w-28">
-          {FONT_SIZES.map((size) => (
-            <DropdownMenuItem key={size} onClick={() => setFontSize(size)} aria-current={size === fontSize ? "true" : undefined}>
+          {fontSizes.map((size) => (
+            <DropdownMenuItem key={size} onClick={() => void chooseFontSize(size)} aria-current={size === fontSize ? "true" : undefined}>
               <span className="flex-1">{size} pt</span>
               <CheckIcon className={cn("size-4", size !== fontSize && "invisible")} aria-hidden />
             </DropdownMenuItem>

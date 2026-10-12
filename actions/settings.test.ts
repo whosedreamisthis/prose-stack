@@ -35,6 +35,37 @@ describe("updateProjectSettings", () => {
     expect(updateTag).toHaveBeenCalledWith("projects:user-1");
   });
 
+  it("saves formatting and keeps the project's edited date when nothing else changed", async () => {
+    const edited = new Date("2026-01-01T00:00:00Z");
+    prismaMock.project.findFirst.mockResolvedValue({ updatedAt: edited });
+    prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
+    expect((await updateProjectSettings("p1", { fontFamily: "Lora", fontSize: 14, lineSpacing: "SINGLE" })).success).toBe(true);
+    expect(prismaMock.project.updateMany).toHaveBeenCalledWith({
+      where: { id: "p1", userId: "user-1" },
+      data: { fontFamily: "Lora", fontSize: 14, lineSpacing: "SINGLE", updatedAt: edited },
+    });
+  });
+
+  it("lets a text change move the edited date as usual", async () => {
+    prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
+    await updateProjectSettings("p1", { title: "New", fontSize: 14 });
+    expect(prismaMock.project.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.project.updateMany.mock.calls[0][0].data).not.toHaveProperty("updatedAt");
+  });
+
+  it("rejects an out-of-range size, an unknown font and an unknown spacing", async () => {
+    expect((await updateProjectSettings("p1", { fontSize: 30 })).success).toBe(false);
+    expect((await updateProjectSettings("p1", { fontFamily: "Papyrus" as "Lora" })).success).toBe(false);
+    expect((await updateProjectSettings("p1", { lineSpacing: "TRIPLE" as "SINGLE" })).success).toBe(false);
+    expect(prismaMock.project.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("reports a formatting change on a project that is not the user's", async () => {
+    prismaMock.project.findFirst.mockResolvedValue(null);
+    expect((await updateProjectSettings("p1", { fontSize: 14 })).success).toBe(false);
+    expect(prismaMock.project.updateMany).not.toHaveBeenCalled();
+  });
+
   it("reports a project that is not the user's", async () => {
     prismaMock.project.updateMany.mockResolvedValue({ count: 0 });
     expect((await updateProjectSettings("p1", { title: "A" })).success).toBe(false);

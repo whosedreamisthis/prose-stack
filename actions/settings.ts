@@ -24,7 +24,14 @@ export async function updateProjectSettings(projectId: string, input: UpdateProj
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid settings." };
     }
-    const { title, subtitle, author } = parsed.data;
+    const { title, subtitle, author, fontFamily, fontSize, lineSpacing } = parsed.data;
+
+    // Formatting is display only, so a formatting-only change keeps the project's "edited" date as it was.
+    const keepEditedDate = title === undefined && subtitle === undefined && author === undefined;
+    const previous = keepEditedDate
+      ? await prisma.project.findFirst({ where: { id: projectId, userId: user.id }, select: { updatedAt: true } })
+      : null;
+    if (keepEditedDate && !previous) return { success: false, error: NOT_FOUND };
 
     const { count } = await prisma.project.updateMany({
       where: { id: projectId, userId: user.id },
@@ -32,6 +39,10 @@ export async function updateProjectSettings(projectId: string, input: UpdateProj
         ...(title !== undefined && { title }),
         ...(subtitle !== undefined && { subtitle: subtitle || null }),
         ...(author !== undefined && { author }),
+        ...(fontFamily !== undefined && { fontFamily }),
+        ...(fontSize !== undefined && { fontSize }),
+        ...(lineSpacing !== undefined && { lineSpacing }),
+        ...(previous && { updatedAt: previous.updatedAt }),
       },
     });
     if (count === 0) return { success: false, error: NOT_FOUND };

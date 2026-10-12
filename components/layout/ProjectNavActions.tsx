@@ -6,6 +6,7 @@ import { Hint } from "@/components/layout/Hint";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toFormatting } from "@/lib/formatting";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import type { ThemeChoice } from "@/lib/theme-config";
 import type { ProjectSummary } from "@/types/projects";
@@ -44,6 +45,7 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
               title: project.title,
               subtitle: project.subtitle ?? "",
               author: project.author,
+              ...toFormatting(project),
               theme,
             })
         : undefined,

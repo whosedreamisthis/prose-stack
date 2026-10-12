@@ -8,14 +8,19 @@ import { FindPanel } from "@/components/manuscript/FindPanel";
 import { ThesaurusPopover } from "@/components/manuscript/ThesaurusPopover";
 import { useSceneAutosave } from "@/hooks/useSceneAutosave";
 import { consumeEditorFocusRequest } from "@/lib/editor-focus";
+import { FORMATTED_TEXT, formattingStyle } from "@/lib/formatting";
 import { readLocalCopy } from "@/lib/local-copy";
 import { chooseInitialContent } from "@/lib/manuscript-sync";
 import { SearchReplace } from "@/lib/search-replace-extension";
 import { countDocWords, type DocNode } from "@/lib/manuscript-text";
+import type { Formatting } from "@/lib/project-config";
 import { useEditorStore } from "@/lib/stores/editor-store";
+import { applyPreview, useFormattingStore } from "@/lib/stores/formatting-store";
 
 interface SceneEditorProps {
   projectId: string;
+  /** The project's saved formatting, from the server. */
+  formatting: Formatting;
   scene: { id: string; title: string; content: DocNode; updatedAt: number };
 }
 
@@ -51,11 +56,14 @@ function openScene(scene: SceneEditorProps["scene"]) {
 }
 
 /** The Tiptap editor for one scene. Mount it with `key={scene.id}` so each scene gets a fresh editor and autosave. */
-export function SceneEditor({ projectId, scene }: SceneEditorProps) {
+export function SceneEditor({ projectId, formatting, scene }: SceneEditorProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [initial] = useState(() => openScene(scene));
-  const fontSize = useEditorStore((s) => s.fontSize);
+  const preview = useFormattingStore((s) => s.preview);
+  const setSavedFormatting = useFormattingStore((s) => s.setSaved);
+  // The saved formatting from the server, with the settings modal's or the toolbar's pending change on top.
+  const shown = applyPreview(formatting, preview);
   const spellcheck = useEditorStore((s) => s.spellcheck);
   const setEditor = useEditorStore((s) => s.setEditor);
   const setLiveWords = useEditorStore((s) => s.setLiveWords);
@@ -103,6 +111,13 @@ export function SceneEditor({ projectId, scene }: SceneEditorProps) {
     void useEditorStore.persist.rehydrate();
   }, []);
 
+  // The toolbar is in another route slot, so it reads the saved formatting from the store.
+  const { fontFamily, fontSize, lineSpacing } = formatting;
+  useEffect(() => {
+    setSavedFormatting(projectId, { fontFamily, fontSize, lineSpacing });
+    return () => setSavedFormatting(null, null);
+  }, [projectId, fontFamily, fontSize, lineSpacing, setSavedFormatting]);
+
   useEffect(() => {
     if (!editor) return;
     setEditor(editor);
@@ -122,8 +137,8 @@ export function SceneEditor({ projectId, scene }: SceneEditorProps) {
       <div
         // Spell check is inherited by the editable area below.
         spellCheck={spellcheck}
-        style={{ fontSize: `${fontSize}pt` }}
-        className="mx-auto w-full max-w-2xl rounded-md border border-foreground/25 bg-card/30 px-3 font-serif leading-relaxed focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 [&_.ProseMirror]:min-h-[60vh] [&_.ProseMirror]:px-1 [&_.ProseMirror]:py-2 [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:mb-[0.9em]"
+        style={formattingStyle(shown)}
+        className={`${FORMATTED_TEXT} mx-auto w-full max-w-2xl rounded-md border border-foreground/25 bg-card/30 px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 [&_.ProseMirror]:min-h-[60vh] [&_.ProseMirror]:px-1 [&_.ProseMirror]:py-2 [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:mb-(--editor-gap)`}
       >
         <EditorContent editor={editor} />
       </div>

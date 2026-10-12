@@ -7,6 +7,7 @@ import { EditorStats } from "@/components/manuscript/EditorStats";
 import { SceneEditor } from "@/components/manuscript/SceneEditor";
 import { ActiveProjectSync } from "@/components/projects/ActiveProjectSync";
 import { getCurrentUser } from "@/lib/auth";
+import { toFormatting } from "@/lib/formatting";
 import { getManuscript, getScene, getWordStats } from "@/lib/manuscript";
 import { resolveActiveScene } from "@/lib/manuscript-tree";
 import { getProject } from "@/lib/projects";
@@ -42,6 +43,7 @@ async function SceneLoader({ params, searchParams }: { params: PageParams["param
             <SceneEditor
               key={scene.id}
               projectId={projectId}
+              formatting={toFormatting(project)}
               scene={{ id: scene.id, title: scene.title, content: scene.content, updatedAt: scene.updatedAt.getTime() }}
             />
           </div>
