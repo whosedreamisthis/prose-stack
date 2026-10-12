@@ -10,6 +10,7 @@ import { HiddenItemsList } from "@/components/trash/HiddenItemsList";
 import { PlaceList } from "@/components/places/PlaceList";
 import { AddResearchButton } from "@/components/research/AddResearchButton";
 import { ResearchTree } from "@/components/research/ResearchTree";
+import { AddPlotLineButton } from "@/components/plot/AddPlotLineButton";
 import { PlotLinesSection } from "@/components/plot/PlotLinesSection";
 import { getCurrentUser } from "@/lib/auth";
 import { listCharacters } from "@/lib/characters";
@@ -46,7 +47,7 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
   return (
     <div className="flex flex-col gap-3">
       <ManuscriptTree projectId={projectId} projectTitle={project.title} nodes={nodes} labels={labels} />
-      <SidebarSection slug="plot" label="Plots">
+      <SidebarSection slug="plot" label="Plots" action={<AddPlotLineButton projectId={projectId} plot={plot} />}>
         <PlotLinesSection projectId={projectId} plot={plot} />
       </SidebarSection>
       <SidebarSection slug="characters" label="Characters">
