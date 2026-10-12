@@ -19,6 +19,7 @@ export function PendingSection({ children }: { children: ReactNode }) {
   const { projectId } = useParams<{ projectId: string }>();
   const pathname = usePathname();
   const target = usePendingNavStore((s) => s.pending.section);
+  const visible = usePendingNavStore((s) => s.visible.section);
   const setPending = usePendingNavStore((s) => s.setPending);
   const arrived = target !== null && pathname.startsWith(`/projects/${projectId}/${target}`);
   const waiting = target !== null && !arrived;
@@ -28,5 +29,6 @@ export function PendingSection({ children }: { children: ReactNode }) {
     setPending("section", null);
   }, [pathname, setPending]);
 
-  return waiting && target ? (SKELETONS[target] ?? children) : children;
+  // The skeleton waits a moment (see SKELETON_DELAY_MS); until then the current page stays, so quick switches don't flash.
+  return waiting && visible && target ? (SKELETONS[target] ?? children) : children;
 }

@@ -23,6 +23,7 @@ export function PendingSwitch({ kind, fallback, children }: PendingSwitchProps) 
   const search = searchParams.toString();
   const pendingId = usePendingNavStore((s) => s.pending[kind]);
   const setPending = usePendingNavStore((s) => s.setPending);
+  const visible = usePendingNavStore((s) => s.visible[kind]);
   const waiting = pendingId !== null && pendingId !== requested;
 
   // Any URL change means the navigation finished (or was replaced by another), so the wait is over either way.
@@ -30,5 +31,6 @@ export function PendingSwitch({ kind, fallback, children }: PendingSwitchProps) 
     setPending(kind, null);
   }, [kind, pathname, search, setPending]);
 
-  return waiting ? fallback : children;
+  // The skeleton waits a moment (see SKELETON_DELAY_MS); until then the current page stays, so quick switches don't flash.
+  return waiting && visible ? fallback : children;
 }
