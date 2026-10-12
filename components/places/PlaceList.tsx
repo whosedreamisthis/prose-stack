@@ -14,6 +14,7 @@ import { useLayoutStore } from "@/lib/stores/layout-store";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { cn } from "@/lib/utils";
 import type { PlaceSummary } from "@/types/places";
+import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
 interface PlaceListProps {
   projectId: string;
@@ -67,7 +68,7 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
                 }}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  onPlacesPage && p.id === activeId ? "bg-accent font-medium text-primary" : "text-foreground/80 hover:bg-muted/60",
+                  onPlacesPage && p.id === activeId ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60",
                 )}
               >
                 <MapPinIcon className="size-4 shrink-0" aria-hidden />

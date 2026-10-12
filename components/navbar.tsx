@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Logo } from "@/components/layout/Logo";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ProjectNavActions } from "@/components/layout/ProjectNavActions";
+import { ProjectNavActionsLoader } from "@/components/layout/ProjectNavActionsLoader";
 import { ProjectSwitcher } from "@/components/projects/ProjectSwitcher";
 import { getCurrentUser } from "@/lib/auth";
 import { listProjects } from "@/lib/projects";
@@ -25,8 +26,8 @@ export function Navbar() {
         </Suspense>
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        <Suspense>
-          <ProjectNavActions />
+        <Suspense fallback={<ProjectNavActions />}>
+          <ProjectNavActionsLoader />
         </Suspense>
         <UserMenu />
       </div>

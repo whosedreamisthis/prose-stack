@@ -14,6 +14,7 @@ model User {
   name          String?
   isDemo        Boolean   @default(false)
   demoExpiresAt DateTime? // set for demo users: createdAt + 12 h
+  theme         Theme? // null until the writer chooses; then the system preference applies
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -49,7 +50,6 @@ model Project {
   fontFamily  String      @default("Georgia")
   fontSize    Int         @default(12) // 10–18
   lineSpacing LineSpacing @default(DOUBLE)
-  theme       Theme       @default(LIGHT)
 
   lastOpenedAt DateTime? // drives where sign-in lands
   createdAt    DateTime  @default(now())

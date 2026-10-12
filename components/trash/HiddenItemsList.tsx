@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import type { ArchiveItem, TrashItem } from "@/types/trash";
+import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
 type Item = TrashItem | ArchiveItem;
 
@@ -83,7 +84,7 @@ export function HiddenItemsList({ projectId, slug, items, empty }: HiddenItemsLi
                 }}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  open ? "bg-accent font-medium text-primary" : "text-foreground/80 hover:bg-muted/60",
+                  open ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60",
                 )}
               >
                 <Icon className="size-4 shrink-0" aria-hidden />

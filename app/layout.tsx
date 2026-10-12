@@ -5,8 +5,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DemoBanner } from "@/components/demo/DemoBanner";
 import { Navbar } from "@/components/navbar";
+import { ThemeSyncLoader } from "@/components/theme/ThemeSyncLoader";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { THEME_SCRIPT } from "@/lib/theme-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,12 +29,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // the head script puts the theme class on <html> before React hydrates
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         {/* dynamic: hand the signed-in state to client components on first render, so UserButton hydrates cleanly */}
         <Suspense>
           <ClerkProvider dynamic>
+            <Suspense>
+              <ThemeSyncLoader />
+            </Suspense>
             <TooltipProvider delay={300}>
               <Navbar />
               <Suspense>
@@ -40,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Suspense>
               {children}
             </TooltipProvider>
-            <Toaster theme="dark" />
+            <Toaster />
           </ClerkProvider>
         </Suspense>
       </body>

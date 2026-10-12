@@ -9,6 +9,7 @@ import { TitleEditor } from "@/components/manuscript/TitleEditor";
 import { NODE_ICON, TYPE_LABEL, iconClass, treeRowClass } from "@/components/manuscript/tree-config";
 import { cn } from "@/lib/utils";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
+import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
@@ -108,7 +109,7 @@ export function TreeRow({
         onDoubleClick={onStartRename}
         className={cn(
           treeRowClass,
-          isScene ? active && "bg-accent font-medium text-primary" : "cursor-pointer font-medium select-none",
+          isScene ? active && SELECTED_ROW : "cursor-pointer font-medium select-none",
           isDragging && "opacity-40",
           dropActive && "ring-2 ring-primary",
         )}

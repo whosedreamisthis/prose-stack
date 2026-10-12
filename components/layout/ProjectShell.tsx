@@ -115,7 +115,7 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
           id="left-sidebar"
           inert={!leftOpen}
           className={cn(
-            "hidden shrink-0 overflow-hidden border-r transition-[width] duration-200 motion-reduce:transition-none md:block",
+            "hidden shrink-0 overflow-hidden border-r bg-primary/5 dark:bg-transparent transition-[width] duration-200 motion-reduce:transition-none md:block",
             leftOpen ? "w-64" : "w-0 border-r-0",
           )}
         >
