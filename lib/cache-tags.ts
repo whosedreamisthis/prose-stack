@@ -20,5 +20,6 @@ export const cacheTags = {
   archive: (projectId: string) => `archive:${projectId}`,
   manuscript: (projectId: string) => `manuscript:${projectId}`,
   scene: (nodeId: string) => `scene:${nodeId}`,
+  sceneNotes: (nodeId: string) => `scene-notes:${nodeId}`,
   stats: (projectId: string) => `stats:${projectId}`,
 };

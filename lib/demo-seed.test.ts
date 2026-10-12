@@ -6,6 +6,7 @@ function fakeTx() {
   return {
     project: { create: vi.fn().mockResolvedValue({ id: "p1" }) },
     manuscriptNode: { createMany: vi.fn() },
+    sceneNote: { createMany: vi.fn() },
     character: { createMany: vi.fn() },
     characterNote: { createMany: vi.fn() },
     place: { create: vi.fn().mockResolvedValue({ id: "pl1" }) },
@@ -57,6 +58,15 @@ describe("seedDemoProject", () => {
         expect(node.content).toBeUndefined();
       }
     }
+  });
+
+  it("seeds notes on scenes of the project", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as { id: string; type: string }[];
+    const notes = tx.sceneNote.createMany.mock.calls[0][0].data as { sceneId: string; content: string }[];
+    expect(notes.length).toBeGreaterThan(0);
+    for (const note of notes) expect(nodes.find((n) => n.id === note.sceneId)?.type).toBe("SCENE");
   });
 
   it("seeds main and supporting characters with blank fields stored as null, and notes for the ones that have them", async () => {

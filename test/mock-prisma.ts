@@ -46,6 +46,13 @@ export const prismaMock = {
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
   },
+  sceneNote: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   placeNote: {
     findFirst: vi.fn(),
     create: vi.fn(),

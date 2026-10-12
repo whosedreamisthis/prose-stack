@@ -8,4 +8,5 @@ export const KIND_ICON: Record<TrashKind, LucideIcon> = {
   place: MapPinIcon,
   characterNote: StickyNoteIcon,
   placeNote: StickyNoteIcon,
+  sceneNote: StickyNoteIcon,
 };

@@ -28,3 +28,10 @@ export interface WordStats {
   /** Total words at the start of today; null until the first save today. */
   startWords: number | null;
 }
+
+export interface SceneNoteItem {
+  id: string;
+  /** Empty when the note has no title. */
+  title: string;
+  content: string;
+}

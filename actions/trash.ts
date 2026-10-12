@@ -110,7 +110,7 @@ export async function restoreItem(input: TrashRef): Promise<ActionResult> {
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.characterNote.updateMany({ where: { id, characterId: note.characterId }, data: { trashedAt: null } });
       tags = [cacheTags.characterNotes(note.characterId)];
-    } else {
+    } else if (kind === "placeNote") {
       const note = await prisma.placeNote.findFirst({
         where: { id, trashedAt: hidden, place: { ...owner, trashedAt: null, archivedAt: null } },
         select: { placeId: true },
@@ -118,6 +118,14 @@ export async function restoreItem(input: TrashRef): Promise<ActionResult> {
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.placeNote.updateMany({ where: { id, placeId: note.placeId }, data: { trashedAt: null } });
       tags = [cacheTags.placeNotes(note.placeId)];
+    } else {
+      const note = await prisma.sceneNote.findFirst({
+        where: { id, trashedAt: hidden, scene: { ...owner, trashedAt: null } },
+        select: { sceneId: true },
+      });
+      if (!note) return { success: false, error: NOT_FOUND };
+      await prisma.sceneNote.updateMany({ where: { id, sceneId: note.sceneId }, data: { trashedAt: null } });
+      tags = [cacheTags.sceneNotes(note.sceneId)];
     }
 
     refresh(projectId, [...tags, cacheTags.trash(projectId)]);
@@ -160,7 +168,7 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.characterNote.deleteMany({ where: { id, characterId: note.characterId } });
       tags = [cacheTags.characterNotes(note.characterId)];
-    } else {
+    } else if (kind === "placeNote") {
       const note = await prisma.placeNote.findFirst({
         where: { id, trashedAt: hidden, place: { ...owner, trashedAt: null, archivedAt: null } },
         select: { placeId: true },
@@ -168,6 +176,14 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.placeNote.deleteMany({ where: { id, placeId: note.placeId } });
       tags = [cacheTags.placeNotes(note.placeId)];
+    } else {
+      const note = await prisma.sceneNote.findFirst({
+        where: { id, trashedAt: hidden, scene: { ...owner, trashedAt: null } },
+        select: { sceneId: true },
+      });
+      if (!note) return { success: false, error: NOT_FOUND };
+      await prisma.sceneNote.deleteMany({ where: { id, sceneId: note.sceneId } });
+      tags = [cacheTags.sceneNotes(note.sceneId)];
     }
 
     refresh(projectId, [...tags, cacheTags.trash(projectId)]);

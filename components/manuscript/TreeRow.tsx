@@ -112,7 +112,7 @@ export function TreeRow({
         role="treeitem"
         tabIndex={0}
         aria-label={node.title}
-        aria-selected={isScene ? active : false}
+        aria-selected={active}
         aria-current={active ? "page" : undefined}
         aria-expanded={isScene ? undefined : !collapsed}
         aria-owns={showChildren ? groupId : undefined}
@@ -128,7 +128,7 @@ export function TreeRow({
         onDoubleClick={onStartRename}
         className={cn(
           treeRowClass,
-          isScene ? active && SELECTED_ROW : "cursor-pointer font-medium select-none",
+          isScene ? active && SELECTED_ROW : cn("cursor-pointer font-medium select-none", active && SELECTED_ROW),
           isDragging && "opacity-40",
           dropActive && "ring-2 ring-primary",
         )}

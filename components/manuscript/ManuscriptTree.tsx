@@ -91,7 +91,10 @@ interface ManuscriptTreeProps {
 export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: ManuscriptTreeProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const onManuscriptPage = usePathname() === `/projects/${projectId}/manuscript`;
+  const pathname = usePathname();
+  const onManuscriptPage = pathname === `/projects/${projectId}/manuscript`;
+  // A chapter or part opened as book text (/manuscript/chapter/<id>, /manuscript/part/<id>) is the highlighted row.
+  const openNodeId = pathname.match(new RegExp(`^/projects/${projectId}/manuscript/(?:chapter|part)/([^/]+)`))?.[1];
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<ManuscriptNodeSummary | null>(null);
@@ -125,7 +128,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
   const openId = clicked && clicked.from === sceneParam ? clicked.id : resolveActiveScene(nodes, sceneParam ?? undefined)?.id;
   // Only one sidebar item is highlighted at a time: a scene is highlighted while the manuscript is open, or from the
   // click that is taking us there, never while a character or place is the open page.
-  const activeId = onManuscriptPage ? openId : (pendingSceneId ?? undefined);
+  const activeId = onManuscriptPage ? openId : (openNodeId ?? pendingSceneId ?? undefined);
 
   function focusRow(id: string) {
     // Two frames: after a move the row is re-rendered (often under a new parent) before it can take focus.

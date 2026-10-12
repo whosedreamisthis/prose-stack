@@ -229,6 +229,12 @@ const PLACES = [
   },
 ] as const;
 
+/** Notes for the first two demo scenes, as [title, content]. */
+const SCENE_NOTES: readonly (readonly [string, string])[][] = [
+  [["Mood", "Open quiet and a little uneasy; let the reader notice the details before the narrator does."]],
+  [["To check", "Does the timeline match chapter 1? Keep the weather consistent."]],
+];
+
 /**
  * Seeds the demo user's one project: manuscript, characters and places (each with notes), the places linked to their characters. Plot
  * lines and research join this as those features ship. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
@@ -264,6 +270,13 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
       };
     }),
   });
+
+  // A couple of notes on the first scenes, so the scene sidebar has something to show.
+  const sceneNotes = nodes
+    .filter((n) => n.type === "SCENE")
+    .slice(0, 2)
+    .flatMap((n, i) => SCENE_NOTES[i].map(([title, content]) => ({ sceneId: n.id, title, content })));
+  await tx.sceneNote.createMany({ data: sceneNotes });
 
   const characters = CHARACTERS.map((c) => ({ ...c, id: id() }));
   // Blank sketch fields are stored as null, like the app does for a field the writer leaves empty.

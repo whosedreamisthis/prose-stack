@@ -89,8 +89,24 @@ model ManuscriptNode {
   project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent   ManuscriptNode?  @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children ManuscriptNode[] @relation("NodeChildren")
+  notes    SceneNote[]
 
   @@index([projectId, parentId, position])
+}
+
+/// Free-form notes shown in the right sidebar; a scene can have several.
+model SceneNote {
+  id        String    @id @default(cuid())
+  sceneId   String
+  title     String?
+  content   String
+  trashedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  scene ManuscriptNode @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@index([sceneId, createdAt])
 }
 
 /// Total words in the project at the start of each day the writer saved; words today = current total minus startWords.

@@ -21,7 +21,7 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
   cacheLife("days");
   cacheTag(cacheTags.trash(projectId), cacheTags.project(projectId));
   const owner = { projectId, project: { userId } };
-  const [nodes, characters, places, characterNotes, placeNotes] = await Promise.all([
+  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes] = await Promise.all([
     prisma.manuscriptNode.findMany({
       where: { ...owner, trashedAt: { not: null } },
       select: { id: true, parentId: true, type: true, title: true, trashedAt: true },
@@ -36,6 +36,10 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
     prisma.placeNote.findMany({
       where: { trashedAt: { not: null }, place: { ...owner, ...live } },
       select: { id: true, title: true, content: true, trashedAt: true, place: { select: { name: true } } },
+    }),
+    prisma.sceneNote.findMany({
+      where: { trashedAt: { not: null }, scene: { ...owner, trashedAt: null } },
+      select: { id: true, title: true, content: true, trashedAt: true, scene: { select: { title: true } } },
     }),
   ]);
 
@@ -70,6 +74,13 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
       id: n.id,
       title: noteLabel(n),
       detail: `Note on ${n.place.name}`,
+      trashedAt: n.trashedAt!.getTime(),
+    })),
+    ...sceneNotes.map((n) => ({
+      kind: "sceneNote" as const,
+      id: n.id,
+      title: noteLabel(n),
+      detail: `Note on ${n.scene.title}`,
       trashedAt: n.trashedAt!.getTime(),
     })),
   ];
@@ -152,7 +163,7 @@ export async function getHiddenView(
     return { kind, id, title: p.name, subtitle: "Place", sections: [...fields, ...related, ...noteSections(p.notes)] };
   }
 
-  if (kind === "characterNote" || kind === "placeNote") {
+  if (kind === "characterNote" || kind === "placeNote" || kind === "sceneNote") {
     // A note is only reachable from the Trash, and only while its owner is live (the same rule as the list).
     if (from !== "trash") return null;
     const ownerLive = { ...owner, ...live };
@@ -162,12 +173,17 @@ export async function getHiddenView(
             where: { id, trashedAt: { not: null }, character: ownerLive },
             select: { title: true, content: true, character: { select: { name: true } } },
           })
-        : await prisma.placeNote.findFirst({
-            where: { id, trashedAt: { not: null }, place: ownerLive },
-            select: { title: true, content: true, place: { select: { name: true } } },
-          });
+        : kind === "placeNote"
+          ? await prisma.placeNote.findFirst({
+              where: { id, trashedAt: { not: null }, place: ownerLive },
+              select: { title: true, content: true, place: { select: { name: true } } },
+            })
+          : await prisma.sceneNote.findFirst({
+              where: { id, trashedAt: { not: null }, scene: { ...owner, trashedAt: null } },
+              select: { title: true, content: true, scene: { select: { title: true } } },
+            });
     if (!note) return null;
-    const ownerName = "character" in note ? note.character.name : note.place.name;
+    const ownerName = "character" in note ? note.character.name : "place" in note ? note.place.name : note.scene.title;
     return {
       kind,
       id,
