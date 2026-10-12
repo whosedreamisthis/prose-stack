@@ -6,11 +6,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowDownIcon, ArrowUpIcon, GitBranchIcon, LayoutGridIcon } from "lucide-react";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
-import { RenamePlotLineDialog } from "@/components/plot/RenamePlotLineDialog";
 import { RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
+import { TitleEditor } from "@/components/manuscript/TitleEditor";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { usePlotActions } from "@/hooks/usePlotActions";
 import { usePlotData } from "@/hooks/usePlotData";
+import { plotLineNameSchema } from "@/lib/plot-config";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { cn } from "@/lib/utils";
@@ -36,8 +37,15 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
   const setRightDrawerOpen = useLayoutStore((s) => s.setRightDrawerOpen);
   const setHasRightPanel = useLayoutStore((s) => s.setHasRightPanel);
   const setPending = usePendingNavStore((s) => s.setPending);
-  const [renaming, setRenaming] = useState<PlotLineItem | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<PlotLineItem | null>(null);
+
+  /** Ends an inline rename: a changed, valid name is saved; Escape, a blank or an unchanged name just closes the input. */
+  const finishRename = (line: PlotLineItem, value: string | null) => {
+    setEditingId(null);
+    const name = plotLineNameSchema.safeParse(value ?? "");
+    if (name.success && name.data !== line.name) actions.renameLine(line.id, name.data);
+  };
 
   const open = () => {
     if (!onGrid) setPending("section", "plot");
@@ -67,17 +75,25 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
           const selected = onGrid && line.id === activeLineId;
           return (
             <li key={line.id} className="group/item relative">
-              <Link
-                href={`${gridPath}?line=${line.id}`}
-                aria-current={selected ? "true" : undefined}
-                onClick={open}
-                className={cn(ROW, selected ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60")}
-              >
-                <GitBranchIcon className="size-4 shrink-0" aria-hidden />
-                <span className="truncate">{line.name}</span>
-              </Link>
+              {editingId === line.id ? (
+                <div className={cn(ROW, "pr-2")}>
+                  <GitBranchIcon className="size-4 shrink-0" aria-hidden />
+                  <TitleEditor initial={line.name} label="Rename plot line" onDone={(value) => finishRename(line, value)} />
+                </div>
+              ) : (
+                <Link
+                  href={`${gridPath}?line=${line.id}`}
+                  aria-current={selected ? "true" : undefined}
+                  onClick={open}
+                  onDoubleClick={() => setEditingId(line.id)}
+                  className={cn(ROW, selected ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60")}
+                >
+                  <GitBranchIcon className="size-4 shrink-0" aria-hidden />
+                  <span className="truncate">{line.name}</span>
+                </Link>
+              )}
               <RowMenu label={`${line.name} options`}>
-                <RenameItem onClick={() => setRenaming(line)} />
+                <RenameItem onClick={() => setEditingId(line.id)} />
                 <DropdownMenuItem disabled={index === 0} onClick={() => actions.moveLine(line.id, -1)}>
                   <ArrowUpIcon /> Move up
                 </DropdownMenuItem>
@@ -91,7 +107,6 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
         })}
       </ul>
       {lines.length === 0 && <p className="px-2 py-1 text-sm text-muted-foreground">No plot lines yet. Add one in the grid.</p>}
-      <RenamePlotLineDialog line={renaming} onCancel={() => setRenaming(null)} onSave={(name) => renaming && actions.renameLine(renaming.id, name)} />
       <ConfirmTrashDialog
         target={confirming && { kind: "plot line", name: confirming.name, detail: "Its plot points are hidden with it and return if you restore it." }}
         onCancel={() => setConfirming(null)}

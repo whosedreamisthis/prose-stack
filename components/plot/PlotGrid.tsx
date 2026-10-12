@@ -315,7 +315,9 @@ function LineHeader({ line, first, last, onRename, onMove, onTrash }: LineHeader
         >
           <GripVerticalIcon className="size-4" aria-hidden />
         </button>
-        <span className="truncate">{line.name}</span>
+        <span className="truncate" onDoubleClick={onRename}>
+          {line.name}
+        </span>
       </div>
       <RowMenu label={`${line.name} options`}>
         <RenameItem onClick={onRename} />

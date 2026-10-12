@@ -97,15 +97,15 @@ export function usePlotActions(projectId: string) {
         commit(() => trashPlotLine({ projectId, plotLineId }), rollback, "Moved to the trash.");
       },
 
-      /** Adds a point to a scene, or to a new scene at the end of the manuscript when `sceneId` is null. */
-      createPoint(values: Omit<PointValues, "sceneId"> & { sceneId: string | null }) {
+      /** Adds a point to a scene, or to a new scene at the end of the manuscript when `sceneId` is null. Returns the ids it was added under. */
+      createPoint(values: Omit<PointValues, "sceneId"> & { sceneId: string | null }): { id: string; sceneId: string } | null {
         const { plotLineId, title, text } = values;
         const id = crypto.randomUUID();
         const newSceneId = values.sceneId ? undefined : crypto.randomUUID();
         const sceneId = values.sceneId ?? newSceneId!;
         if (cellTaken(store().points, plotLineId, sceneId)) {
           toast.error(CELL_TAKEN);
-          return;
+          return null;
         }
         const rollback = keepPoints();
         store().setPoints([...store().points, { id, plotLineId, sceneId, title, text }]);
@@ -117,6 +117,7 @@ export function usePlotActions(projectId: string) {
             if (newSceneId) store().removeScene(newSceneId);
           },
         );
+        return { id, sceneId };
       },
 
       /** Saves a point's text, and moves it when its line or scene changed. */

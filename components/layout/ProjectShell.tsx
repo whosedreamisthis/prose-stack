@@ -27,6 +27,11 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
   const toggleRight = useLayoutStore((s) => s.toggleRight);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
 
+  // A page with no right panel has nothing to show in the drawer, and its toggle is disabled, so close it rather than leave it stuck open and empty.
+  useEffect(() => {
+    if (!hasRightPanel) setRightDrawerOpen(false);
+  }, [hasRightPanel, setRightDrawerOpen]);
+
   useEffect(() => {
     if (!rightDrawerOpen && !drawerOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
