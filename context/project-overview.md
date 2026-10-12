@@ -663,7 +663,7 @@ Other conventions:
 - **Autosave cadence:** confirm the debounce interval (≈1–2 s) and periodic flush.
 - **PDF export:** browser print styles or a PDF library?
 - **Spell check:** native browser spellcheck, or `nspell` for control?
-- **Book view:** should each chapter start on a new page?
+- **Book view:** decided, each chapter starts on a new page (see `features/book-view-spec.md`).
 - **Collaboration and monetization:** needed later?
 
 ---

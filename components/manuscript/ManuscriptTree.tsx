@@ -268,7 +268,7 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
               onToggle={() => toggle(ROOT_KEY)}
               onOpen={() => {
                 if (!onManuscriptPage) setPending("section", "manuscript");
-                router.push(`/projects/${projectId}/manuscript/book`);
+                router.push(`/projects/${projectId}/manuscript/full`);
                 setDrawerOpen(false);
               }}
               menu={
