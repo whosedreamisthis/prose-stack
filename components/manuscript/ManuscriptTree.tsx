@@ -238,6 +238,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
           onFinishRename={(value, refocus) => finishRename(node, value, refocus)}
           onOpenNode={() => {
             if (!onManuscriptPage) setPending("section", "manuscript");
+            setPending("node", node.id);
             router.push(`/projects/${projectId}/manuscript/${node.type.toLowerCase()}/${node.id}`);
             setDrawerOpen(false);
           }}
@@ -273,6 +274,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
               onToggle={() => toggle(ROOT_KEY)}
               onOpen={() => {
                 if (!onManuscriptPage) setPending("section", "manuscript");
+                setPending("node", "full");
                 router.push(`/projects/${projectId}/manuscript/full`);
                 setDrawerOpen(false);
               }}

@@ -61,6 +61,7 @@ model Project {
   characters      Character[]
   places          Place[]
   plotLines       PlotLine[]
+  notes           ProjectNote[]
 
   @@index([userId])
 }
@@ -248,4 +249,19 @@ model PlotPoint {
 
   @@unique([plotLineId, sceneId])
   @@index([sceneId])
+}
+
+/// Free-form notes shown in the right sidebar when the whole manuscript is open; a project can have several.
+model ProjectNote {
+  id        String    @id @default(cuid())
+  projectId String
+  title     String?
+  content   String
+  trashedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }

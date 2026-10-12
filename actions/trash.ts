@@ -139,6 +139,10 @@ export async function restoreItem(input: TrashRef): Promise<ActionResult> {
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.sceneNote.updateMany({ where: { id, sceneId: note.sceneId }, data: { trashedAt: null } });
       tags = [cacheTags.sceneNotes(note.sceneId)];
+    } else if (kind === "projectNote") {
+      const { count } = await prisma.projectNote.updateMany({ where: { id, ...owner, trashedAt: hidden }, data: { trashedAt: null } });
+      if (count === 0) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.projectNotes(projectId)];
     } else if (kind === "plotLine") {
       if (!(await restorePlotLine(user.id, projectId, id))) return { success: false, error: NOT_FOUND };
       tags = [cacheTags.plot(projectId)];
@@ -208,6 +212,10 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.sceneNote.deleteMany({ where: { id, sceneId: note.sceneId } });
       tags = [cacheTags.sceneNotes(note.sceneId)];
+    } else if (kind === "projectNote") {
+      const { count } = await prisma.projectNote.deleteMany({ where: { id, ...owner, trashedAt: hidden } });
+      if (count === 0) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.projectNotes(projectId)];
     } else if (kind === "plotLine") {
       // Its points go with it (they cascade).
       const { count } = await prisma.plotLine.deleteMany({ where: { id, ...owner, trashedAt: hidden } });

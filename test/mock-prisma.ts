@@ -68,6 +68,13 @@ export const prismaMock = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
+  projectNote: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   plotLine: {
     count: vi.fn(),
     create: vi.fn(),

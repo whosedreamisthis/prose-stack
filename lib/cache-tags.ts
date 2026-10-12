@@ -21,6 +21,8 @@ export const cacheTags = {
   manuscript: (projectId: string) => `manuscript:${projectId}`,
   scene: (nodeId: string) => `scene:${nodeId}`,
   sceneNotes: (nodeId: string) => `scene-notes:${nodeId}`,
+  /** The notes of the whole manuscript (the project itself). */
+  projectNotes: (projectId: string) => `project-notes:${projectId}`,
   stats: (projectId: string) => `stats:${projectId}`,
   /** The project's plot lines and points: the plot grid, the Plots sidebar section and each scene's Plots tab. */
   plot: (projectId: string) => `plot:${projectId}`,

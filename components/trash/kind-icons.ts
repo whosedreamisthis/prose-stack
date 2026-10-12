@@ -11,4 +11,5 @@ export const KIND_ICON: Record<TrashKind, LucideIcon> = {
   sceneNote: StickyNoteIcon,
   plotPoint: MilestoneIcon,
   plotLine: GitBranchIcon,
+  projectNote: StickyNoteIcon,
 };

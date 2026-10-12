@@ -21,7 +21,7 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
   cacheLife("days");
   cacheTag(cacheTags.trash(projectId), cacheTags.project(projectId));
   const owner = { projectId, project: { userId } };
-  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes, plotLines, plotPoints] = await Promise.all([
+  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes, plotLines, plotPoints, projectNotes] = await Promise.all([
     prisma.manuscriptNode.findMany({
       where: { ...owner, trashedAt: { not: null } },
       select: { id: true, parentId: true, type: true, title: true, trashedAt: true },
@@ -46,6 +46,10 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
     prisma.plotPoint.findMany({
       where: { trashedAt: { not: null }, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
       select: { id: true, title: true, text: true, trashedAt: true, plotLine: { select: { name: true } }, scene: { select: { title: true } } },
+    }),
+    prisma.projectNote.findMany({
+      where: { trashedAt: { not: null }, ...owner },
+      select: { id: true, title: true, content: true, trashedAt: true, project: { select: { title: true } } },
     }),
   ]);
 
@@ -87,6 +91,13 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
       id: n.id,
       title: noteLabel(n),
       detail: `Note on ${n.scene.title}`,
+      trashedAt: n.trashedAt!.getTime(),
+    })),
+    ...projectNotes.map((n) => ({
+      kind: "projectNote" as const,
+      id: n.id,
+      title: noteLabel(n),
+      detail: `Note on ${n.project.title}`,
       trashedAt: n.trashedAt!.getTime(),
     })),
     ...plotLines.map((l) => ({ kind: "plotLine" as const, id: l.id, title: l.name, detail: "Plot line", trashedAt: l.trashedAt!.getTime() })),
@@ -205,6 +216,16 @@ export async function getHiddenView(
       subtitle: `Note on ${ownerName}`,
       sections: [{ text: note.content }],
     };
+  }
+
+  if (kind === "projectNote") {
+    if (from !== "trash") return null;
+    const note = await prisma.projectNote.findFirst({
+      where: { id, trashedAt: { not: null }, ...owner },
+      select: { title: true, content: true, project: { select: { title: true } } },
+    });
+    if (!note) return null;
+    return { kind, id, title: note.title?.trim() || "Note", subtitle: `Note on ${note.project.title}`, sections: [{ text: note.content }] };
   }
 
   if (kind === "plotLine" || kind === "plotPoint") {
