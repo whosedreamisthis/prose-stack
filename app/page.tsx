@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TryDemoButton } from "@/components/demo/TryDemoButton";
 import { Logo } from "@/components/layout/Logo";
 
 // Signed-in visitors never see this page: proxy.ts redirects them to /continue.
@@ -10,7 +11,7 @@ export default function Home() {
       <p className="max-w-md text-lg text-zinc-600 dark:text-zinc-400">
         A writing workspace for novels and long-form fiction.
       </p>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
         <Link href="/sign-in" className="rounded-md border px-4 py-2 font-medium">
           Sign in
         </Link>
@@ -20,7 +21,11 @@ export default function Home() {
         >
           Register
         </Link>
+        <TryDemoButton className="h-auto px-4 py-2 text-base" />
       </div>
+      <p className="max-w-sm text-sm text-muted-foreground">
+        Try demo opens a sample novel, no sign-up needed. Demo data is deleted after 12 hours.
+      </p>
     </main>
   );
 }

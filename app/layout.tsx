@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { DemoBanner } from "@/components/demo/DemoBanner";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,6 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ClerkProvider dynamic>
             <TooltipProvider delay={300}>
               <Navbar />
+              <Suspense>
+                <DemoBanner />
+              </Suspense>
               {children}
             </TooltipProvider>
             <Toaster theme="dark" />

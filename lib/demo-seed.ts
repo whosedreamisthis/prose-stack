@@ -1,0 +1,220 @@
+import { randomUUID } from "node:crypto";
+import type { Prisma } from "@/generated/prisma/client";
+import { countDocWords, type DocNode } from "@/lib/manuscript-text";
+
+type NodeType = "PART" | "CHAPTER" | "SCENE";
+
+interface SeedNode {
+  id: string;
+  parentId: string | null;
+  type: NodeType;
+  title: string;
+  position: number;
+  paragraphs?: string[];
+}
+
+const DEMO_PROJECT = {
+  title: "The Lighthouse Keeper",
+  subtitle: "A sample novel to explore",
+  author: "Demo Writer",
+  coverDesign: "classic",
+  coverColor: "#1e3a5f",
+} as const;
+
+function docFromParagraphs(paragraphs: string[]): DocNode {
+  return { type: "doc", content: paragraphs.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })) };
+}
+
+const id = () => randomUUID();
+
+/** The demo manuscript: two parts, three chapters, five scenes. Parents come before their children. */
+function manuscriptNodes(): SeedNode[] {
+  const [partOne, partTwo, ch1, ch2, ch3] = [id(), id(), id(), id(), id()];
+  return [
+    { id: partOne, parentId: null, type: "PART", title: "Part One: The Storm", position: 0 },
+    { id: partTwo, parentId: null, type: "PART", title: "Part Two: The Light", position: 1 },
+    { id: ch1, parentId: partOne, type: "CHAPTER", title: "Chapter 1", position: 0 },
+    { id: ch2, parentId: partOne, type: "CHAPTER", title: "Chapter 2", position: 1 },
+    { id: ch3, parentId: partTwo, type: "CHAPTER", title: "Chapter 3", position: 0 },
+    {
+      id: id(),
+      parentId: ch1,
+      type: "SCENE",
+      title: "The last ferry",
+      position: 0,
+      paragraphs: [
+        "The last ferry of the season pulled away from the pier, and Mara Quill stood on the slick boards with one suitcase and a letter she had read so often the folds had gone soft.",
+        "Ahead of her, across a mile of grey water, the lighthouse waited. It looked smaller than it had in the photograph, and a good deal angrier.",
+      ],
+    },
+    {
+      id: id(),
+      parentId: ch1,
+      type: "SCENE",
+      title: "A key left under the lamp",
+      position: 1,
+      paragraphs: [
+        "Inside, everything smelled of salt and cold iron. Someone had left a key on the lowest step, tied with blue string, and beside it a note in a hand she almost recognised: Don't let the light go out.",
+        "She laughed, because it was a ridiculous thing to say to a stranger, and then she did not laugh, because upstairs a door closed on its own.",
+      ],
+    },
+    {
+      id: id(),
+      parentId: ch2,
+      type: "SCENE",
+      title: "Edric Vane comes to dinner",
+      position: 0,
+      paragraphs: [
+        "Edric Vane arrived at dusk with a basket of bread and a harbour master's grudge. He had known the old keeper for thirty years and did not believe in successors.",
+        '"You\'ll want to learn the weather before you learn the lamp," he said, and sat down at her table as if it were still his.',
+      ],
+    },
+    {
+      id: id(),
+      parentId: ch2,
+      type: "SCENE",
+      title: "The first night",
+      position: 1,
+      paragraphs: [
+        "At midnight the wind found the one loose shutter and played it like a drum. Mara climbed the spiral stair with a lantern, counting steps to keep her mind quiet. One hundred and twelve.",
+        "At the top, the great lens turned slowly on its own, though no one had wound it.",
+      ],
+    },
+    {
+      id: id(),
+      parentId: ch3,
+      type: "SCENE",
+      title: "What the lamp remembers",
+      position: 0,
+      paragraphs: [
+        "By morning she understood the lamp was not broken, only patient. It had been keeping a record of every ship it had guided home, and of the one it had not.",
+        "Mara opened the logbook to a fresh page and began, at last, to write her own name in it.",
+      ],
+    },
+  ];
+}
+
+const CHARACTERS = [
+  {
+    role: "MAIN",
+    name: "Mara Quill",
+    age: "34",
+    location: "The lighthouse",
+    roleInStory: "Protagonist, the new keeper",
+    goal: "Find out what happened to the previous keeper, and keep the light burning.",
+    physicalDescription: "Short, wiry, with ink-stained fingers and a coat two sizes too big.",
+    personality: "Dry-humoured and stubborn; hides worry behind practicality.",
+    occupation: "Former archivist",
+    habits: "Counts stairs. Talks to the lamp when she thinks no one is listening.",
+    background: "Raised inland, never saw the sea until she was twenty. Inherited the post from a great-uncle she never met.",
+    internalConflicts: "Wants to belong somewhere, but expects to be sent away.",
+    externalConflicts: "The harbour town resents an outsider taking the post.",
+    notes: [
+      "Her voice should stay wry even in the scary scenes.",
+      "Idea: she finds her great-uncle's handwriting in the margins of the logbook.",
+    ],
+  },
+  {
+    role: "MAIN",
+    name: "Edric Vane",
+    age: "61",
+    location: "The harbour",
+    roleInStory: "Antagonist turned ally, the harbour master",
+    goal: "Keep the lighthouse the way it was, and keep his own secret buried.",
+    physicalDescription: "Broad, weathered, with a white beard trimmed square.",
+    personality: "Gruff and proud; generous in private, never in public.",
+    occupation: "Harbour master",
+    habits: "Brings bread to people he claims to dislike.",
+    background: "Served under the old keeper for thirty years.",
+    internalConflicts: "Guilt over the night the last ship was lost.",
+    externalConflicts: "Mara's questions threaten the story he has told the town.",
+    notes: ["He should be wrong about Mara early, and say so late."],
+  },
+  {
+    role: "SUPPORTING",
+    name: "Pip Marrow",
+    age: "12",
+    location: "The harbour",
+    roleInStory: "Ferry boy and Mara's first friend",
+    goal: "Get a ride on the lighthouse lamp's catwalk.",
+    physicalDescription: "Gap-toothed, always in a borrowed jumper.",
+    personality: "Fearless and talkative.",
+    occupation: "Ferry hand",
+    habits: "Whistles hymns off-key.",
+    background: "Orphaned; lives above the net store.",
+    internalConflicts: "",
+    externalConflicts: "",
+    notes: [],
+  },
+  {
+    role: "SUPPORTING",
+    name: "The Old Keeper",
+    age: "",
+    location: "Unknown",
+    roleInStory: "Absent presence; his notes guide the story",
+    goal: "",
+    physicalDescription: "",
+    personality: "Cryptic and kind, as remembered by others.",
+    occupation: "Lighthouse keeper (retired, missing)",
+    habits: "",
+    background: "",
+    internalConflicts: "",
+    externalConflicts: "",
+    notes: [],
+  },
+] as const;
+
+/**
+ * Seeds the demo user's one project: manuscript and characters (with notes). Plot lines, places and research join this
+ * as those features ship. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
+ */
+export async function seedDemoProject(tx: Prisma.TransactionClient, userId: string) {
+  const project = await tx.project.create({ data: { userId, ...DEMO_PROJECT }, select: { id: true } });
+
+  const nodes = manuscriptNodes();
+  await tx.manuscriptNode.createMany({
+    data: nodes.map((node) => {
+      if (node.type !== "SCENE")
+        return { id: node.id, projectId: project.id, parentId: node.parentId, type: node.type, title: node.title, position: node.position };
+      const content = docFromParagraphs(node.paragraphs ?? []);
+      return {
+        id: node.id,
+        projectId: project.id,
+        parentId: node.parentId,
+        type: node.type,
+        title: node.title,
+        position: node.position,
+        content: content as Prisma.InputJsonValue,
+        wordCount: countDocWords(content),
+      };
+    }),
+  });
+
+  const characters = CHARACTERS.map((c) => ({ ...c, id: id() }));
+  // Blank sketch fields are stored as null, like the app does for a field the writer leaves empty.
+  const text = (value: string) => value || null;
+  await tx.character.createMany({
+    data: characters.map((c) => ({
+      id: c.id,
+      projectId: project.id,
+      role: c.role,
+      name: c.name,
+      age: text(c.age),
+      location: text(c.location),
+      roleInStory: text(c.roleInStory),
+      goal: text(c.goal),
+      physicalDescription: text(c.physicalDescription),
+      personality: text(c.personality),
+      occupation: text(c.occupation),
+      habits: text(c.habits),
+      background: text(c.background),
+      internalConflicts: text(c.internalConflicts),
+      externalConflicts: text(c.externalConflicts),
+    })),
+  });
+
+  const noteRows = characters.flatMap((c) => c.notes.map((content) => ({ characterId: c.id, content })));
+  if (noteRows.length > 0) await tx.characterNote.createMany({ data: noteRows });
+
+  return project.id;
+}

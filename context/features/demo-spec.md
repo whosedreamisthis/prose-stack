@@ -13,7 +13,7 @@ A **Try demo** button creates a temporary Clerk user with a seeded project. **Ea
   2. **Cookie fallback:** if the IP has no live demo but the visitor holds a valid, unexpired resume cookie (for example their IP changed mid-session), sign them back into that demo.
   3. Otherwise claim the IP slot, then create a Clerk user via the Clerk Backend API (generated unique email/username, no real credentials, `publicMetadata: { isDemo: true, demoExpiresAt }`).
   4. Create the `User` row (`isDemo = true`, `demoExpiresAt = now + 12h`).
-  5. Seed a project: parts, chapters, scenes, plot lines, plot points, characters, places.
+  5. Seed a project: parts, chapters, scenes, plot lines, plot points, characters, places. **The seed grows with the app:** each later feature that adds user-created data (places, research, plot, notes...) extends `lib/demo-seed.ts` with sample rows for it, and a test, as part of that feature. Demos last 12 hours, so only new demos get the new rows; nothing is migrated.
   6. Sign the visitor in as that user (Clerk sign-in token / ticket), set the resume cookie, and redirect to `/projects`.
 - Each IP gets its own brand-new user and project; nothing is shared between IPs.
 - Resume cookie: httpOnly, secure, signed, holds the demo user's `clerkId`, expires with the demo. Used to re-mint a sign-in token if the Clerk session lapsed within the 12 hours. If the demo has already expired, the cookie is ignored and cleared and a new demo is created (the IP slot has expired too).

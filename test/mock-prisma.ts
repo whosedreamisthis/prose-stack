@@ -4,6 +4,7 @@ import { vi } from "vitest";
 export const prismaMock = {
   user: {
     count: vi.fn(),
+    findMany: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
