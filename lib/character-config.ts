@@ -105,7 +105,7 @@ export const updateNoteSchema = z
     content: noteContentSchema.optional(),
   })
   .refine(hasNoteText, NOTE_EMPTY);
-export const deleteNoteSchema = z.object({ projectId: idSchema, characterId: idSchema, noteId: idSchema });
+export const noteRefSchema = z.object({ projectId: idSchema, characterId: idSchema, noteId: idSchema });
 
 export type CreateCharacterInput = z.input<typeof createCharacterSchema>;
 export type UpdateCharacterInput = z.input<typeof updateCharacterSchema>;

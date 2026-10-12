@@ -82,6 +82,7 @@ model ManuscriptNode {
   summary   String? // scenes only
   wordCount Int                @default(0) // scenes only
   labelId   String? // scenes only; labels arrive with the scene sidebar
+  trashedAt DateTime? // set on a trashed node and all of its descendants together
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
@@ -146,6 +147,7 @@ model CharacterNote {
   characterId String
   title       String?
   content     String
+  trashedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -187,6 +189,7 @@ model PlaceNote {
   placeId   String
   title     String?
   content   String
+  trashedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

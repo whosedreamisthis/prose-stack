@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
@@ -17,25 +18,22 @@ const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
  * click and double-click handlers (React events bubble out of the menu's portal too).
  * Hidden until the row is hovered or focused, or while the menu is open.
  */
-export function RowMenu({ label, children }: { label: string; children: ReactNode }) {
+export function RowMenu({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label}
         onClick={stop}
         onDoubleClick={stop}
-        className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded text-muted-foreground opacity-0 outline-none group-focus-visible/item:opacity-100 group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:opacity-100"
+        className={cn(
+          "absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded text-muted-foreground opacity-0 outline-none group-focus-visible/item:opacity-100 group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:opacity-100",
+          className,
+        )}
       >
         <MoreHorizontalIcon className="size-4" aria-hidden />
       </DropdownMenuTrigger>
       {/* No focus return: a rename started from the menu must keep focus in its input. */}
-      <DropdownMenuContent
-        align="start"
-        finalFocus={false}
-        onClick={stop}
-        onDoubleClick={stop}
-        className="w-44"
-      >
+      <DropdownMenuContent align="start" finalFocus={false} onClick={stop} onDoubleClick={stop} className="w-44">
         {children}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -58,12 +56,11 @@ export function RenameItem({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** Placeholder until Trash & Archive ships: shown so the menu is complete, but disabled. */
-export function TrashItem() {
+export function TrashItem({ onClick }: { onClick: () => void }) {
   return (
     <>
       <DropdownMenuSeparator />
-      <DropdownMenuItem variant="destructive" disabled>
+      <DropdownMenuItem variant="destructive" onClick={onClick}>
         <Trash2Icon /> Move to trash
       </DropdownMenuItem>
     </>

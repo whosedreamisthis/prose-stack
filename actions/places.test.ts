@@ -9,7 +9,7 @@ import {
   archivePlace,
   createPlace,
   createPlaceNote,
-  deletePlaceNote,
+  trashPlaceNote,
   setPlaceCharacters,
   trashPlace,
   updatePlace,
@@ -280,11 +280,15 @@ describe("place notes", () => {
     prismaMock.placeNote.updateMany.mockResolvedValue({ count: 1 });
 
     expect((await createPlaceNote({ projectId: "p1", placeId: "pl1", title: " Tides ", content: "" })).success).toBe(true);
-    expect(prismaMock.placeNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: { placeId: "pl1", title: "Tides", content: "" } }));
+    expect(prismaMock.placeNote.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { placeId: "pl1", title: "Tides", content: "" } }),
+    );
     expect((await createPlaceNote({ projectId: "p1", placeId: "pl1", title: "", content: " " })).success).toBe(false);
 
     await updatePlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1", title: "", content: "Low at noon" });
-    expect(prismaMock.placeNote.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({ data: { title: null, content: "Low at noon" } }));
+    expect(prismaMock.placeNote.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { title: null, content: "Low at noon" } }),
+    );
     expect((await updatePlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1", content: "  " })).success).toBe(false);
   });
 
@@ -310,12 +314,12 @@ describe("place notes", () => {
     expect(prismaMock.placeNote.create).not.toHaveBeenCalled();
   });
 
-  it("updates and deletes only the user's own notes of that place", async () => {
+  it("updates and trashes only the user's own live notes of that place", async () => {
     prismaMock.placeNote.updateMany.mockResolvedValue({ count: 1 });
-    prismaMock.placeNote.deleteMany.mockResolvedValue({ count: 1 });
     const where = {
       id: "n1",
       placeId: "pl1",
+      trashedAt: null,
       place: { projectId: "p1", ...owned },
     };
 
@@ -334,13 +338,12 @@ describe("place notes", () => {
       data: { content: "Edited" },
     });
 
-    expect((await deletePlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1" })).success).toBe(true);
-    expect(prismaMock.placeNote.deleteMany).toHaveBeenCalledWith({ where });
+    expect((await trashPlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1" })).success).toBe(true);
+    expect(prismaMock.placeNote.updateMany).toHaveBeenLastCalledWith({ where, data: { trashedAt: expect.any(Date) } });
   });
 
   it("reports a note that is missing or not the user's", async () => {
     prismaMock.placeNote.updateMany.mockResolvedValue({ count: 0 });
-    prismaMock.placeNote.deleteMany.mockResolvedValue({ count: 0 });
     expect(
       (
         await updatePlaceNote({
@@ -351,6 +354,6 @@ describe("place notes", () => {
         })
       ).success,
     ).toBe(false);
-    expect((await deletePlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1" })).success).toBe(false);
+    expect((await trashPlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1" })).success).toBe(false);
   });
 });

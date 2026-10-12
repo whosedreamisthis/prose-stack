@@ -1,11 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArchiveIcon, PlusIcon, Trash2Icon, UserIcon, UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import { archiveCharacter, createCharacter, trashCharacter } from "@/actions/characters";
+import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { Hint } from "@/components/layout/Hint";
 import { RowMenu } from "@/components/manuscript/RowMenu";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const setPending = usePendingNavStore((s) => s.setPending);
   const [pending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState<CharacterSummary | null>(null);
 
   const add = (role: CharacterRoleKey) => {
     startTransition(async () => {
@@ -113,7 +115,7 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
                         <ArchiveIcon /> Archive
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" onClick={() => hide(c, trashCharacter, "Moved to the trash.")}>
+                      <DropdownMenuItem variant="destructive" onClick={() => setConfirming(c)}>
                         <Trash2Icon /> Move to trash
                       </DropdownMenuItem>
                     </RowMenu>
@@ -124,6 +126,14 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
           </section>
         );
       })}
+      <ConfirmTrashDialog
+        target={confirming && { kind: "character", name: confirming.name }}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) hide(confirming, trashCharacter, "Moved to the trash.");
+          setConfirming(null);
+        }}
+      />
     </nav>
   );
 }

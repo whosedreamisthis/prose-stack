@@ -12,6 +12,15 @@ export function childrenOf<T extends TreeNode>(nodes: T[], parentId: string | nu
   return nodes.filter((n) => n.parentId === parentId).sort((a, b) => a.position - b.position);
 }
 
+/** The node's id and the ids of everything under it, parents before children. Pure, so the tree can use it for optimistic updates. */
+export function subtreeIds(nodes: { id: string; parentId: string | null }[], id: string): string[] {
+  const ids = [id];
+  for (let i = 0; i < ids.length; i++) {
+    for (const n of nodes) if (n.parentId === ids[i]) ids.push(n.id);
+  }
+  return ids;
+}
+
 /** Scenes in reading order: the order of the book. */
 export function sceneOrder<T extends TreeNode>(nodes: T[]): T[] {
   const out: T[] = [];
@@ -34,12 +43,7 @@ export interface MovePlan {
  * Plans moving `nodeId` under `parentId` at `index`. Returns an error message when the move breaks the hierarchy
  * (a scene must sit in a chapter, a chapter in the book or a part, a part in the book) or targets a missing node.
  */
-export function planMove(
-  nodes: TreeNode[],
-  nodeId: string,
-  parentId: string | null,
-  index: number,
-): MovePlan | { error: string } {
+export function planMove(nodes: TreeNode[], nodeId: string, parentId: string | null, index: number): MovePlan | { error: string } {
   const node = nodes.find((n) => n.id === nodeId);
   if (!node) return { error: "Item not found." };
   const parent = parentId === null ? null : nodes.find((n) => n.id === parentId);

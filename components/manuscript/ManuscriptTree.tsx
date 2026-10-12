@@ -6,7 +6,8 @@ import { ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIc
 import { toast } from "sonner";
 import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
-import { createNode, renameNode } from "@/actions/manuscript";
+import { createNode, renameNode, trashNode } from "@/actions/manuscript";
+import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { AddItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
 import { TreeRow } from "@/components/manuscript/TreeRow";
 import { handleTreeKeyDown } from "@/components/manuscript/tree-keyboard";
@@ -15,7 +16,7 @@ import { noShift, useTreeDnd, type TreeChange } from "@/components/manuscript/us
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { requestEditorFocus } from "@/lib/editor-focus";
 import { defaultNodeTitle, nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
-import { applyMove, childrenOf, resolveActiveScene } from "@/lib/manuscript-tree";
+import { applyMove, childrenOf, resolveActiveScene, subtreeIds } from "@/lib/manuscript-tree";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
@@ -91,6 +92,7 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
   const onManuscriptPage = usePathname() === `/projects/${projectId}/manuscript`;
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<ManuscriptNodeSummary | null>(null);
   const [, startTransition] = useTransition();
   /** Rows added but not yet confirmed by the server, each resolving to whether the server created it. */
   const creating = useRef(new Map<string, Promise<boolean>>());
@@ -100,7 +102,9 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
       ? state.map((n) => (n.id === change.id ? { ...n, title: change.title } : n))
       : change.kind === "add"
         ? [...state, change.node]
-        : applyMove(state, change.plan),
+        : change.kind === "trash"
+          ? state.filter((n) => !subtreeIds(state, change.id).includes(n.id))
+          : applyMove(state, change.plan),
   );
   const collapsed = useTreeStore((s) => s.collapsed);
   const toggle = useTreeStore((s) => s.toggle);
@@ -116,8 +120,7 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
   const [clicked, setClicked] = useState<{ id: string; from: string | null } | null>(null);
   if (clicked && clicked.from !== sceneParam) setClicked(null);
   const pendingSceneId = usePendingNavStore((s) => s.pending.scene);
-  const openId =
-    clicked && clicked.from === sceneParam ? clicked.id : resolveActiveScene(nodes, sceneParam ?? undefined)?.id;
+  const openId = clicked && clicked.from === sceneParam ? clicked.id : resolveActiveScene(nodes, sceneParam ?? undefined)?.id;
   // Only one sidebar item is highlighted at a time: a scene is highlighted while the manuscript is open, or from the
   // click that is taking us there, never while a character or place is the open page.
   const activeId = onManuscriptPage ? openId : (pendingSceneId ?? undefined);
@@ -165,7 +168,10 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
         node: { id, parentId, type, title: defaultNodeTitle(type, sameType), position: childrenOf(nodes, parentId).length, wordCount: 0 },
       });
       const created = createNode({ projectId, parentId, type, id });
-      creating.current.set(id, created.then((r) => r.success));
+      creating.current.set(
+        id,
+        created.then((r) => r.success),
+      );
       const result = await created;
       creating.current.delete(id);
       if (!result.success) {
@@ -179,13 +185,30 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
     });
   }
 
+  function trashNodeAndChildren(node: ManuscriptNodeSummary) {
+    const ids = subtreeIds(nodes, node.id);
+    startTransition(async () => {
+      applyChange({ kind: "trash", id: node.id });
+      // A row added a moment ago may not exist on the server yet; wait for it, and give up if it failed.
+      if (!(await (creating.current.get(node.id) ?? true))) return;
+      const result = await trashNode({ projectId, nodeId: node.id });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Moved to the trash.");
+      // The open scene went with it, so fall back to the first remaining scene.
+      if (onManuscriptPage && openId && ids.includes(openId)) router.replace(`/projects/${projectId}/manuscript`);
+    });
+  }
+
   function nodeMenu(node: ManuscriptNodeSummary) {
     return (
       <RowMenu label={`${node.title} options`}>
         {node.type === "CHAPTER" && <AddItem label="Add scene" onClick={() => addNode(node.id, "SCENE")} />}
         {node.type === "PART" && <AddItem label="Add chapter" onClick={() => addNode(node.id, "CHAPTER")} />}
         <RenameItem onClick={() => setEditingId(node.id)} />
-        <TrashItem />
+        <TrashItem onClick={() => setConfirming(node)} />
       </RowMenu>
     );
   }
@@ -250,9 +273,7 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
                   <DropdownMenuItem onClick={expandAll}>
                     <ChevronsUpDownIcon /> Expand all
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => collapseAll(nodes.filter((n) => n.type !== "SCENE").map((n) => n.id))}
-                  >
+                  <DropdownMenuItem onClick={() => collapseAll(nodes.filter((n) => n.type !== "SCENE").map((n) => n.id))}>
                     <ChevronsDownUpIcon /> Collapse all
                   </DropdownMenuItem>
                 </RowMenu>
@@ -271,6 +292,20 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
           )}
         </DragOverlay>
       </DndContext>
+      <ConfirmTrashDialog
+        target={
+          confirming && {
+            kind: confirming.type.toLowerCase(),
+            name: confirming.title,
+            detail: confirming.type === "SCENE" ? undefined : "Everything inside it goes too.",
+          }
+        }
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) trashNodeAndChildren(confirming);
+          setConfirming(null);
+        }}
+      />
     </nav>
   );
 }

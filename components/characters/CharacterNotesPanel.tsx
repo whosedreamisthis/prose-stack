@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { createCharacterNote, deleteCharacterNote, updateCharacterNote } from "@/actions/characters";
+import { createCharacterNote, trashCharacterNote, updateCharacterNote } from "@/actions/characters";
 import { NotesList } from "@/components/layout/NotesList";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { MAX_NOTES_PER_CHARACTER, MAX_NOTE_LENGTH } from "@/lib/character-config";
@@ -51,7 +51,7 @@ export function CharacterNotesPanel({ projectId, characterId, notes }: NotesPane
             maxLength={MAX_NOTE_LENGTH}
             onCreate={({ id, title, content }) => createCharacterNote({ projectId, characterId, title, content, id })}
             onUpdate={({ noteId, title, content }) => updateCharacterNote({ projectId, characterId, noteId, title, content })}
-            onDelete={({ noteId }) => deleteCharacterNote({ projectId, characterId, noteId })}
+            onTrash={({ noteId }) => trashCharacterNote({ projectId, characterId, noteId })}
           />
         </div>
       )}

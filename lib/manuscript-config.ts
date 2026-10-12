@@ -39,6 +39,7 @@ export const createNodeSchema = z.object({
     .optional(),
 });
 
+export const trashNodeSchema = z.object({ projectId: idSchema, nodeId: idSchema });
 export const renameNodeSchema = z.object({ projectId: idSchema, nodeId: idSchema, title: nodeTitleSchema });
 
 export const moveNodeSchema = z.object({

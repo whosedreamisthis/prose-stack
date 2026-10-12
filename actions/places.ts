@@ -9,7 +9,7 @@ import {
   MAX_NOTES_PER_PLACE,
   createNoteSchema,
   createPlaceSchema,
-  deleteNoteSchema,
+  noteRefSchema,
   placeRefSchema,
   setPlaceCharactersSchema,
   updateNoteSchema,
@@ -221,7 +221,7 @@ export async function createPlaceNote(input: {
         trashedAt: null,
         archivedAt: null,
       },
-      select: { id: true, _count: { select: { notes: true } } },
+      select: { id: true, _count: { select: { notes: { where: { trashedAt: null } } } } },
     });
     if (!place) return { success: false, error: NOT_FOUND };
     if (place._count.notes >= MAX_NOTES_PER_PLACE) {
@@ -265,6 +265,7 @@ export async function updatePlaceNote(input: {
       where: {
         id: noteId,
         placeId,
+        trashedAt: null,
         place: { projectId, project: { userId: user.id } },
       },
       data: { ...(title !== undefined && { title: title || null }), ...(content !== undefined && { content }) },
@@ -282,30 +283,32 @@ export async function updatePlaceNote(input: {
   }
 }
 
-export async function deletePlaceNote(input: { projectId: string; placeId: string; noteId: string }): Promise<ActionResult> {
+export async function trashPlaceNote(input: { projectId: string; placeId: string; noteId: string }): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: NOT_SIGNED_IN };
-    const parsed = deleteNoteSchema.safeParse(input);
+    const parsed = noteRefSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const { projectId, placeId, noteId } = parsed.data;
 
-    const { count } = await prisma.placeNote.deleteMany({
+    const { count } = await prisma.placeNote.updateMany({
       where: {
         id: noteId,
         placeId,
+        trashedAt: null,
         place: { projectId, project: { userId: user.id } },
       },
+      data: { trashedAt: new Date() },
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 
     refresh(projectId, cacheTags.placeNotes(placeId));
     return { success: true, data: undefined };
   } catch (error) {
-    console.error("deletePlaceNote failed:", error);
+    console.error("trashPlaceNote failed:", error);
     return {
       success: false,
-      error: "Could not delete the note. Please try again.",
+      error: "Could not move the note to the trash. Please try again.",
     };
   }
 }

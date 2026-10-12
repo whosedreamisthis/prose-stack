@@ -69,7 +69,7 @@ export async function listCharacterNotes(userId: string, projectId: string, char
   cacheLife("days");
   cacheTag(cacheTags.characterNotes(characterId), cacheTags.project(projectId));
   const rows = await prisma.characterNote.findMany({
-    where: { characterId, character: { projectId, project: { userId }, ...visible } },
+    where: { characterId, trashedAt: null, character: { projectId, project: { userId }, ...visible } },
     orderBy: { createdAt: "asc" },
     select: { id: true, title: true, content: true },
   });

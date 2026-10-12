@@ -5,7 +5,7 @@ import { updateTag } from "next/cache"; // after the shared mock is registered, 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 
-import { createNode, moveNode, renameNode, saveScene, saveSceneSummary } from "@/actions/manuscript";
+import { createNode, moveNode, renameNode, saveScene, saveSceneSummary, trashNode } from "@/actions/manuscript";
 import { docFromText } from "@/lib/manuscript-text";
 
 function useInteractiveTransaction() {
@@ -86,7 +86,7 @@ describe("renameNode", () => {
     prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 1 });
     await renameNode({ projectId: "p1", nodeId: "n1", title: " The Storm " });
     expect(prismaMock.manuscriptNode.updateMany).toHaveBeenCalledWith({
-      where: { id: "n1", projectId: "p1", project: { userId: "user-1" } },
+      where: { id: "n1", projectId: "p1", trashedAt: null, project: { userId: "user-1" } },
       data: { title: "The Storm" },
     });
   });
@@ -94,6 +94,53 @@ describe("renameNode", () => {
   it("reports not found when nothing matched", async () => {
     prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 0 });
     expect((await renameNode({ projectId: "p1", nodeId: "n1", title: "x" })).success).toBe(false);
+  });
+});
+
+describe("trashNode", () => {
+  const tree = [
+    { id: "part", parentId: null, position: 0 },
+    { id: "ch1", parentId: "part", position: 0 },
+    { id: "ch2", parentId: "part", position: 1 },
+    { id: "s1", parentId: "ch1", position: 0 },
+    { id: "s2", parentId: "ch2", position: 0 },
+  ];
+
+  it("rejects signed-out callers and an item that is not found", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    expect((await trashNode({ projectId: "p1", nodeId: "ch1" })).success).toBe(false);
+
+    getCurrentUserMock.mockResolvedValue({ id: "user-1" });
+    prismaMock.manuscriptNode.findMany.mockResolvedValue(tree);
+    expect(await trashNode({ projectId: "p1", nodeId: "gone" })).toEqual({ success: false, error: "Item not found." });
+    expect(prismaMock.manuscriptNode.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the project is not the user's", async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    expect((await trashNode({ projectId: "p1", nodeId: "ch1" })).success).toBe(false);
+    expect(prismaMock.manuscriptNode.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("trashes a chapter with its scenes in one update and renumbers the siblings left behind", async () => {
+    prismaMock.manuscriptNode.findMany.mockResolvedValue(tree);
+
+    const result = await trashNode({ projectId: "p1", nodeId: "ch1" });
+
+    expect(result).toEqual({ success: true, data: { trashedIds: ["ch1", "s1"] } });
+    expect(prismaMock.manuscriptNode.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["ch1", "s1"] }, projectId: "p1" },
+      data: { trashedAt: expect.any(Date) },
+    });
+    // ch2 moves up from position 1 to 0; nothing else needs renumbering.
+    expect(prismaMock.manuscriptNode.update).toHaveBeenCalledTimes(1);
+    expect(prismaMock.manuscriptNode.update).toHaveBeenCalledWith({ where: { id: "ch2" }, data: { position: 0 } });
+  });
+
+  it("expires the outline, the word totals and each trashed scene", async () => {
+    prismaMock.manuscriptNode.findMany.mockResolvedValue(tree);
+    await trashNode({ projectId: "p1", nodeId: "part" });
+    for (const tag of ["manuscript:p1", "stats:p1", "scene:s1", "scene:s2"]) expect(updateTag).toHaveBeenCalledWith(tag);
   });
 });
 
@@ -174,12 +221,22 @@ describe("cache invalidation", () => {
     prismaMock.manuscriptNode.update.mockResolvedValue({ updatedAt: new Date() });
     prismaMock.project.update.mockResolvedValue({});
     await saveScene({ projectId: "p1", nodeId: "s1", content: docFromText("Hello there") });
-    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["projects:user-1", "scene:s1", "stats:p1"]);
+    expect(
+      vi
+        .mocked(updateTag)
+        .mock.calls.map(([tag]) => tag)
+        .sort(),
+    ).toEqual(["projects:user-1", "scene:s1", "stats:p1"]);
   });
 
   it("expires the outline and the scene when a node is renamed", async () => {
     prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 1 });
     await renameNode({ projectId: "p1", nodeId: "s1", title: "New title" });
-    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["manuscript:p1", "scene:s1"]);
+    expect(
+      vi
+        .mocked(updateTag)
+        .mock.calls.map(([tag]) => tag)
+        .sort(),
+    ).toEqual(["manuscript:p1", "scene:s1"]);
   });
 });

@@ -76,4 +76,4 @@ export const createNoteSchema = z
 export const updateNoteSchema = z
   .object({ projectId: idSchema, placeId: idSchema, noteId: idSchema, title: noteTitleSchema.optional(), content: noteContentSchema.optional() })
   .refine(hasNoteText, NOTE_EMPTY);
-export const deleteNoteSchema = z.object({ projectId: idSchema, placeId: idSchema, noteId: idSchema });
+export const noteRefSchema = z.object({ projectId: idSchema, placeId: idSchema, noteId: idSchema });

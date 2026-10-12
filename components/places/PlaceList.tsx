@@ -1,11 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArchiveIcon, MapPinIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { archivePlace, trashPlace } from "@/actions/places";
+import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { RowMenu } from "@/components/manuscript/RowMenu";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { resolveActivePlace } from "@/lib/place-selection";
@@ -29,6 +30,7 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const setPending = usePendingNavStore((s) => s.setPending);
   const [, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState<PlaceSummary | null>(null);
 
   const hide = (place: PlaceSummary, action: typeof trashPlace, done: string) => {
     startTransition(async () => {
@@ -76,7 +78,7 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
                   <ArchiveIcon /> Archive
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => hide(p, trashPlace, "Moved to the trash.")}>
+                <DropdownMenuItem variant="destructive" onClick={() => setConfirming(p)}>
                   <Trash2Icon /> Move to trash
                 </DropdownMenuItem>
               </RowMenu>
@@ -84,6 +86,14 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
           ))}
         </ul>
       )}
+      <ConfirmTrashDialog
+        target={confirming && { kind: "place", name: confirming.name }}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) hide(confirming, trashPlace, "Moved to the trash.");
+          setConfirming(null);
+        }}
+      />
     </nav>
   );
 }

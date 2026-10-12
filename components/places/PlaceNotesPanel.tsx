@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { createPlaceNote, deletePlaceNote, updatePlaceNote } from "@/actions/places";
+import { createPlaceNote, trashPlaceNote, updatePlaceNote } from "@/actions/places";
 import { NotesList } from "@/components/layout/NotesList";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { MAX_NOTES_PER_PLACE, MAX_NOTE_LENGTH } from "@/lib/place-config";
@@ -38,7 +38,7 @@ export function PlaceNotesPanel({ projectId, placeId, notes }: PlaceNotesPanelPr
           maxLength={MAX_NOTE_LENGTH}
           onCreate={({ id, title, content }) => createPlaceNote({ projectId, placeId, title, content, id })}
           onUpdate={({ noteId, title, content }) => updatePlaceNote({ projectId, placeId, noteId, title, content })}
-          onDelete={({ noteId }) => deletePlaceNote({ projectId, placeId, noteId })}
+          onTrash={({ noteId }) => trashPlaceNote({ projectId, placeId, noteId })}
         />
       </div>
     </RightPanel>

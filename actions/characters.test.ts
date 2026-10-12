@@ -9,7 +9,7 @@ import {
   archiveCharacter,
   createCharacter,
   createCharacterNote,
-  deleteCharacterNote,
+  trashCharacterNote,
   trashCharacter,
   updateCharacter,
   updateCharacterNote,
@@ -160,23 +160,20 @@ describe("character notes", () => {
     expect(prismaMock.characterNote.create).not.toHaveBeenCalled();
   });
 
-  it("updates and deletes only notes reached through the user's own project", async () => {
+  it("updates and trashes only live notes reached through the user's own project", async () => {
     prismaMock.characterNote.updateMany.mockResolvedValue({ count: 1 });
-    prismaMock.characterNote.deleteMany.mockResolvedValue({ count: 1 });
-
     expect((await updateCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1", content: "New text" })).success).toBe(true);
-    expect((await deleteCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1" })).success).toBe(true);
+    expect((await trashCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1" })).success).toBe(true);
 
-    const scope = { characterId: "c1", character: { projectId: "p1", ...owned } };
+    const scope = { characterId: "c1", trashedAt: null, character: { projectId: "p1", ...owned } };
     expect(prismaMock.characterNote.updateMany).toHaveBeenCalledWith({ where: { id: "n1", ...scope }, data: { content: "New text" } });
-    expect(prismaMock.characterNote.deleteMany).toHaveBeenCalledWith({ where: { id: "n1", ...scope } });
+    expect(prismaMock.characterNote.updateMany).toHaveBeenLastCalledWith({ where: { id: "n1", ...scope }, data: { trashedAt: expect.any(Date) } });
   });
 
   it("reports a note that is not found", async () => {
     prismaMock.characterNote.updateMany.mockResolvedValue({ count: 0 });
-    prismaMock.characterNote.deleteMany.mockResolvedValue({ count: 0 });
     expect((await updateCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1", content: "x" })).success).toBe(false);
-    expect((await deleteCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1" })).success).toBe(false);
+    expect((await trashCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1" })).success).toBe(false);
   });
 });
 

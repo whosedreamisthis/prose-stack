@@ -55,7 +55,7 @@ export async function getManuscript(userId: string, projectId: string): Promise<
   if (!owned) return [];
   await ensureSeeded(projectId);
   return prisma.manuscriptNode.findMany({
-    where: { projectId },
+    where: { projectId, trashedAt: null },
     orderBy: [{ position: "asc" }],
     select: summarySelect,
   });
@@ -67,7 +67,7 @@ export async function getScene(userId: string, projectId: string, nodeId: string
   cacheLife("days");
   cacheTag(cacheTags.scene(nodeId), cacheTags.project(projectId));
   const node = await prisma.manuscriptNode.findFirst({
-    where: { id: nodeId, projectId, type: "SCENE", project: { userId } },
+    where: { id: nodeId, projectId, type: "SCENE", trashedAt: null, project: { userId } },
     select: { id: true, title: true, summary: true, content: true, wordCount: true, updatedAt: true },
   });
   if (!node) return null;
@@ -84,7 +84,7 @@ async function getWordStatsFor(projectId: string, day: string): Promise<WordStat
   cacheLife("days");
   cacheTag(cacheTags.stats(projectId), cacheTags.project(projectId));
   const [total, today] = await Promise.all([
-    prisma.manuscriptNode.aggregate({ where: { projectId, type: "SCENE" }, _sum: { wordCount: true } }),
+    prisma.manuscriptNode.aggregate({ where: { projectId, type: "SCENE", trashedAt: null }, _sum: { wordCount: true } }),
     prisma.dailyWordCount.findUnique({
       where: { projectId_date: { projectId, date: new Date(day) } },
       select: { startWords: true },
@@ -98,7 +98,7 @@ export async function getBookNodes(userId: string, projectId: string): Promise<B
   const nodes = await getManuscript(userId, projectId);
   if (nodes.length === 0) return [];
   const scenes = await prisma.manuscriptNode.findMany({
-    where: { projectId, type: "SCENE" },
+    where: { projectId, type: "SCENE", trashedAt: null },
     select: { id: true, content: true },
   });
   const contentById = new Map(scenes.map((s) => [s.id, s.content as DocNode | null]));

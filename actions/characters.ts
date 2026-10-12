@@ -9,7 +9,7 @@ import {
   characterRefSchema,
   createCharacterSchema,
   createNoteSchema,
-  deleteNoteSchema,
+  noteRefSchema,
   updateCharacterSchema,
   updateNoteSchema,
   type CreateCharacterInput,
@@ -37,7 +37,9 @@ function refresh(projectId: string, ...tags: string[]) {
 
 /** Sketch fields are stored as null when blank, so an emptied field and a never-filled one look the same. */
 function blankToNull(changes: Record<string, string | undefined>) {
-  return Object.fromEntries(Object.entries(changes).map(([key, value]) => [key, key === "name" || key === "role" ? value : value?.trim() || null]));
+  return Object.fromEntries(
+    Object.entries(changes).map(([key, value]) => [key, key === "name" || key === "role" ? value : value?.trim() || null]),
+  );
 }
 
 export async function createCharacter(input: CreateCharacterInput): Promise<ActionResult<{ id: string }>> {
@@ -86,7 +88,11 @@ export async function updateCharacter(input: UpdateCharacterInput): Promise<Acti
   }
 }
 
-async function setHidden(input: { projectId: string; characterId: string }, field: "trashedAt" | "archivedAt", failure: string): Promise<ActionResult> {
+async function setHidden(
+  input: { projectId: string; characterId: string },
+  field: "trashedAt" | "archivedAt",
+  failure: string,
+): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: NOT_SIGNED_IN };
@@ -132,7 +138,7 @@ export async function createCharacterNote(input: {
 
     const character = await prisma.character.findFirst({
       where: { id: characterId, projectId, project: { userId: user.id }, trashedAt: null, archivedAt: null },
-      select: { id: true, _count: { select: { notes: true } } },
+      select: { id: true, _count: { select: { notes: { where: { trashedAt: null } } } } },
     });
     if (!character) return { success: false, error: NOT_FOUND };
     if (character._count.notes >= MAX_NOTES_PER_CHARACTER) {
@@ -167,7 +173,7 @@ export async function updateCharacterNote(input: {
     const { projectId, characterId, noteId, title, content } = parsed.data;
 
     const { count } = await prisma.characterNote.updateMany({
-      where: { id: noteId, characterId, character: { projectId, project: { userId: user.id } } },
+      where: { id: noteId, characterId, trashedAt: null, character: { projectId, project: { userId: user.id } } },
       data: { ...(title !== undefined && { title: title || null }), ...(content !== undefined && { content }) },
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
@@ -180,23 +186,24 @@ export async function updateCharacterNote(input: {
   }
 }
 
-export async function deleteCharacterNote(input: { projectId: string; characterId: string; noteId: string }): Promise<ActionResult> {
+export async function trashCharacterNote(input: { projectId: string; characterId: string; noteId: string }): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: NOT_SIGNED_IN };
-    const parsed = deleteNoteSchema.safeParse(input);
+    const parsed = noteRefSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const { projectId, characterId, noteId } = parsed.data;
 
-    const { count } = await prisma.characterNote.deleteMany({
-      where: { id: noteId, characterId, character: { projectId, project: { userId: user.id } } },
+    const { count } = await prisma.characterNote.updateMany({
+      where: { id: noteId, characterId, trashedAt: null, character: { projectId, project: { userId: user.id } } },
+      data: { trashedAt: new Date() },
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 
     refresh(projectId, cacheTags.characterNotes(characterId));
     return { success: true, data: undefined };
   } catch (error) {
-    console.error("deleteCharacterNote failed:", error);
-    return { success: false, error: "Could not delete the note. Please try again." };
+    console.error("trashCharacterNote failed:", error);
+    return { success: false, error: "Could not move the note to the trash. Please try again." };
   }
 }

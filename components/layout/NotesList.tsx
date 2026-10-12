@@ -1,19 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
+import { RowMenu } from "@/components/manuscript/RowMenu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,7 +28,7 @@ interface NotesListProps {
   /** Server actions for the owner (a character or a place). Each result is checked, and a failed change is rolled back. */
   onCreate: (input: NoteValues & { id: string }) => Promise<ActionResult<unknown>>;
   onUpdate: (input: NoteValues & { noteId: string }) => Promise<ActionResult>;
-  onDelete: (input: { noteId: string }) => Promise<ActionResult>;
+  onTrash: (input: { noteId: string }) => Promise<ActionResult>;
 }
 
 /** Which note the dialog shows: one that exists, or a new one that is only created when it is closed with something in it. */
@@ -48,9 +40,10 @@ const isBlank = (v: NoteValues) => !v.title.trim() && !v.content.trim();
  * Notes as cards (a bold title and as much of the text as fits). A card, or the dashed "Add a note" card, opens the note
  * in a dialog; closing it with the X, Esc or a click outside saves, so nothing is lost. Remount it per owner.
  */
-export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdate, onDelete }: NotesListProps) {
+export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdate, onTrash }: NotesListProps) {
   const [notes, setNotes] = useState(initialNotes);
   const [open, setOpen] = useState<Open | null>(null);
+  const [confirming, setConfirming] = useState<NoteItem | null>(null);
   const [, startTransition] = useTransition();
   const full = notes.length >= maxNotes;
   const openNote = open && !open.isNew ? notes.find((n) => n.id === open.id) : undefined;
@@ -86,17 +79,19 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
     });
   };
 
-  const removeNote = (id: string) => {
+  const trashNote = (id: string) => {
     const index = notes.findIndex((n) => n.id === id);
     const removed = notes[index];
     if (!removed) return;
     setNotes((prev) => prev.filter((n) => n.id !== id));
     startTransition(async () => {
-      const result = await onDelete({ noteId: id });
+      const result = await onTrash({ noteId: id });
       if (!result.success) {
         setNotes((prev) => [...prev.slice(0, index), removed, ...prev.slice(index)]);
         toast.error(result.error);
+        return;
       }
+      toast.success("Moved to the trash.");
     });
   };
 
@@ -104,16 +99,22 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
     <>
       <ul className="flex flex-col gap-2 pt-3">
         {notes.map((note) => (
-          <li key={note.id}>
+          <li key={note.id} className="group/item relative">
             <button
               type="button"
               onClick={() => setOpen({ id: note.id, isNew: false })}
-              className="flex max-h-40 min-h-16 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-3 text-left text-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="flex max-h-40 min-h-16 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-3 pr-9 text-left text-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               {note.title && <span className="truncate font-semibold">{note.title}</span>}
               {/* Clamped by lines rather than cut at a height, so the last visible line is never sliced in half. */}
               {note.content && <span className="line-clamp-6 wrap-break-word whitespace-pre-wrap text-foreground/80">{note.content}</span>}
             </button>
+            {/* The same hover-only "…" menu as every other row; in the corner, since the card is tall. */}
+            <RowMenu label={`${note.title || "Note"} options`} className="top-2 translate-y-0">
+              <DropdownMenuItem variant="destructive" onClick={() => setConfirming(note)}>
+                <Trash2Icon /> Move to trash
+              </DropdownMenuItem>
+            </RowMenu>
           </li>
         ))}
         <li>
@@ -133,6 +134,14 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
           </button>
         </li>
       </ul>
+      <ConfirmTrashDialog
+        target={confirming && { kind: "note", name: confirming.title || confirming.content.slice(0, 40) }}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) trashNote(confirming.id);
+          setConfirming(null);
+        }}
+      />
       {open && (
         <NoteDialog
           // Remounted per note, so its fields always belong to one note.
@@ -144,10 +153,6 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
           onClose={(values) => {
             persist(open, values);
             // A new note now exists in the list; if it was blank nothing was created and nothing is left to open.
-            setOpen(null);
-          }}
-          onDelete={() => {
-            removeNote(open.id);
             setOpen(null);
           }}
         />
@@ -162,21 +167,17 @@ interface NoteDialogProps {
   maxLength: number;
   onBlurSave: (values: NoteValues) => void;
   onClose: (values: NoteValues) => void;
-  onDelete: () => void;
 }
 
-function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose, onDelete }: NoteDialogProps) {
+function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose }: NoteDialogProps) {
   const [values, setValues] = useState(initial);
-  const [confirming, setConfirming] = useState(false);
-  const deleting = useRef(false);
 
   return (
     <>
       <Dialog
         open
         onOpenChange={(next) => {
-          // Deleting closes the dialog too, and must not save the note it just removed.
-          if (!next && !deleting.current) onClose(values);
+          if (!next) onClose(values);
         }}
       >
         <DialogContent className="flex max-h-[85dvh] flex-col gap-3 sm:max-w-lg">
@@ -201,41 +202,8 @@ function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose, onDelete }
             onBlur={() => onBlurSave(values)}
             className="min-h-48 flex-1 resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
-          {!isNew && (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirming(true)}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2Icon /> Delete
-              </Button>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
-            <AlertDialogDescription>This can&apos;t be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                deleting.current = true;
-                setConfirming(false);
-                onDelete();
-              }}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

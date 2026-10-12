@@ -64,7 +64,7 @@ export async function listPlaceNotes(userId: string, projectId: string, placeId:
   cacheLife("days");
   cacheTag(cacheTags.placeNotes(placeId), cacheTags.project(projectId));
   const rows = await prisma.placeNote.findMany({
-    where: { placeId, place: { projectId, project: { userId }, ...visible } },
+    where: { placeId, trashedAt: null, place: { projectId, project: { userId }, ...visible } },
     orderBy: { createdAt: "asc" },
     select: { id: true, title: true, content: true },
   });
