@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, type ComponentType, type ReactNode } from "react";
+import { useId, useRef, type ComponentType, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSortable } from "@dnd-kit/sortable";
@@ -17,13 +17,15 @@ const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 export function ToggleIcon({
   icon: Icon,
   expanded,
+  onClick,
 }: {
   icon: ComponentType<{ className?: string }>;
   expanded: boolean;
+  onClick?: (e: MouseEvent<HTMLSpanElement>) => void;
 }) {
   const Chevron = expanded ? ChevronDownIcon : ChevronRightIcon;
   return (
-    <span className="relative size-4 shrink-0" aria-hidden>
+    <span className="relative size-4 shrink-0" aria-hidden onClick={onClick}>
       <Icon className={cn(iconClass, "absolute inset-0 group-hover/row:opacity-0 group-focus-visible/row:opacity-0")} />
       <Chevron
         className={cn(iconClass, "absolute inset-0 opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100")}
@@ -49,6 +51,8 @@ interface TreeRowProps {
   onFinishRename: (value: string | null, refocus: boolean) => void;
   /** A scene's link was clicked. */
   onOpen: () => void;
+  /** A part or chapter row (not its icon) was clicked: open its book view. */
+  onOpenNode?: () => void;
   /** The rows nested under a part or chapter. */
   children?: ReactNode;
 }
@@ -70,6 +74,7 @@ export function TreeRow({
   onStartRename,
   onFinishRename,
   onOpen,
+  onOpenNode,
   children,
 }: TreeRowProps) {
   const router = useRouter();
@@ -81,10 +86,23 @@ export function TreeRow({
     disabled: editing,
   });
   const showChildren = !isScene && !collapsed;
+  const opensNode = node.type !== "SCENE" && !!onOpenNode;
   const leadIcon = isScene ? (
     <FileTextIcon className={iconClass} aria-hidden />
   ) : (
-    <ToggleIcon icon={NODE_ICON[node.type]} expanded={!collapsed} />
+    <ToggleIcon
+      icon={NODE_ICON[node.type]}
+      expanded={!collapsed}
+      // On a part or chapter the icon still expands and collapses; the rest of the row opens it.
+      onClick={
+        opensNode
+          ? (e) => {
+              e.stopPropagation();
+              onToggle();
+            }
+          : undefined
+      }
+    />
   );
 
   return (
@@ -103,7 +121,8 @@ export function TreeRow({
         data-kind={isScene ? "scene" : "parent"}
         // A scene opens when its row is clicked anywhere (its link covers only the title); a parent toggles.
         onClick={(e) => {
-          if (!isScene) onToggle();
+          if (opensNode) onOpenNode();
+          else if (!isScene) onToggle();
           else if (e.target === e.currentTarget) linkRef.current?.click();
         }}
         onDoubleClick={onStartRename}

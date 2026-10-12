@@ -1,20 +1,24 @@
-# Current Feature
+# Current Feature: Chapter and Part View
 
-<!-- Feature name and short description -->
+Clicking a part or chapter opens it in editable book form instead of only toggling it.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Clicking a chapter or part row in the outline opens `/manuscript/chapter/[nodeId]` or `/manuscript/part/[nodeId]`
+- A part shows its chapters' titles between their scenes
+- The view shows the chapter title as a header, with each scene's text below as an editable editor, in book form
+- Edits autosave per scene; the toolbar follows whichever scene editor has focus
+- The part or chapter icon still expands and collapses the chapter in the outline
+- Empty chapters show a hint to add a scene
 
 ## Notes
 
-<!-- Any extra notes -->
+- `SceneEditor` has an `embedded` mode for several editors on one page: no live footer count (totals settle after each save), toolbar and find panels follow the focused editor.
+- Keyboard and tree behaviour are unchanged.
 
 ## Completed Features
 

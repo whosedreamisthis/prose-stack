@@ -231,6 +231,11 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
           onToggle={() => toggle(node.id)}
           onStartRename={() => setEditingId(node.id)}
           onFinishRename={(value, refocus) => finishRename(node, value, refocus)}
+          onOpenNode={() => {
+            if (!onManuscriptPage) setPending("section", "manuscript");
+            router.push(`/projects/${projectId}/manuscript/${node.type.toLowerCase()}/${node.id}`);
+            setDrawerOpen(false);
+          }}
           onOpen={() => {
             requestEditorFocus();
             setClicked({ id: node.id, from: sceneParam });

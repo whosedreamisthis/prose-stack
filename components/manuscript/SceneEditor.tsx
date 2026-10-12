@@ -22,6 +22,8 @@ interface SceneEditorProps {
   /** The project's saved formatting, from the server. */
   formatting: Formatting;
   scene: { id: string; title: string; content: DocNode; updatedAt: number };
+  /** One of several editors on a chapter page: no frame, and the toolbar follows whichever one has focus. */
+  embedded?: boolean;
 }
 
 // Prose only: paragraphs, bold, italic and undo history.
@@ -56,7 +58,7 @@ function openScene(scene: SceneEditorProps["scene"]) {
 }
 
 /** The Tiptap editor for one scene. Mount it with `key={scene.id}` so each scene gets a fresh editor and autosave. */
-export function SceneEditor({ projectId, formatting, scene }: SceneEditorProps) {
+export function SceneEditor({ projectId, formatting, scene, embedded = false }: SceneEditorProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [initial] = useState(() => openScene(scene));
@@ -66,6 +68,7 @@ export function SceneEditor({ projectId, formatting, scene }: SceneEditorProps) 
   const shown = applyPreview(formatting, preview);
   const spellcheck = useEditorStore((s) => s.spellcheck);
   const setEditor = useEditorStore((s) => s.setEditor);
+  const activeEditor = useEditorStore((s) => s.editor);
   const setLiveWords = useEditorStore((s) => s.setLiveWords);
   const findOpen = useEditorStore((s) => s.findOpen);
   const thesaurusOpen = useEditorStore((s) => s.thesaurusOpen);
@@ -92,8 +95,10 @@ export function SceneEditor({ projectId, formatting, scene }: SceneEditorProps) 
         return true;
       },
     },
-    onCreate: ({ editor }) => setLiveWords(countDocWords(editor.getJSON() as DocNode)),
-    onUpdate: ({ editor }) => setLiveWords(countDocWords(editor.getJSON() as DocNode)),
+    // The footer's live count follows a single open scene; on a chapter page it settles to the server totals after each save.
+    onCreate: ({ editor }) => !embedded && setLiveWords(countDocWords(editor.getJSON() as DocNode)),
+    onUpdate: ({ editor }) => !embedded && setLiveWords(countDocWords(editor.getJSON() as DocNode)),
+    onFocus: ({ editor }) => embedded && setEditor(editor),
   });
 
   useSceneAutosave({
@@ -120,25 +125,31 @@ export function SceneEditor({ projectId, formatting, scene }: SceneEditorProps) 
 
   useEffect(() => {
     if (!editor) return;
-    setEditor(editor);
-    if (consumeEditorFocusRequest()) editor.commands.focus(editor.isEmpty ? "start" : "end");
+    if (!embedded) {
+      setEditor(editor);
+      if (consumeEditorFocusRequest()) editor.commands.focus(editor.isEmpty ? "start" : "end");
+    }
     return () => {
+      // An embedded editor only lets go of the toolbar if it still holds it.
+      if (embedded && useEditorStore.getState().editor !== editor) return;
       setEditor(null);
       setLiveWords(null);
       useEditorStore.getState().setFindOpen(false);
       useEditorStore.getState().setThesaurusOpen(false);
     };
-  }, [editor, setEditor, setLiveWords]);
+  }, [editor, embedded, setEditor, setLiveWords]);
+
+  const showPanels = !embedded || activeEditor === editor;
 
   return (
     <>
-      {findOpen && editor && <FindPanel editor={editor} />}
-      {thesaurusOpen && editor && <ThesaurusPopover editor={editor} />}
+      {showPanels && findOpen && editor && <FindPanel editor={editor} />}
+      {showPanels && thesaurusOpen && editor && <ThesaurusPopover editor={editor} />}
       <div
         // Spell check is inherited by the editable area below.
         spellCheck={spellcheck}
         style={formattingStyle(shown)}
-        className={`${FORMATTED_TEXT} mx-auto w-full max-w-2xl rounded-md border border-foreground/25 bg-card/30 px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 [&_.ProseMirror]:min-h-[60vh] [&_.ProseMirror]:px-1 [&_.ProseMirror]:py-2 [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:mb-(--editor-gap)`}
+        className={`${FORMATTED_TEXT} mx-auto w-full max-w-2xl rounded-md px-3 ${embedded ? "border border-transparent focus-within:border-ring/50 [&_.ProseMirror]:min-h-24" : "border border-foreground/25 bg-card/30 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 [&_.ProseMirror]:min-h-[60vh]"} [&_.ProseMirror]:px-1 [&_.ProseMirror]:py-2 [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:mb-(--editor-gap)`}
       >
         <EditorContent editor={editor} />
       </div>
