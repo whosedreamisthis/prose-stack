@@ -7,6 +7,7 @@ import { SKETCH_FIELDS } from "@/lib/character-config";
 import type { DocNode } from "@/lib/manuscript-text";
 import { PLACE_FIELDS } from "@/lib/place-config";
 import { nodeSections } from "@/lib/trash-view";
+import { listHiddenResearch, type HiddenField } from "@/lib/research-hidden";
 import type { ArchiveItem, HiddenView, TrashItem, TrashKind, ViewSection } from "@/types/trash";
 
 const NODE_LABEL = { PART: "Part", CHAPTER: "Chapter", SCENE: "Scene" } as const;
@@ -21,7 +22,7 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
   cacheLife("days");
   cacheTag(cacheTags.trash(projectId), cacheTags.project(projectId));
   const owner = { projectId, project: { userId } };
-  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes, plotLines, plotPoints, projectNotes] = await Promise.all([
+  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes, plotLines, plotPoints, projectNotes, research] = await Promise.all([
     prisma.manuscriptNode.findMany({
       where: { ...owner, trashedAt: { not: null } },
       select: { id: true, parentId: true, type: true, title: true, trashedAt: true },
@@ -51,6 +52,7 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
       where: { trashedAt: { not: null }, ...owner },
       select: { id: true, title: true, content: true, trashedAt: true, project: { select: { title: true } } },
     }),
+    listHiddenResearch(userId, projectId, "trashedAt"),
   ]);
 
   const items: TrashItem[] = [
@@ -108,6 +110,7 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
       detail: `Plot point on ${p.scene.title}, ${p.plotLine.name}`,
       trashedAt: p.trashedAt!.getTime(),
     })),
+    ...researchRows(research).map(({ at, ...row }) => ({ ...row, trashedAt: at })),
   ];
   return items.sort((a, b) => b.trashedAt - a.trashedAt);
 }
@@ -118,9 +121,10 @@ export async function listArchive(userId: string, projectId: string): Promise<Ar
   cacheLife("days");
   cacheTag(cacheTags.archive(projectId), cacheTags.project(projectId));
   const where = { projectId, project: { userId }, trashedAt: null, archivedAt: { not: null } };
-  const [characters, places] = await Promise.all([
+  const [characters, places, research] = await Promise.all([
     prisma.character.findMany({ where, select: { id: true, name: true, archivedAt: true } }),
     prisma.place.findMany({ where, select: { id: true, name: true, archivedAt: true } }),
+    listHiddenResearch(userId, projectId, "archivedAt"),
   ]);
   const items: ArchiveItem[] = [
     ...characters.map((c) => ({
@@ -131,8 +135,66 @@ export async function listArchive(userId: string, projectId: string): Promise<Ar
       archivedAt: c.archivedAt!.getTime(),
     })),
     ...places.map((p) => ({ kind: "place" as const, id: p.id, title: p.name, detail: "Place", archivedAt: p.archivedAt!.getTime() })),
+    ...researchRows(research).map(({ at, ...row }) => ({ ...row, archivedAt: at })),
   ];
   return items.sort((a, b) => b.archivedAt - a.archivedAt);
+}
+
+const plural = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
+
+/** Hidden research folders and items as Trash or Archive rows, with the moment they were hidden as `at`. */
+function researchRows(research: Awaited<ReturnType<typeof listHiddenResearch>>) {
+  return [
+    ...research.folders.map((f) => ({
+      kind: "researchFolder" as const,
+      id: f.id,
+      title: f.name,
+      detail: `Research folder${f.inside > 0 ? `, with ${plural(f.inside)} inside` : ""}`,
+      at: f.at,
+    })),
+    ...research.items.map((i) => ({
+      kind: "researchItem" as const,
+      id: i.id,
+      title: i.title,
+      detail: i.type === "LINK" ? "Research link" : "Research note",
+      at: i.at,
+    })),
+  ];
+}
+
+/** A hidden research folder or item, read-only: a folder lists what is in it, a note shows its text, a link its address. */
+async function researchView(
+  owner: { projectId: string; project: { userId: string } },
+  from: "trash" | "archive",
+  kind: "researchFolder" | "researchItem",
+  id: string,
+): Promise<HiddenView | null> {
+  const field: HiddenField = from === "trash" ? "trashedAt" : "archivedAt";
+  const hidden = from === "trash" ? { trashedAt: { not: null } } : { trashedAt: null, archivedAt: { not: null } };
+  if (kind === "researchItem") {
+    const item = await prisma.researchItem.findFirst({
+      where: { id, ...owner, ...hidden },
+      select: { type: true, title: true, content: true, url: true, description: true },
+    });
+    if (!item) return null;
+    const sections: ViewSection[] =
+      item.type === "NOTE"
+        ? [{ doc: (item.content as DocNode | null) ?? undefined }]
+        : [{ heading: "Link", text: item.url ?? "" }, ...(item.description ? [{ heading: "Description", text: item.description }] : [])];
+    return { kind, id, title: item.title, subtitle: item.type === "LINK" ? "Research link" : "Research note", sections };
+  }
+  const folder = await prisma.researchFolder.findFirst({ where: { id, ...owner, ...hidden }, select: { name: true, trashedAt: true, archivedAt: true } });
+  if (!folder) return null;
+  const at = field === "trashedAt" ? folder.trashedAt : folder.archivedAt;
+  const [subfolders, items] = await Promise.all([
+    prisma.researchFolder.findMany({ where: { parentId: id, [field]: at }, orderBy: { position: "asc" }, select: { name: true } }),
+    prisma.researchItem.findMany({ where: { folderId: id, [field]: at }, orderBy: { position: "asc" }, select: { title: true } }),
+  ]);
+  const sections: ViewSection[] = [
+    ...(subfolders.length ? [{ heading: "Folders", text: subfolders.map((f) => f.name).join("\n") }] : []),
+    ...(items.length ? [{ heading: "Items", text: items.map((i) => i.title).join("\n") }] : []),
+  ];
+  return { kind, id, title: folder.name, subtitle: "Research folder", sections: sections.length ? sections : [{ text: "This folder is empty." }] };
 }
 
 const noteSections = (notes: { title: string | null; content: string }[]): ViewSection[] =>
@@ -155,6 +217,8 @@ export async function getHiddenView(
   const owner = { projectId, project: { userId } };
   const hidden = from === "trash" ? { trashedAt: { not: null } } : { trashedAt: null, archivedAt: { not: null } };
   const text = (v: string | null) => v?.trim() ?? "";
+
+  if (kind === "researchFolder" || kind === "researchItem") return researchView(owner, from, kind, id);
 
   if (kind === "character") {
     const c = await prisma.character.findFirst({

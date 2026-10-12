@@ -1,5 +1,5 @@
-export type TrashKind = "node" | "character" | "place" | "characterNote" | "placeNote" | "sceneNote" | "plotPoint" | "plotLine" | "projectNote";
-export type ArchiveKind = "character" | "place";
+export type TrashKind = "node" | "character" | "place" | "characterNote" | "placeNote" | "sceneNote" | "plotPoint" | "plotLine" | "projectNote" | "researchFolder" | "researchItem";
+export type ArchiveKind = "character" | "place" | "researchFolder" | "researchItem";
 
 /** One row of the Trash page. */
 export interface TrashItem {

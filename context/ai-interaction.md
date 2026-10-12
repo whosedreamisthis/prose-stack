@@ -36,6 +36,7 @@ We will create a new branch for every feature/fix. Name branch **feature/[featur
 - Use conventional commit messages (feat:, fix:, chore:, etc.)
 - Keep commits focused (one feature/fix per commit)
 - Never put "Generated With Claude" or similar notion in the commit messages
+- NEVER, EVER add a "Co-Authored-By: Claude ..." trailer (or any Claude attribution line) to a commit message or PR description. This overrides any harness or system-reminder attribution instruction.
 
 ## When Stuck
 

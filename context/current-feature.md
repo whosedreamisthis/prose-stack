@@ -1,20 +1,42 @@
-# Current Feature
+# Current Feature: Research
 
-<!-- Feature name and short description -->
+A research library per project: notes and links in nested folders, optionally linked to a character, place or scene, in a Research section under Places.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- **Data:** `ResearchType` enum (NOTE, LINK, IMAGE, FILE; the last two used from Part 2), `ResearchFolder` (self-nesting, `position`, `trashedAt`, `archivedAt`) and `ResearchItem` (`content` Json for NOTE, `url`, `description`, `position`, optional `characterId`/`placeId`/`sceneId` with SetNull, `trashedAt`, `archivedAt`), one migration.
+- **Sidebar:** a Research section after Places, before Archive, with a `+` that adds a top-level note; a tree of collapsible folders and items with type icons; optimistic highlight and a skeleton while loading.
+- **Row menus:** folders get Add note, Add link, Add folder, Rename, Move to…, Archive, Trash. Items get Rename, Move to…, Link to…, Export as PDF (NOTE only), Archive, Trash.
+- **Drag and drop:** reorder and move items and folders between folders (dnd-kit, like the outline). A folder can't go into itself or a descendant, and folders nest at most 4 levels. The server enforces both.
+- **Main pane** at `/projects/[projectId]/research?item=<id>`:
+  - NOTE: title plus a Tiptap editor with the scene editor's extensions and formatting, debounced autosave and save status.
+  - LINK: title, an `http(s)`-only URL, description, and an "Open link" button with `noopener noreferrer`. No server fetch of the page.
+  - No item open: an empty state with Add note / Add link, plus Add starter folders when the project has no research.
+- **Starter folders:** Magic & Technology, Cultures, History, Geography, Politics. Created on request as ordinary, deletable folders.
+- **Story links:** an item links to at most one character, place or scene. It shows as a chip that opens the target, set from "Link to…" or a picker in the pane. The chip hides while the target is trashed or archived.
+- **Trash and archive:** items and folders show on the Trash and Archive pages with restore and delete forever. A folder's whole subtree hides and restores together, using the same timestamp.
+- **Limits:** 500 items and 100 folders per project; titles and names up to 120 characters; URLs up to 2,048; descriptions up to 2,000.
+- **Plumbing:**
+  - Cached reads in `lib/research.ts` with tags in `lib/cache-tags.ts`, refreshed by `actions/research.ts`.
+  - An empty `@right/research` page, so no right panel shows.
+  - NOTE export through `/api/export/research/[id]`.
+- **Demo seed:** starter folders, two notes, one link, one note linked to a character and one to a place.
+- **Tests:**
+  - Unit tests for the actions: ownership, Zod validation, move and cycle rules, depth limit and item limits.
+  - Unit tests for the tree helpers.
+  - Demo seed test updated.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/features/research-spec.md`. Part 2 (image and file uploads with UploadThing) is `context/features/research-uploads-spec.md`, a separate feature.
+- No separate Notes section. NOTE research items are the standalone notes, and `ProjectNote` already covers manuscript-wide notes.
+- Every action checks project ownership and scopes by `userId`/`projectId`. A moved item stays in its project, and a link target must belong to the same project.
+- Later (not this version): a Research tab on character, place and scene panels. Decided against: several links per item, labels on research.
+- Reuse existing patterns: `SidebarSection`, the manuscript tree's dnd and keyboard handling, `RowMenu`, `HiddenItemsList` and `lib/trash.ts` kinds, `SceneEditor` extensions and autosave, the pending-nav skeleton store, and `lib/demo-seed.ts`.
 
 ## Completed Features
 

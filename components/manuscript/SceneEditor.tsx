@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { FindPanel } from "@/components/manuscript/FindPanel";
 import { ThesaurusPopover } from "@/components/manuscript/ThesaurusPopover";
 import { useSceneAutosave } from "@/hooks/useSceneAutosave";
@@ -11,7 +10,7 @@ import { consumeEditorFocusRequest } from "@/lib/editor-focus";
 import { FORMATTED_TEXT, formattingStyle } from "@/lib/formatting";
 import { readLocalCopy } from "@/lib/local-copy";
 import { chooseInitialContent } from "@/lib/manuscript-sync";
-import { SearchReplace } from "@/lib/search-replace-extension";
+import { PROSE_EXTENSIONS } from "@/components/manuscript/prose-extensions";
 import { countDocWords, type DocNode } from "@/lib/manuscript-text";
 import type { Formatting } from "@/lib/project-config";
 import { useEditorStore } from "@/lib/stores/editor-store";
@@ -25,25 +24,6 @@ interface SceneEditorProps {
   /** One of several editors on a chapter page: no frame, and the toolbar follows whichever one has focus. */
   embedded?: boolean;
 }
-
-// Prose only: paragraphs, bold, italic and undo history.
-const extensions = [
-  StarterKit.configure({
-    heading: false,
-    blockquote: false,
-    bulletList: false,
-    orderedList: false,
-    listItem: false,
-    listKeymap: false,
-    code: false,
-    codeBlock: false,
-    horizontalRule: false,
-    strike: false,
-    underline: false,
-    link: false,
-  }),
-  SearchReplace,
-];
 
 /** What the editor opens with. Fixed for the life of the editor: later server refreshes must not swap text mid-typing. */
 function openScene(scene: SceneEditorProps["scene"]) {
@@ -74,7 +54,7 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
   const thesaurusOpen = useEditorStore((s) => s.thesaurusOpen);
 
   const editor = useEditor({
-    extensions,
+    extensions: PROSE_EXTENSIONS,
     content: initial.content,
     immediatelyRender: false,
     editorProps: {

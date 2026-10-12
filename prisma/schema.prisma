@@ -63,6 +63,8 @@ model Project {
   plotLines       PlotLine[]
   notes           ProjectNote[]
   labels          Label[]
+  researchFolders ResearchFolder[]
+  researchItems   ResearchItem[]
 
   @@index([userId])
 }
@@ -95,6 +97,7 @@ model ManuscriptNode {
   label      Label?           @relation(fields: [labelId], references: [id], onDelete: SetNull)
   notes      SceneNote[]
   plotPoints PlotPoint[]
+  research   ResearchItem[]
 
   @@index([projectId, parentId, position])
 }
@@ -155,9 +158,10 @@ model Character {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  notes   CharacterNote[]
-  places  Place[]         @relation("PlaceCharacters")
+  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notes    CharacterNote[]
+  places   Place[]         @relation("PlaceCharacters")
+  research ResearchItem[]
 
   @@index([projectId, role])
 }
@@ -197,9 +201,10 @@ model Place {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  project           Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  relatedCharacters Character[] @relation("PlaceCharacters")
+  project           Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  relatedCharacters Character[]    @relation("PlaceCharacters")
   notes             PlaceNote[]
+  research          ResearchItem[]
 
   @@index([projectId, createdAt])
 }
@@ -284,4 +289,59 @@ model Label {
   plotPoints PlotPoint[]
 
   @@unique([projectId, nameKey])
+}
+
+enum ResearchType {
+  NOTE
+  LINK
+  IMAGE // from the uploads feature
+  FILE // from the uploads feature
+}
+
+/// A folder in the project's Research library. Folders nest; parentId is null at the top level.
+model ResearchFolder {
+  id         String    @id @default(cuid())
+  projectId  String
+  parentId   String?
+  name       String
+  position   Int // order among sibling folders, 0-based; folders list before items
+  trashedAt  DateTime? // set on the folder and everything under it together
+  archivedAt DateTime? // the same, for archiving
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   ResearchFolder?  @relation("ResearchFolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children ResearchFolder[] @relation("ResearchFolderChildren")
+  items    ResearchItem[]
+
+  @@index([projectId, parentId, position])
+}
+
+/// A research note or link (images and files come later). It may link to one character, place or scene.
+model ResearchItem {
+  id          String       @id @default(cuid())
+  projectId   String
+  folderId    String?
+  type        ResearchType
+  title       String
+  content     Json? // NOTE: Tiptap document
+  url         String? // LINK: the address
+  description String?
+  position    Int // order among sibling items, 0-based
+  characterId String?
+  placeId     String?
+  sceneId     String? // a ManuscriptNode of type SCENE
+  trashedAt   DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder    ResearchFolder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  character Character?      @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  place     Place?          @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  scene     ManuscriptNode? @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, folderId, position])
 }

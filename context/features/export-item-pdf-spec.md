@@ -1,6 +1,6 @@
 # Export Item to PDF — Feature Spec
 
-Source: [export-pdf-spec.md](export-pdf-spec.md) (whole-manuscript export); related: [characters-spec.md](characters-spec.md), [places-spec.md](places-spec.md), [scene-editor-spec.md](scene-editor-spec.md), [notes-research-spec.md](notes-research-spec.md).
+Source: [export-pdf-spec.md](export-pdf-spec.md) (whole-manuscript export); related: [characters-spec.md](characters-spec.md), [places-spec.md](places-spec.md), [scene-editor-spec.md](scene-editor-spec.md), [research-spec.md](research-spec.md).
 
 ## Summary
 

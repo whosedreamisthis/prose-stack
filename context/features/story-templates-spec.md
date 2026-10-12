@@ -1,6 +1,6 @@
 # Story Templates — Feature Spec
 
-Source: [project-overview.md](../project-overview.md) §6 Data Model; related: [plot-spec.md](plot-spec.md), [notes-research-spec.md](notes-research-spec.md).
+Source: [project-overview.md](../project-overview.md) §6 Data Model; related: [plot-spec.md](plot-spec.md), [research-spec.md](research-spec.md).
 
 ## Summary
 

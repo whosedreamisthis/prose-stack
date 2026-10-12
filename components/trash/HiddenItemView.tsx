@@ -43,17 +43,18 @@ export function HiddenItemView({ projectId, from, view }: HiddenItemViewProps) {
     });
   };
 
-  const archiveKind = view.kind === "character" || view.kind === "place" ? view.kind : null;
+  const archiveKind =
+    view.kind === "character" || view.kind === "place" || view.kind === "researchFolder" || view.kind === "researchItem" ? view.kind : null;
 
   return (
     <article aria-label={`${view.title}, in ${place}`} className="flex flex-col">
-      <div role="status" className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-muted px-4 py-2 text-sm">
-        <Link href={listHref} className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
-          <ArrowLeftIcon className="size-4" aria-hidden /> {from === "trash" ? "Trash" : "Archive"}
-        </Link>
-        <span className="flex-1">
-          This {view.subtitle.split(/[ ·]/)[0].toLowerCase()} is in {place}. It is read-only here.
-        </span>
+      <div role="status" className="sticky top-0 z-10 flex flex-col items-start gap-2 border-b bg-muted px-4 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Link href={listHref} className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+            <ArrowLeftIcon className="size-4" aria-hidden /> {from === "trash" ? "Trash" : "Archive"}
+          </Link>
+          <span>This {view.subtitle.split(/[ ·]/)[0].toLowerCase()} is in {place}. It is read-only here.</span>
+        </div>
         <div className="flex gap-1">
           <Button
             variant="outline"
