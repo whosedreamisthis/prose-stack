@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type KeyboardEvent, type Re
 import { toast } from "sonner";
 import { updateProjectSettings, updateUserTheme } from "@/actions/settings";
 import { AppearanceTab } from "@/components/settings/AppearanceTab";
+import { FormattingTab } from "@/components/settings/FormattingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import {
   AlertDialog,
@@ -26,6 +27,7 @@ import {
   updateProjectSettingsSchema,
   type SettingsTab,
 } from "@/lib/settings-config";
+import { useFormattingStore } from "@/lib/stores/formatting-store";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import { applyTheme, persistThemeCookie } from "@/lib/theme-config";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ import { cn } from "@/lib/utils";
 const PANELS: Record<SettingsTab, () => ReactNode> = {
   general: () => <GeneralTab />,
   appearance: () => <AppearanceTab />,
+  formatting: () => <FormattingTab />,
 };
 
 /** The project settings modal. Open it with `useSettingsStore().openSettings`; it is mounted once, in the navbar. */
@@ -61,6 +64,14 @@ export function SettingsDialog() {
   useEffect(() => {
     if (open) applyTheme(draftTheme);
   }, [open, draftTheme]);
+
+  // Formatting previews live too: the editor reads the draft while the modal is open and goes back to the saved values after.
+  const { fontFamily, fontSize, lineSpacing } = draft ?? {};
+  const setPreview = useFormattingStore((s) => s.setPreview);
+  useEffect(() => {
+    if (open && fontFamily && fontSize && lineSpacing) setPreview({ fontFamily, fontSize, lineSpacing });
+    else setPreview(null);
+  }, [open, fontFamily, fontSize, lineSpacing, setPreview]);
 
   function discard() {
     if (saved) applyTheme(saved.theme);
@@ -124,7 +135,7 @@ export function SettingsDialog() {
   return (
     <>
       <Dialog open={open} onOpenChange={(next) => !next && requestClose()}>
-        <DialogContent className="h-[min(32rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="h-[min(36rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-2xl">
           <DialogHeader className="border-b px-4 py-3">
             <DialogTitle className="text-base">Settings</DialogTitle>
             <DialogDescription className="sr-only">Change this project&apos;s details and how the app looks.</DialogDescription>

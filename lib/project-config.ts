@@ -50,3 +50,59 @@ export function formatEditedDate(date: Date) {
 }
 
 export const projectIdSchema = z.string().min(1).max(64);
+
+export const LINE_SPACINGS = ["SINGLE", "ONE_AND_HALF", "DOUBLE"] as const;
+export type LineSpacing = (typeof LINE_SPACINGS)[number];
+
+/** How the manuscript text is set. Saved per project; display only, never part of a scene's content. */
+export interface Formatting {
+  fontFamily: FontName;
+  fontSize: number;
+  lineSpacing: LineSpacing;
+}
+
+export const MIN_FONT_SIZE = 10;
+export const MAX_FONT_SIZE = 18;
+/** The sizes the editor toolbar offers as a shortcut; the settings tab accepts any whole size from 10 to 18. */
+export const TOOLBAR_FONT_SIZES = [10, 11, 12, 13, 14, 16, 18] as const;
+
+export const FONT_GROUPS = ["Serif", "Sans-serif", "Monospace"] as const;
+
+/**
+ * The fonts a project can use. `css` is the font-family value for the editor and book view; the `--font-*` variables are
+ * the self-hosted fonts loaded in `lib/manuscript-fonts.ts`. Georgia and Times New Roman are system fonts, so the PDF
+ * embeds metric-compatible stand-ins (`pdfFont`: Gelasio, Tinos) to keep line breaks and page counts the same.
+ */
+export const FONTS = [
+  { name: "Georgia", group: "Serif", css: 'Georgia, "Times New Roman", serif', pdfFont: "Gelasio" },
+  { name: "Times New Roman", group: "Serif", css: '"Times New Roman", Times, serif', pdfFont: "Tinos" },
+  { name: "Libre Baskerville", group: "Serif", css: 'var(--font-libre-baskerville), Georgia, serif' },
+  { name: "Lora", group: "Serif", css: 'var(--font-lora), Georgia, serif' },
+  { name: "Merriweather", group: "Serif", css: 'var(--font-merriweather), Georgia, serif' },
+  { name: "EB Garamond", group: "Serif", css: 'var(--font-eb-garamond), Georgia, serif' },
+  { name: "Crimson Pro", group: "Serif", css: 'var(--font-crimson-pro), Georgia, serif' },
+  { name: "Source Serif 4", group: "Serif", css: 'var(--font-source-serif), Georgia, serif' },
+  { name: "Open Sans", group: "Sans-serif", css: 'var(--font-open-sans), Arial, sans-serif' },
+  { name: "Atkinson Hyperlegible", group: "Sans-serif", css: 'var(--font-atkinson), Arial, sans-serif' },
+  { name: "Courier Prime", group: "Monospace", css: 'var(--font-courier-prime), "Courier New", monospace' },
+  { name: "Cousine", group: "Monospace", css: 'var(--font-cousine), "Courier New", monospace' },
+] as const;
+
+export type FontName = (typeof FONTS)[number]["name"];
+export const FONT_NAMES = FONTS.map((f) => f.name) as [FontName, ...FontName[]];
+
+export const DEFAULT_FORMATTING: Formatting = { fontFamily: "Georgia", fontSize: 12, lineSpacing: "DOUBLE" };
+
+export const LINE_SPACING_OPTIONS: { value: LineSpacing; label: string; leading: number; paragraphGap: string }[] = [
+  { value: "SINGLE", label: "Single", leading: 1.2, paragraphGap: "0.9em" },
+  { value: "ONE_AND_HALF", label: "1.5", leading: 1.5, paragraphGap: "0.6em" },
+  { value: "DOUBLE", label: "Double", leading: 2, paragraphGap: "0.3em" },
+];
+
+export const fontNameSchema = z.enum(FONT_NAMES, { error: "Pick one of the listed fonts" });
+export const fontSizeSchema = z
+  .number({ error: "Font size must be a whole number" })
+  .int("Font size must be a whole number")
+  .min(MIN_FONT_SIZE, `Font size must be ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE}`)
+  .max(MAX_FONT_SIZE, `Font size must be ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE}`);
+export const lineSpacingSchema = z.enum(LINE_SPACINGS, { error: "Pick single, 1.5 or double" });

@@ -8,6 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { ThemeSyncLoader } from "@/components/theme/ThemeSyncLoader";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { manuscriptFontVariables } from "@/lib/manuscript-fonts";
 import { THEME_SCRIPT } from "@/lib/theme-config";
 
 const geistSans = Geist({
@@ -29,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${manuscriptFontVariables} h-full antialiased`}
       // the head script puts the theme class on <html> before React hydrates
       suppressHydrationWarning
     >
