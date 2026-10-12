@@ -235,9 +235,24 @@ const SCENE_NOTES: readonly (readonly [string, string])[][] = [
   [["To check", "Does the timeline match chapter 1? Keep the weather consistent."]],
 ];
 
+const PLOT_LINES = ["Main plot", "The keeper's secret", "Mara and Edric"] as const;
+
+/** Plot points as [plot line, scene, title, text]; the scene is an index into the demo scenes in manuscript order, so none repeats a line. */
+const PLOT_POINTS: readonly (readonly [line: number, scene: number, title: string, text: string])[] = [
+  [0, 0, "Mara arrives", "The last ferry leaves her at the lighthouse with one suitcase and a letter."],
+  [0, 1, "The first warning", "A key and a note: don't let the light go out."],
+  [0, 3, "Climbing the stair", "Her first night. The loose shutter, the hundred and twelve steps, the lens turning by itself."],
+  [0, 4, "She takes the post", "Mara writes her own name in the logbook."],
+  [1, 1, "A familiar hand", "The note looks like handwriting she should know."],
+  [1, 3, "The lens turns itself", "No one wound it. Someone, or something, is keeping the light."],
+  [1, 4, "What the lamp remembers", "The logbook records every ship guided home, and the one that was not."],
+  [2, 2, "A grudging dinner", "Edric tests her, and sits down at her table as if it were still his."],
+  [2, 4, "A truce", "He admits he was wrong about her, and says he has a secret of his own."],
+];
+
 /**
- * Seeds the demo user's one project: manuscript, characters and places (each with notes), the places linked to their characters. Plot
- * lines and research join this as those features ship. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
+ * Seeds the demo user's one project: manuscript, characters and places (each with notes), the places linked to their characters, and plot
+ * lines with points on several scenes. Research joins this as that feature ships. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
  */
 export async function seedDemoProject(tx: Prisma.TransactionClient, userId: string) {
   const project = await tx.project.create({
@@ -277,6 +292,13 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
     .slice(0, 2)
     .flatMap((n, i) => SCENE_NOTES[i].map(([title, content]) => ({ sceneId: n.id, title, content })));
   await tx.sceneNote.createMany({ data: sceneNotes });
+
+  const scenes = nodes.filter((n) => n.type === "SCENE");
+  const plotLines = PLOT_LINES.map((name, position) => ({ id: id(), projectId: project.id, name, position }));
+  await tx.plotLine.createMany({ data: plotLines });
+  await tx.plotPoint.createMany({
+    data: PLOT_POINTS.map(([line, scene, title, text]) => ({ plotLineId: plotLines[line].id, sceneId: scenes[scene].id, title, text })),
+  });
 
   const characters = CHARACTERS.map((c) => ({ ...c, id: id() }));
   // Blank sketch fields are stored as null, like the app does for a field the writer leaves empty.

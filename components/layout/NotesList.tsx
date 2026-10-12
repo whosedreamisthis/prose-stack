@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
+import { DialogSaveBar } from "@/components/layout/DialogSaveBar";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { RowMenu } from "@/components/manuscript/RowMenu";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useDialogAutosave } from "@/hooks/useDialogAutosave";
 import { MAX_NOTE_TITLE_LENGTH } from "@/lib/note-config";
 import type { ActionResult } from "@/types/actions";
 
@@ -38,7 +40,7 @@ const isBlank = (v: NoteValues) => !v.title.trim() && !v.content.trim();
 
 /**
  * Notes as cards (a bold title and as much of the text as fits). A card, or the dashed "Add a note" card, opens the note
- * in a dialog; closing it with the X, Esc or a click outside saves, so nothing is lost. Remount it per owner.
+ * in a dialog that saves as you type; closing it (Done, the X, Esc or a click outside) only closes. Remount it per owner.
  */
 export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdate, onTrash }: NotesListProps) {
   const [notes, setNotes] = useState(initialNotes);
@@ -48,29 +50,40 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
   const full = notes.length >= maxNotes;
   const openNote = open && !open.isNew ? notes.find((n) => n.id === open.id) : undefined;
 
-  /** Saves what the dialog shows. A new note is created once it has a title or text; an existing one is updated if it changed. */
-  const persist = (target: Open, raw: NoteValues) => {
+  /** Runs a server call as a transition; the promise settles when it has finished, so an autosave can show "Saving…" until then. */
+  const sent = (run: () => Promise<void>) =>
+    new Promise<void>((resolve) => {
+      startTransition(async () => {
+        await run();
+        resolve();
+      });
+    });
+
+  /**
+   * Saves what the dialog shows. A new note is created once it has a title or text; an existing one is updated if it changed.
+   * `quiet` is for autosaves: a note emptied mid-edit is skipped without a complaint, since the writer is still typing.
+   */
+  const persist = (target: Open, raw: NoteValues, quiet = false): Promise<void> | void => {
     const values = { title: raw.title.trim(), content: raw.content.trim() };
     const existing = notes.find((n) => n.id === target.id);
     if (!existing) {
       if (isBlank(values)) return;
       setNotes((prev) => [...prev, { id: target.id, ...values }]);
-      startTransition(async () => {
+      return sent(async () => {
         const result = await onCreate({ id: target.id, ...values });
         if (!result.success) {
           setNotes((prev) => prev.filter((n) => n.id !== target.id));
           toast.error(result.error);
         }
       });
-      return;
     }
     if (values.title === existing.title && values.content === existing.content) return;
     if (isBlank(values)) {
-      toast.error("A note can't be empty. Use Delete to remove it.");
+      if (!quiet) toast.error("A note can't be empty. Use Delete to remove it.");
       return;
     }
     setNotes((prev) => prev.map((n) => (n.id === target.id ? { ...n, ...values } : n)));
-    startTransition(async () => {
+    return sent(async () => {
       const result = await onUpdate({ noteId: target.id, ...values });
       if (!result.success) {
         setNotes((prev) => prev.map((n) => (n.id === target.id ? existing : n)));
@@ -78,6 +91,12 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
       }
     });
   };
+
+  // Autosaves fire later, so they must use the latest list (a note created by an earlier autosave is then updated, not created again).
+  const persistRef = useRef(persist);
+  useEffect(() => {
+    persistRef.current = persist;
+  });
 
   const trashNote = (id: string) => {
     const index = notes.findIndex((n) => n.id === id);
@@ -149,7 +168,7 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
           initial={openNote ?? { title: "", content: "" }}
           isNew={open.isNew}
           maxLength={maxLength}
-          onBlurSave={(values) => !open.isNew && persist(open, values)}
+          onAutosave={(values) => persistRef.current(open, values, true)}
           onClose={(values) => {
             persist(open, values);
             // A new note now exists in the list; if it was blank nothing was created and nothing is left to open.
@@ -165,12 +184,13 @@ interface NoteDialogProps {
   initial: NoteValues;
   isNew: boolean;
   maxLength: number;
-  onBlurSave: (values: NoteValues) => void;
+  onAutosave: (values: NoteValues) => Promise<void> | void;
   onClose: (values: NoteValues) => void;
 }
 
-function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose }: NoteDialogProps) {
+function NoteDialog({ initial, isNew, maxLength, onAutosave, onClose }: NoteDialogProps) {
   const [values, setValues] = useState(initial);
+  const { status } = useDialogAutosave(values, onAutosave);
 
   return (
     <>
@@ -182,15 +202,14 @@ function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose }: NoteDial
       >
         <DialogContent className="flex max-h-[85dvh] flex-col gap-3 sm:max-w-lg">
           <DialogTitle className="sr-only">{isNew ? "New note" : "Note"}</DialogTitle>
-          <DialogDescription className="sr-only">Changes are saved when you close this note.</DialogDescription>
+          <DialogDescription className="sr-only">Changes are saved as you type.</DialogDescription>
           <Input
             aria-label="Note title"
             placeholder="Title"
             value={values.title}
             maxLength={MAX_NOTE_TITLE_LENGTH}
             onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
-            onBlur={() => onBlurSave(values)}
-            className="mr-8 h-9 border-0 bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-9 border-0 bg-transparent pr-8 pl-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
           <Textarea
             autoFocus
@@ -199,9 +218,9 @@ function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose }: NoteDial
             value={values.content}
             maxLength={maxLength}
             onChange={(e) => setValues((v) => ({ ...v, content: e.target.value }))}
-            onBlur={() => onBlurSave(values)}
             className="min-h-48 flex-1 resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
+          <DialogSaveBar status={status} onDone={() => onClose(values)} />
         </DialogContent>
       </Dialog>
     </>

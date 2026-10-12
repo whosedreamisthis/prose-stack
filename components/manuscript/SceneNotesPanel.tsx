@@ -4,9 +4,11 @@ import { useId, useState } from "react";
 import { createSceneNote, trashSceneNote, updateSceneNote } from "@/actions/scene-notes";
 import { NotesList } from "@/components/layout/NotesList";
 import { RightPanel } from "@/components/layout/RightPanel";
+import { ScenePlotsPanel } from "@/components/plot/ScenePlotsPanel";
 import { MAX_NOTES_PER_SCENE, MAX_NOTE_LENGTH } from "@/lib/scene-note-config";
 import { cn } from "@/lib/utils";
 import type { SceneNoteItem } from "@/types/manuscript";
+import type { PlotData, PlotScene } from "@/types/plot";
 
 type Tab = "notes" | "plots";
 const TABS: { id: Tab; label: string }[] = [
@@ -18,10 +20,13 @@ interface SceneNotesPanelProps {
   projectId: string;
   sceneId: string;
   notes: SceneNoteItem[];
+  plot: PlotData;
+  /** Every scene in manuscript order, for the plot point dialog. */
+  scenes: PlotScene[];
 }
 
 /** The right sidebar for the open scene: a Notes tab (the same list as characters and places) and a Plots tab. Remounted per scene. */
-export function SceneNotesPanel({ projectId, sceneId, notes }: SceneNotesPanelProps) {
+export function SceneNotesPanel({ projectId, sceneId, notes, plot, scenes }: SceneNotesPanelProps) {
   const baseId = useId();
   const [tab, setTab] = useState<Tab>("notes");
 
@@ -57,7 +62,7 @@ export function SceneNotesPanel({ projectId, sceneId, notes }: SceneNotesPanelPr
             onTrash={({ noteId }) => trashSceneNote({ projectId, sceneId, noteId })}
           />
         ) : (
-          <p className="text-sm text-muted-foreground">Plot points linked to this scene will appear here.</p>
+          <ScenePlotsPanel projectId={projectId} sceneId={sceneId} plot={plot} scenes={scenes} />
         )}
       </div>
     </RightPanel>

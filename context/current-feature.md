@@ -1,27 +1,29 @@
-# Current Feature: Settings: Labels
+# Current Feature: Plot
 
-Labels tab in the settings modal: named colors writers attach to scenes and plot points. Spec: [features/settings-labels-spec.md](features/settings-labels-spec.md).
+Plan the story with plot points, scene cards and a plot lines grid that links planning to scenes. Spec: [features/plot-spec.md](features/plot-spec.md).
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-- Labels tab listing labels with color swatch, name and scene/plot-point usage counts
-- Add (inline name + color), rename in place, recolor (preset palette + custom color with contrast warning), delete with usage-count confirmation (`onDelete: SetNull`)
-- Names unique per project (case-insensitive, trimmed, 1-40 chars); max 20 labels; `#rrggbb` color validated
-- Each change saves immediately with rollback and error toast on failure
-- `Label` model; `ManuscriptNode.labelId` becomes a relation; `actions/labels.ts`, cached `lib/labels.ts` with `cacheTags.labels`
-- Label shown as a color bar at the right of scene/chapter/part rows in the left sidebar (tooltip + aria-label)
-- Label chip (bookmark icon + name) on plot cards in the right sidebar once plots exist
-- Seed the demo user with labels (Draft, Revise, Final) applied to some scenes/chapters/parts; test in `lib/demo-seed.test.ts`
-- Keyboard-operable; other projects'/users' labels never accessible
+- `PlotLine` and `PlotPoint` models (ordered by `position`); `PlotPoint.sceneId` required with `onDelete: Cascade`, `@@unique([plotLineId, sceneId])`, `trashedAt` on both (no label field yet)
+- Plot grid at `/projects/[projectId]/plot` (`?line=<id>` focuses one line): scenes down the left in manuscript order, plot lines across, a plot point is the cell where they meet
+- Add a point on an empty row creates the scene too (appended to the outline with a default title); empty state with "Add scene" when there are no scenes
+- Add, rename, reorder and trash plot lines from the grid (column header menu, "Add plot line" column) and from the left sidebar (row menu), each appearing in both at once
+- Drag and drop via dnd-kit (points between scenes, lines reorder); reordering persists in one transaction
+- Left sidebar collapsible **Plots** section: "Plot grid" row, then one row per line; open grid or line highlighted like the selected scene
+- Right sidebar Plots tab: compact cards per scene (at most one per line, with line name) built like `NotesList`; click a card or the add button opens an edit modal (text, plot line, scene which can change but never be empty); grid icon button (tooltip "Open plot grid") opens the grid
+- A scene cannot get two plot points on the same line; a point can never exist without a scene
+- Trashing a scene trashes its points, restoring restores them, permanent delete removes them; trashed points and lines appear in Trash as new kinds
+- Plot board state managed with Zustand
+- Seed the demo user with 2-3 plot lines and points on several scenes; test in `lib/demo-seed.test.ts`
 
 ## Notes
 
-- Applying labels to scenes (sidebar picker) and plot points belongs to those features; this feature provides labels and the SetNull guarantee.
-- Open questions: preset-only vs custom colors (spec allows custom), one label per scene (current model), reorderable vs alphabetical.
+- Plot is built before Settings: Labels. Leave out `PlotPoint.labelId`, the label picker in the modal, label chips and labelled demo points; Settings: Labels ([features/settings-labels-spec.md](features/settings-labels-spec.md)) adds them later.
+- Spec lists "plot points: draggable index cards" and "scene cards with summary, label and ellipsis menu (send to trash)".
 
 ## Completed Features
 

@@ -1,0 +1,103 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { LayoutGridIcon, PlusIcon } from "lucide-react";
+import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
+import { Hint } from "@/components/layout/Hint";
+import { RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
+import { usePlotPointEditor } from "@/components/plot/PlotPointEditor";
+import { usePlotActions } from "@/hooks/usePlotActions";
+import { usePlotData } from "@/hooks/usePlotData";
+import type { PlotData, PlotPointItem, PlotScene } from "@/types/plot";
+
+interface ScenePlotsPanelProps {
+  projectId: string;
+  sceneId: string;
+  plot: PlotData;
+  /** Every scene, in manuscript order, for the scene choice in the dialog. */
+  scenes: PlotScene[];
+}
+
+/**
+ * The Plots tab of a scene's right sidebar: the scene's plot points (at most one per plot line) as compact cards, built
+ * like the notes list. A card, or the dashed add card, opens the plot point dialog.
+ */
+export function ScenePlotsPanel({ projectId, sceneId, plot, scenes }: ScenePlotsPanelProps) {
+  const { lines, points } = usePlotData(plot);
+  const actions = usePlotActions(projectId);
+  const editor = usePlotPointEditor({ projectId, lines, points, scenes });
+  const [confirming, setConfirming] = useState<PlotPointItem | null>(null);
+
+  const lineName = (id: string) => lines.find((l) => l.id === id)?.name ?? "";
+  const here = lines.flatMap((line) => points.filter((p) => p.sceneId === sceneId && p.plotLineId === line.id));
+  const freeLine = lines.find((line) => !here.some((p) => p.plotLineId === line.id));
+
+  return (
+    <div className="flex flex-col gap-2 pt-3">
+      <div className="flex justify-end">
+        <Hint label="Open plot grid" side="left">
+          <Link
+            href={`/projects/${projectId}/plot`}
+            aria-label="Open plot grid"
+            className="grid size-7 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <LayoutGridIcon className="size-4" aria-hidden />
+          </Link>
+        </Hint>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {here.map((point) => (
+          <li key={point.id} className="group/item relative">
+            <button
+              type="button"
+              onClick={() => editor.openPoint(point.id)}
+              className="flex max-h-40 min-h-16 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-3 pr-9 text-left text-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <span className="truncate text-xs font-medium text-primary">{lineName(point.plotLineId)}</span>
+              {point.title && <span className="truncate font-semibold">{point.title}</span>}
+              {point.text && <span className="line-clamp-4 wrap-break-word whitespace-pre-wrap text-foreground/80">{point.text}</span>}
+            </button>
+            <RowMenu label={`${point.title || "Plot point"} options`} className="top-2 translate-y-0">
+              <TrashItem onClick={() => setConfirming(point)} />
+            </RowMenu>
+          </li>
+        ))}
+        <li>
+          {lines.length === 0 ? (
+            <Link
+              href={`/projects/${projectId}/plot`}
+              className="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground outline-none transition-colors hover:border-primary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              Add a plot line in the grid first
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled={!freeLine}
+              onClick={() => freeLine && editor.openNew({ plotLineId: freeLine.id, sceneId })}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-4 text-sm text-muted-foreground outline-none transition-colors hover:border-primary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {freeLine ? (
+                <>
+                  Add a plot point <PlusIcon className="size-4" aria-hidden />
+                </>
+              ) : (
+                "Every plot line has a point here"
+              )}
+            </button>
+          )}
+        </li>
+      </ul>
+      {editor.dialog}
+      <ConfirmTrashDialog
+        target={confirming && { kind: "plot point", name: confirming.title || confirming.text.slice(0, 40) }}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) actions.trashPoint(confirming.id);
+          setConfirming(null);
+        }}
+      />
+    </div>
+  );
+}

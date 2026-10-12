@@ -173,3 +173,46 @@ describe("trashArchivedItem", () => {
     expect((await trashArchivedItem({ projectId: "p1", kind: "place", id: "pl1" })).success).toBe(false);
   });
 });
+
+describe("plot lines and points in the trash", () => {
+  it("restores a plot line at the end of the live ones, and expires the plot", async () => {
+    prismaMock.plotLine.count.mockResolvedValue(2);
+    prismaMock.plotLine.updateMany.mockResolvedValue({ count: 1 });
+
+    expect((await restoreItem({ projectId: "p1", kind: "plotLine", id: "l1" })).success).toBe(true);
+
+    expect(prismaMock.plotLine.updateMany).toHaveBeenCalledWith({
+      where: { id: "l1", projectId: "p1", trashedAt: { not: null } },
+      data: { trashedAt: null, position: 2 },
+    });
+    for (const tag of ["plot:p1", "trash:p1"]) expect(updateTag).toHaveBeenCalledWith(tag);
+  });
+
+  it("reports a plot line that is not in the trash", async () => {
+    prismaMock.plotLine.updateMany.mockResolvedValue({ count: 0 });
+    expect((await restoreItem({ projectId: "p1", kind: "plotLine", id: "l1" })).success).toBe(false);
+  });
+
+  it("restores a plot point only while its line and scene are live", async () => {
+    prismaMock.plotPoint.findFirst.mockResolvedValue(null);
+    expect((await restoreItem({ projectId: "p1", kind: "plotPoint", id: "pt1" })).success).toBe(false);
+    expect(prismaMock.plotPoint.findFirst).toHaveBeenCalledWith({
+      where: { id: "pt1", trashedAt: { not: null }, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
+      select: { id: true },
+    });
+    expect(prismaMock.plotPoint.updateMany).not.toHaveBeenCalled();
+
+    prismaMock.plotPoint.findFirst.mockResolvedValue({ id: "pt1" });
+    expect((await restoreItem({ projectId: "p1", kind: "plotPoint", id: "pt1" })).success).toBe(true);
+    expect(prismaMock.plotPoint.updateMany).toHaveBeenCalledWith({ where: { id: "pt1" }, data: { trashedAt: null } });
+  });
+
+  it("deletes a trashed plot line and a trashed plot point for good", async () => {
+    prismaMock.plotLine.deleteMany.mockResolvedValue({ count: 1 });
+    expect((await deleteItemPermanently({ projectId: "p1", kind: "plotLine", id: "l1" })).success).toBe(true);
+    expect(prismaMock.plotLine.deleteMany).toHaveBeenCalledWith({ where: { id: "l1", ...owner, trashedAt: { not: null } } });
+
+    prismaMock.plotPoint.deleteMany.mockResolvedValue({ count: 0 });
+    expect((await deleteItemPermanently({ projectId: "p1", kind: "plotPoint", id: "pt1" })).success).toBe(false);
+  });
+});
