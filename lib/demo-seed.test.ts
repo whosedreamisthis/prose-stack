@@ -7,6 +7,7 @@ function fakeTx() {
     project: { create: vi.fn().mockResolvedValue({ id: "p1" }) },
     manuscriptNode: { createMany: vi.fn() },
     sceneNote: { createMany: vi.fn() },
+    projectNote: { createMany: vi.fn() },
     plotLine: { createMany: vi.fn() },
     plotPoint: { createMany: vi.fn() },
     character: { createMany: vi.fn() },
@@ -68,7 +69,25 @@ describe("seedDemoProject", () => {
     const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as { id: string; type: string }[];
     const notes = tx.sceneNote.createMany.mock.calls[0][0].data as { sceneId: string; content: string }[];
     expect(notes.length).toBeGreaterThan(0);
-    for (const note of notes) expect(nodes.find((n) => n.id === note.sceneId)?.type).toBe("SCENE");
+    // Notes are kept on scenes, and also on a part and a chapter.
+    for (const note of notes) expect(["SCENE", "PART", "CHAPTER"]).toContain(nodes.find((n) => n.id === note.sceneId)?.type);
+    expect(notes.some((n) => nodes.find((x) => x.id === n.sceneId)?.type === "SCENE")).toBe(true);
+  });
+
+  it("seeds notes on the book, a part and a chapter as well as on scenes", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as { id: string; type: string }[];
+    const notes = tx.sceneNote.createMany.mock.calls[0][0].data as { sceneId: string }[];
+    const typesWithNotes = new Set(notes.map((n) => nodes.find((x) => x.id === n.sceneId)?.type));
+    expect(typesWithNotes).toEqual(new Set(["SCENE", "PART", "CHAPTER"]));
+
+    const bookNotes = tx.projectNote.createMany.mock.calls[0][0].data as { projectId: string; content: string }[];
+    expect(bookNotes.length).toBeGreaterThan(0);
+    for (const note of bookNotes) {
+      expect(note.projectId).toBe("p1");
+      expect(note.content).toBeTruthy();
+    }
   });
 
   it("seeds plot lines in order, with points on scenes of the project and never two on one cell", async () => {

@@ -250,8 +250,18 @@ const PLOT_POINTS: readonly (readonly [line: number, scene: number, title: strin
   [2, 4, "A truce", "He admits he was wrong about her, and says he has a secret of his own."],
 ];
 
+/** Notes on the first part and the first chapter, as [title, content]; they are kept like scene notes. */
+const PART_NOTES: readonly (readonly [string, string])[] = [["Arc", "The storm part is arrival and unease. By its end Mara should have decided to stay."]];
+const CHAPTER_NOTES: readonly (readonly [string, string])[] = [["Pacing", "Keep chapter 1 short and sensory; save the backstory for chapter 2."]];
+
+/** Notes on the whole manuscript, as [title, content]. */
+const BOOK_NOTES: readonly (readonly [string, string])[] = [
+  ["Themes", "Inheritance, belonging, and keeping a promise to someone you never met."],
+  ["Tone", "Wry and atmospheric. A ghost story that is mostly about work."],
+];
+
 /**
- * Seeds the demo user's one project: manuscript, characters and places (each with notes), the places linked to their characters, and plot
+ * Seeds the demo user's one project: manuscript (with notes on the book, a part, a chapter and scenes), characters and places (each with notes), the places linked to their characters, and plot
  * lines with points on several scenes. Research joins this as that feature ships. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
  */
 export async function seedDemoProject(tx: Prisma.TransactionClient, userId: string) {
@@ -291,7 +301,15 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
     .filter((n) => n.type === "SCENE")
     .slice(0, 2)
     .flatMap((n, i) => SCENE_NOTES[i].map(([title, content]) => ({ sceneId: n.id, title, content })));
-  await tx.sceneNote.createMany({ data: sceneNotes });
+  // Notes on the first part and chapter (kept like scene notes), and on the whole manuscript.
+  const firstPart = nodes.find((n) => n.type === "PART");
+  const firstChapter = nodes.find((n) => n.type === "CHAPTER");
+  const outlineNotes = [
+    ...(firstPart ? PART_NOTES.map(([title, content]) => ({ sceneId: firstPart.id, title, content })) : []),
+    ...(firstChapter ? CHAPTER_NOTES.map(([title, content]) => ({ sceneId: firstChapter.id, title, content })) : []),
+  ];
+  await tx.sceneNote.createMany({ data: [...sceneNotes, ...outlineNotes] });
+  await tx.projectNote.createMany({ data: BOOK_NOTES.map(([title, content]) => ({ projectId: project.id, title, content })) });
 
   const scenes = nodes.filter((n) => n.type === "SCENE");
   const plotLines = PLOT_LINES.map((name, position) => ({ id: id(), projectId: project.id, name, position }));
