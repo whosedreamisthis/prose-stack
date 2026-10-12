@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const EXPORT_TYPES = ["character", "place", "node"] as const;
+/** `book` is the whole manuscript, with the project id as its id. */
+export const EXPORT_TYPES = ["character", "place", "node", "book"] as const;
 export type ExportType = (typeof EXPORT_TYPES)[number];
 
 const idSchema = z.string().min(1).max(64);

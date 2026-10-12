@@ -83,10 +83,12 @@ function BookRow({ title, collapsed, dropActive, menu, onToggle, onOpen, childre
 
 interface ManuscriptTreeProps {
   projectId: string;
+  /** The book's title, which names the whole-book PDF. */
+  projectTitle: string;
   nodes: ManuscriptNodeSummary[];
 }
 
-export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTreeProps) {
+export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: ManuscriptTreeProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const onManuscriptPage = usePathname() === `/projects/${projectId}/manuscript`;
@@ -275,6 +277,7 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
                 <RowMenu label={`${ROOT_LABEL} options`}>
                   <AddItem label="Add part" onClick={() => addNode(null, "PART")} />
                   <AddItem label="Add chapter" onClick={() => addNode(null, "CHAPTER")} />
+                  <ExportItem type="book" id={projectId} projectId={projectId} name={projectTitle} />
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={expandAll}>
                     <ChevronsUpDownIcon /> Expand all
