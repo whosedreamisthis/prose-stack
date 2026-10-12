@@ -12,7 +12,7 @@ import {
   restoreResearchItem,
   trashArchivedResearch,
 } from "@/lib/research-hidden";
-import { archiveRefSchema, trashRefSchema, type ArchiveRef, type TrashRef } from "@/lib/trash-config";
+import { archiveRefSchema, emptyTrashSchema, trashRefSchema, type ArchiveRef, type TrashRef } from "@/lib/trash-config";
 import { trashGroupIds, trashedAncestorIds } from "@/lib/trash-tree";
 import type { ActionResult } from "@/types/actions";
 
@@ -315,5 +315,49 @@ export async function trashArchivedItem(input: ArchiveRef): Promise<ActionResult
   } catch (error) {
     console.error("trashArchivedItem failed:", error);
     return { success: false, error: "Could not move the item to the trash. Please try again." };
+  }
+}
+
+/**
+ * Deletes everything in the project's trash for good. What was trashed inside a trashed part, folder or plot line goes
+ * with it (the deletes cascade), as it would one by one. Live and archived items are untouched.
+ */
+export async function emptyTrash(input: { projectId: string }): Promise<ActionResult<{ deleted: number }>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: NOT_SIGNED_IN };
+    const parsed = emptyTrashSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const { projectId } = parsed.data;
+    const trashed = { trashedAt: { not: null } };
+
+    const deleted = await prisma.$transaction(async (tx) => {
+      if (!(await lockOwnedProject(tx, user.id, projectId))) return null;
+      // Contents before containers, so what was trashed on its own inside a trashed container is counted too.
+      const steps = [
+        () => tx.characterNote.deleteMany({ where: { ...trashed, character: { projectId } } }),
+        () => tx.placeNote.deleteMany({ where: { ...trashed, place: { projectId } } }),
+        () => tx.sceneNote.deleteMany({ where: { ...trashed, scene: { projectId } } }),
+        () => tx.projectNote.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.plotPoint.deleteMany({ where: { ...trashed, plotLine: { projectId } } }),
+        () => tx.researchItem.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.plotLine.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.researchFolder.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.character.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.place.deleteMany({ where: { ...trashed, projectId } }),
+        () => tx.manuscriptNode.deleteMany({ where: { ...trashed, projectId } }),
+      ];
+      let total = 0;
+      for (const step of steps) total += (await step()).count;
+      return total;
+    });
+    if (deleted === null) return { success: false, error: "Project not found." };
+
+    // Anything in the project may have been in the trash, so every project read is expired.
+    refresh(projectId, [cacheTags.project(projectId), cacheTags.trash(projectId)]);
+    return { success: true, data: { deleted } };
+  } catch (error) {
+    console.error("emptyTrash failed:", error);
+    return { success: false, error: "Could not empty the trash. Please try again." };
   }
 }

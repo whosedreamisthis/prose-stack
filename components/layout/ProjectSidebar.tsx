@@ -5,6 +5,7 @@ import { CharacterList } from "@/components/characters/CharacterList";
 import { SidebarSection } from "@/components/layout/SidebarSection";
 import { ManuscriptTree } from "@/components/manuscript/ManuscriptTree";
 import { AddPlaceButton } from "@/components/places/AddPlaceButton";
+import { EmptyTrashMenu } from "@/components/trash/EmptyTrashMenu";
 import { HiddenItemsList } from "@/components/trash/HiddenItemsList";
 import { PlaceList } from "@/components/places/PlaceList";
 import { AddResearchButton } from "@/components/research/AddResearchButton";
@@ -62,7 +63,13 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
           <SidebarSection slug="archive" label="Archive" icon={<ArchiveIcon className="size-4 shrink-0" aria-hidden />} nested>
             <HiddenItemsList projectId={projectId} slug="archive" items={archive} empty="Nothing archived." />
           </SidebarSection>
-          <SidebarSection slug="trash" label="Trash" icon={<Trash2Icon className="size-4 shrink-0" aria-hidden />} nested>
+          <SidebarSection
+            slug="trash"
+            label="Trash"
+            icon={<Trash2Icon className="size-4 shrink-0" aria-hidden />}
+            action={trash.length > 0 ? <EmptyTrashMenu projectId={projectId} count={trash.length} /> : undefined}
+            nested
+          >
             <HiddenItemsList projectId={projectId} slug="trash" items={trash} empty="The trash is empty." />
           </SidebarSection>
         </div>

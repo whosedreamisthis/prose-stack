@@ -14,6 +14,8 @@ export const archiveRefSchema = z.object({
   id: idSchema,
 });
 
+export const emptyTrashSchema = z.object({ projectId: idSchema });
+
 export type TrashRef = z.input<typeof trashRefSchema>;
 export type ArchiveRef = z.input<typeof archiveRefSchema>;
 
