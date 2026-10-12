@@ -27,14 +27,21 @@ Labels are named colors a writer attaches to scenes and plot points to mark thin
 - `lib/labels.ts`: a cached `listLabels` with usage counts, tagged `labels:<projectId>` (new `cacheTags.labels`) and `project:<projectId>`.
 - Applying a label to a scene or plot point belongs to those features; this spec only provides the labels and the guarantee that a deleted one is cleared.
 
+## Where labels show
+- **Left sidebar (manuscript tree):** a scene's, chapter's or part's label appears as a small vertical color bar at the right edge of its row, after the title (see the reference screenshot: gold and red bars beside scene rows). The label name is available as a tooltip and `aria-label`, so color is never the only cue.
+- **Right sidebar (plot cards):** once plots are implemented, a plot point's label appears on its card as a colored chip with a bookmark icon and the label name (for example "test label 2"), at the bottom-left of the card.
+- Both places read the same label color and name, and update as soon as a label changes.
+
 ## Demo seed
-- Seed a few labels (for example "Draft", "Revise", "Final") and label some demo scenes with them, per the convention that features adding user data also seed the demo user. Test it in `lib/demo-seed.test.ts`.
+- Once labels are implemented, seed the demo user with some labels (for example "Draft", "Revise", "Final", each with a distinct color) and label some demo scenes, chapters and parts with them, per the convention that features adding user data also seed the demo user. When plots are implemented, also label some demo plot points. Test it in `lib/demo-seed.test.ts`.
 
 ## Acceptance criteria
 - Add, rename, recolor and delete each persist and show everywhere labels appear without a reload.
 - A duplicate or blank name, a bad color, or a twenty-first label is rejected on the client and the server.
 - Deleting a label that is in use asks first, shows the counts, unlabels the items and keeps them.
 - A label of another project, or another user's, can never be read, edited or applied.
+- A labeled scene, chapter or part shows its color bar in the left sidebar, and a labeled plot point shows its label chip on the right sidebar card.
+- The demo user is seeded with labels applied to some items.
 - The tab is keyboard-operable and every swatch has a text name (color is never the only cue).
 
 ## Open questions
