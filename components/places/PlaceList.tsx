@@ -7,7 +7,7 @@ import { ArchiveIcon, MapPinIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { archivePlace, trashPlace } from "@/actions/places";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
-import { RowMenu } from "@/components/manuscript/RowMenu";
+import { ExportItem, RowMenu } from "@/components/manuscript/RowMenu";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { resolveActivePlace } from "@/lib/place-selection";
 import { useLayoutStore } from "@/lib/stores/layout-store";
@@ -75,6 +75,7 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
                 <span className="truncate">{p.name}</span>
               </Link>
               <RowMenu label={`${p.name} options`}>
+                <ExportItem type="place" id={p.id} projectId={projectId} name={p.name} />
                 <DropdownMenuItem onClick={() => hide(p, archivePlace, "Place archived.")}>
                   <ArchiveIcon /> Archive
                 </DropdownMenuItem>

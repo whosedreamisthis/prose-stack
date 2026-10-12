@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { archiveCharacter, createCharacter, trashCharacter } from "@/actions/characters";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { Hint } from "@/components/layout/Hint";
-import { RowMenu } from "@/components/manuscript/RowMenu";
+import { ExportItem, RowMenu } from "@/components/manuscript/RowMenu";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { requestNameFocus } from "@/lib/character-focus";
@@ -112,6 +112,7 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
                       <span className="truncate">{c.name}</span>
                     </Link>
                     <RowMenu label={`${c.name} options`}>
+                      <ExportItem type="character" id={c.id} projectId={projectId} name={c.name} />
                       <DropdownMenuItem onClick={() => hide(c, archiveCharacter, "Character archived.")}>
                         <ArchiveIcon /> Archive
                       </DropdownMenuItem>

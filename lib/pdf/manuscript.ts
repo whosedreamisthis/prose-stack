@@ -1,0 +1,107 @@
+import { buildPdf, fontName, printable, type FontFamily, type FontStyle } from "@/lib/pdf/document";
+import { FONTS, LINE_SPACING_OPTIONS, type Formatting } from "@/lib/project-config";
+import type { DocNode } from "@/lib/manuscript-text";
+
+/** What a chapter or part PDF is made of, in order. */
+export type ManuscriptSection = { kind: "title"; text: string; level: 1 | 2 } | { kind: "scene"; doc: DocNode | null };
+
+interface Run extends FontStyle {
+  text: string;
+}
+export interface Block {
+  runs: Run[];
+  /** Quoted and list text is indented, in points. */
+  indent: number;
+}
+
+/** The separator between two scenes: three centered, spaced asterisks. */
+export const SCENE_BREAK = "*     *     *";
+
+const BLOCK_TYPES = new Set(["paragraph", "heading", "codeBlock"]);
+const NESTING_TYPES = new Set(["blockquote", "bulletList", "orderedList"]);
+
+/** The built-in font family closest to the project's chosen font. */
+export function pdfFontFamily(name: string): FontFamily {
+  const group = FONTS.find((f) => f.name === name)?.group;
+  return group === "Sans-serif" ? "Helvetica" : group === "Monospace" ? "Courier" : "Times";
+}
+
+function inlineRuns(node: DocNode, style: FontStyle, out: Run[]) {
+  if (node.type === "text") {
+    const marks = new Set((node.marks ?? []).map((m) => m.type));
+    if (node.text) out.push({ text: node.text, bold: style.bold || marks.has("bold"), italic: style.italic || marks.has("italic") });
+    return;
+  }
+  if (node.type === "hardBreak") {
+    out.push({ text: "\n", ...style });
+    return;
+  }
+  for (const child of node.content ?? []) inlineRuns(child, style, out);
+}
+
+/** A scene's blocks (paragraphs, headings, quotes, list items), each with its styled runs. */
+export function sceneBlocks(doc: DocNode | null | undefined, indent = 0): Block[] {
+  if (!doc) return [];
+  if (doc.type && BLOCK_TYPES.has(doc.type)) {
+    const runs: Run[] = [];
+    inlineRuns(doc, doc.type === "heading" ? { bold: true } : {}, runs);
+    return [{ runs, indent }];
+  }
+  if (doc.type === "horizontalRule") return [{ runs: [{ text: "* * *" }], indent: 0 }];
+  const next = doc.type && NESTING_TYPES.has(doc.type) ? indent + 24 : indent;
+  return (doc.content ?? []).flatMap((child) => sceneBlocks(child, next));
+}
+
+/**
+ * A chapter, part or scene in the project's font, size and line spacing. Scene text only: no title page, no scene
+ * titles and no page break between scenes; a centered "* * *" separates one scene from the next.
+ */
+export function renderManuscriptPdf(formatting: Formatting, sections: ManuscriptSection[]) {
+  const family = pdfFontFamily(formatting.fontFamily);
+  const spacing = LINE_SPACING_OPTIONS.find((o) => o.value === formatting.lineSpacing) ?? LINE_SPACING_OPTIONS[2];
+  const size = formatting.fontSize;
+  const paragraphGap = size * parseFloat(spacing.paragraphGap);
+
+  return buildPdf((doc) => {
+    const setBody = (style: FontStyle = {}) => doc.font(fontName(family, style)).fontSize(size).fillColor("black");
+    setBody();
+    // pdfkit adds `lineGap` to the font's own line height, so subtract that to land on the requested leading.
+    const lineGap = Math.max(0, size * spacing.leading - doc.currentLineHeight());
+
+    let started = false;
+    let afterScene = false;
+    for (const section of sections) {
+      if (section.kind === "title") {
+        if (started) doc.moveDown(1);
+        doc.font(fontName(family, { bold: true })).fontSize(section.level === 1 ? size + 8 : size + 4);
+        doc.text(printable(section.text), { lineGap: 0 });
+        doc.moveDown(0.8);
+        afterScene = false;
+        started = true;
+        continue;
+      }
+      if (afterScene) {
+        setBody();
+        doc.moveDown(1);
+        doc.text(SCENE_BREAK, { align: "center", lineGap, paragraphGap });
+        doc.moveDown(1);
+      }
+      for (const block of sceneBlocks(section.doc)) {
+        const runs = block.runs.filter((r) => r.text.length > 0);
+        if (runs.length === 0) {
+          setBody();
+          doc.moveDown(1);
+          continue;
+        }
+        runs.forEach((run, i) => {
+          setBody(run);
+          const continued = i < runs.length - 1;
+          const options = i === 0 ? { lineGap, paragraphGap, indent: block.indent, continued } : { continued };
+          doc.text(printable(run.text), options);
+        });
+      }
+      afterScene = true;
+      started = true;
+    }
+  });
+}
