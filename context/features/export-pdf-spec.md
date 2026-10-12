@@ -10,6 +10,7 @@ Export the manuscript as a PDF from the top navbar.
 - **Export to PDF** button in the top navbar.
 - Output is rendered from the same paginated content as the book view: title page (title, subtitle, "by", author), then chapters and scenes.
 - Honors project formatting: font, font size, line spacing.
+- Always light (black text on white), whatever theme the app is in; the app theme (see [settings-theme-spec.md](settings-theme-spec.md)) only affects the on-screen book view.
 - Excludes trashed and archived items.
 
 Exporting a single character, place, scene, chapter or part from its row menu is a separate spec: [export-item-pdf-spec.md](export-item-pdf-spec.md). It shares this feature's PDF renderer, so the approach below is decided once for both.

@@ -14,19 +14,22 @@ Switch the app between a light and a dark theme. Dark is what the app uses today
 - **Light theme tokens.** Every color token (background, foreground, card, muted, border, input, popover, destructive) gets a light value, with 4.5:1 contrast for text and 3:1 for controls and focus rings.
 - **Accent color in light.** The per-project accent (derived from the cover color) is lightened for the dark theme today. In light it is instead darkened until it meets 4.5:1 contrast on the light background, keeping the hue, and the foreground on it is chosen by contrast. The same function returns tokens for both themes, and the accent style sets both (`:root.dark{...}` and `:root:not(.dark){...}`).
 - The scrollbar, selection and search highlight colors, which use the accent, work in both themes.
+- **Book view follows the theme.** It is on screen, like the editor, so a dark theme gives a dark book view and a light theme a light one. Text color, page background and the page edge shadow use theme tokens.
+- **PDF export is always light** (black text on white paper, as printed), whatever the app theme. The PDF renderer does not read the theme at all, so an export is identical for every user; the book view and the PDF therefore differ in color only, never in layout, fonts or pagination.
 - Default: **Dark** for a new user, matching how the app looks today. Signed-out pages (landing, sign-in) are dark.
 
-## Decision: per user, not per project (recommended, to confirm)
+## Decision: per user, not per project
 - A writer's preference for dark or light is about their screen and eyes, not the book, so it should follow them to every project. Per project would make them set it for each book.
-- The overview and the first settings spec placed it on `Project.theme`. The recommendation is to store it on the user and stop using `Project.theme`.
+- The overview and the first settings spec placed it on `Project.theme`. Decided: it is stored on the user and `Project.theme` is no longer used.
 - Formatting (font, size, spacing) stays per project; it describes the manuscript.
 
-## Data (if per user)
+## Data
 - `User.theme` (`LIGHT` or `DARK`, default `DARK`). A migration adds it and drops `Project.theme` (nothing reads it yet).
 - Written by `updateUserTheme`, which is separate from `updateProjectSettings` because it is not a project field; the modal's Save calls both when both changed.
 - The theme is read where the root layout already reads the user, and cached under the user's tag (new `cacheTags.user`), expired by `updateUserTheme`.
 
 ## Acceptance criteria
+- The book view matches the theme; an exported PDF is light in both themes.
 - Choosing Light or Dark changes the whole app immediately in the preview and persists after Save.
 - A reload and a new session show the saved theme with no flash of the other one.
 - Text and controls meet contrast in both themes, including with every preset cover color as the accent.
@@ -35,6 +38,4 @@ Switch the app between a light and a dark theme. Dark is what the app uses today
 - Only the signed-in user's own theme is read or written.
 
 ## Open questions
-- Per user (recommended) or per project?
 - Is Dark the right default for new users (as the app is today), or should they start in light?
-- Should the book view and PDF export always be light (paper), whatever the app theme?
