@@ -25,6 +25,7 @@ import { useLabelData } from "@/hooks/useLabelData";
 import { requestEditorFocus } from "@/lib/editor-focus";
 import { defaultNodeTitle, nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
 import { applyMove, childrenOf, resolveActiveScene, subtreeIds } from "@/lib/manuscript-tree";
+import { useEditorStore } from "@/lib/stores/editor-store";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { useOptimisticActive, usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
@@ -112,6 +113,8 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
   const [, startTransition] = useTransition();
   /** Rows added but not yet confirmed by the server, each resolving to whether the server created it. */
   const creating = useRef(new Map<string, Promise<boolean>>());
+  /** Scenes just added whose names are still being typed. */
+  const namingNewScene = useRef(new Set<string>());
   // Renames and moves show at once and roll back on their own if the server action fails or throws.
   const [nodes, applyChange] = useOptimistic(serverNodes, (state, change: TreeChange) =>
     change.kind === "rename"
@@ -152,13 +155,23 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
     );
   }
 
+  /** Puts the cursor in the open scene's editor; if the scene is still on its way, the editor takes focus when it mounts. */
+  function focusEditorFor(sceneId: string) {
+    const editor = useEditorStore.getState().editor;
+    if (sceneId === openId && editor) requestAnimationFrame(() => editor.commands.focus("end"));
+    else requestEditorFocus();
+  }
+
   const dnd = useTreeDnd({ projectId, nodes, collapsed, rootCollapsed, toggle, applyChange, startTransition, focusRow });
   const dragNode = dnd.dragNode;
   const DragIcon = dragNode ? NODE_ICON[dragNode.type] : null;
 
   function finishRename(node: ManuscriptNodeSummary, value: string | null, refocus: boolean) {
     setEditingId(null);
-    if (refocus) focusRow(node.id);
+    const wasNewScene = namingNewScene.current.delete(node.id);
+    // A scene just added and named with Enter is ready to write in; any other rename returns to its row.
+    if (refocus && wasNewScene && value !== null) focusEditorFor(node.id);
+    else if (refocus) focusRow(node.id);
     if (value === null) return;
     const parsed = nodeTitleSchema.safeParse(value);
     if (!parsed.success) {
@@ -182,6 +195,8 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
     toggle(ROOT_KEY, false);
     if (parentId) toggle(parentId, false);
     setEditingId(id);
+    // Finishing its name with Enter moves focus into the editor (see finishRename).
+    if (type === "SCENE") namingNewScene.current.add(id);
     startTransition(async () => {
       applyChange({
         kind: "add",
@@ -198,8 +213,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
         toast.error(result.error);
         setEditingId((current) => (current === id ? null : current));
       } else if (type === "SCENE") {
-        // A new scene also opens in the editor.
-        requestEditorFocus();
+        // A new scene also opens in the editor, without taking focus: the writer is still typing its name in the sidebar.
         router.push(`/projects/${projectId}/manuscript?scene=${id}`);
       }
     });
