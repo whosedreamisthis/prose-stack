@@ -12,6 +12,15 @@ Export the manuscript as a PDF from the top navbar.
 - Honors project formatting: font, font size, line spacing.
 - Excludes trashed and archived items.
 
+Exporting a single character, place, scene, chapter or part from its row menu is a separate spec: [export-item-pdf-spec.md](export-item-pdf-spec.md). It shares this feature's PDF renderer, so the approach below is decided once for both.
+
+## Story bible export
+- A second export in the navbar menu: **Export story bible**, a project-wide PDF of the reference material rather than the manuscript.
+- Contents, each optional via a checkbox before exporting: **Characters** (all sketches and their notes, Main first), **Places** (all cards with related characters and notes), and later **Research** and **Plot** once those features exist.
+- Layout: a cover page (title, "Story bible", author), a contents list, then one section per kind. Each character or place starts on a new page using the per-item layouts from [export-item-pdf-spec.md](export-item-pdf-spec.md).
+- Excludes trashed and archived items, like every export. Scene text is not included; that is the manuscript export.
+- Acceptance: only the owner can export; a project with no characters or places offers only what exists; a project of 50 characters and 50 places exports without timing out.
+
 ## Approach (undecided)
 - Option A: browser print styles on the book view (simple, no dependency).
 - Option B: a PDF library, server-side (more control over pagination and fonts).
