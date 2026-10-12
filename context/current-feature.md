@@ -1,21 +1,20 @@
-# Current Feature: Full Manuscript View
+# Current Feature
 
-Clicking the Manuscript header opens the whole manuscript as editable scenes.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Clicking the Manuscript header opens `/manuscript/full`
-- Shows every part, chapter and scene in reading order, scenes as lazy-loaded editable editors
-- Part, chapter and full views share one renderer (`NodeBookView`)
-- The chevron still collapses the tree
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/features/book-view-spec.md` (section 1). The read-only Book view (navbar icon, `/manuscript/book`) is a separate, later feature; until then the outline no longer links to the placeholder.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -36,3 +35,4 @@ In Progress
 - **Settings Formatting:** Formatting tab with 12 fonts (incl. Courier Prime), size 10-18, line spacing, live preview; toolbar size menu saves the same setting; see `components/settings/FormattingTab.tsx`, `lib/formatting.ts`.
 - **Export Item to PDF:** "Export as PDF" in character, place, scene, chapter and part row menus, served by `/api/export/[type]/[id]` and rendered with pdfkit; see `lib/export.ts`, `lib/pdf/`.
 - **Chapter and Part View:** clicking a chapter or part opens it as editable book text with lazy-loaded scene editors; see `components/manuscript/NodeBookView.tsx`, `LazySceneEditor.tsx`, `SceneEditor.tsx` (`embedded`).
+- **Full Manuscript View:** the Manuscript header opens `/manuscript/full`, the whole book as editable lazy-loaded scenes; one `NodeBookView` renders book, part and chapter.
