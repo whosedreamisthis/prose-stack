@@ -22,7 +22,13 @@ const DEMO_PROJECT = {
 } as const;
 
 function docFromParagraphs(paragraphs: string[]): DocNode {
-  return { type: "doc", content: paragraphs.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })) };
+  return {
+    type: "doc",
+    content: paragraphs.map((text) => ({
+      type: "paragraph",
+      content: [{ type: "text", text }],
+    })),
+  };
 }
 
 const id = () => randomUUID();
@@ -31,11 +37,41 @@ const id = () => randomUUID();
 function manuscriptNodes(): SeedNode[] {
   const [partOne, partTwo, ch1, ch2, ch3] = [id(), id(), id(), id(), id()];
   return [
-    { id: partOne, parentId: null, type: "PART", title: "Part One: The Storm", position: 0 },
-    { id: partTwo, parentId: null, type: "PART", title: "Part Two: The Light", position: 1 },
-    { id: ch1, parentId: partOne, type: "CHAPTER", title: "Chapter 1", position: 0 },
-    { id: ch2, parentId: partOne, type: "CHAPTER", title: "Chapter 2", position: 1 },
-    { id: ch3, parentId: partTwo, type: "CHAPTER", title: "Chapter 3", position: 0 },
+    {
+      id: partOne,
+      parentId: null,
+      type: "PART",
+      title: "Part One: The Storm",
+      position: 0,
+    },
+    {
+      id: partTwo,
+      parentId: null,
+      type: "PART",
+      title: "Part Two: The Light",
+      position: 1,
+    },
+    {
+      id: ch1,
+      parentId: partOne,
+      type: "CHAPTER",
+      title: "Chapter 1",
+      position: 0,
+    },
+    {
+      id: ch2,
+      parentId: partOne,
+      type: "CHAPTER",
+      title: "Chapter 2",
+      position: 1,
+    },
+    {
+      id: ch3,
+      parentId: partTwo,
+      type: "CHAPTER",
+      title: "Chapter 3",
+      position: 0,
+    },
     {
       id: id(),
       parentId: ch1,
@@ -164,18 +200,57 @@ const CHARACTERS = [
   },
 ] as const;
 
+const PLACES = [
+  {
+    name: "The Lighthouse",
+    location: "A rock a mile off the coast",
+    roleInStory: "Home and central mystery",
+    season: "Late autumn",
+    uniqueFeatures: "A great lens that turns on its own; a spiral stair of one hundred and twelve steps.",
+    description: "A squat grey tower, older than the harbour town, with a keeper's cottage bolted to its side.",
+    sights: "Salt-bleached stone, the slow sweep of the beam, a logbook open on the desk.",
+    sounds: "Wind in the shutters, the lens ticking round, gulls.",
+    smell: "Salt and cold iron.",
+    notes: ["It should feel angrier than it looks in the photograph.", "The lens turning by itself is the first sign something is wrong."],
+    characters: ["Mara Quill", "The Old Keeper"],
+  },
+  {
+    name: "Harbour Town",
+    location: "The mainland shore",
+    roleInStory: "Where the resentment lives",
+    season: "Late autumn",
+    uniqueFeatures: "A net store with rooms above it; the harbour master's office with a view of the light.",
+    description: "A huddle of slate roofs around a stone pier, closing up for the winter.",
+    sights: "Hauled-out boats, drying nets, lamplit windows at four o'clock.",
+    sounds: "Rope on cleats, the last ferry's horn.",
+    smell: "",
+    notes: [],
+    characters: ["Edric Vane", "Pip Marrow"],
+  },
+] as const;
+
 /**
- * Seeds the demo user's one project: manuscript and characters (with notes). Plot lines, places and research join this
- * as those features ship. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
+ * Seeds the demo user's one project: manuscript, characters and places (each with notes), the places linked to their characters. Plot
+ * lines and research join this as those features ship. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
  */
 export async function seedDemoProject(tx: Prisma.TransactionClient, userId: string) {
-  const project = await tx.project.create({ data: { userId, ...DEMO_PROJECT }, select: { id: true } });
+  const project = await tx.project.create({
+    data: { userId, ...DEMO_PROJECT },
+    select: { id: true },
+  });
 
   const nodes = manuscriptNodes();
   await tx.manuscriptNode.createMany({
     data: nodes.map((node) => {
       if (node.type !== "SCENE")
-        return { id: node.id, projectId: project.id, parentId: node.parentId, type: node.type, title: node.title, position: node.position };
+        return {
+          id: node.id,
+          projectId: project.id,
+          parentId: node.parentId,
+          type: node.type,
+          title: node.title,
+          position: node.position,
+        };
       const content = docFromParagraphs(node.paragraphs ?? []);
       return {
         id: node.id,
@@ -215,6 +290,29 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
 
   const noteRows = characters.flatMap((c) => c.notes.map((content) => ({ characterId: c.id, content })));
   if (noteRows.length > 0) await tx.characterNote.createMany({ data: noteRows });
+
+  // Few rows, and each connects to characters, which a bulk insert can't do, so these are created one by one.
+  for (const { characters: related, ...place } of PLACES) {
+    await tx.place.create({
+      data: {
+        projectId: project.id,
+        name: place.name,
+        location: text(place.location),
+        roleInStory: text(place.roleInStory),
+        season: text(place.season),
+        uniqueFeatures: text(place.uniqueFeatures),
+        description: text(place.description),
+        sights: text(place.sights),
+        sounds: text(place.sounds),
+        smell: text(place.smell),
+        notes: { create: place.notes.map((content) => ({ content })) },
+        relatedCharacters: {
+          connect: characters.filter((c) => (related as readonly string[]).includes(c.name)).map((c) => ({ id: c.id })),
+        },
+      },
+      select: { id: true },
+    });
+  }
 
   return project.id;
 }

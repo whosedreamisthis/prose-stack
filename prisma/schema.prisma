@@ -59,6 +59,7 @@ model Project {
   nodes           ManuscriptNode[]
   dailyWordCounts DailyWordCount[]
   characters      Character[]
+  places          Place[]
 
   @@index([userId])
 }
@@ -134,6 +135,7 @@ model Character {
 
   project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   notes   CharacterNote[]
+  places  Place[]         @relation("PlaceCharacters")
 
   @@index([projectId, role])
 }
@@ -149,4 +151,44 @@ model CharacterNote {
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@index([characterId, createdAt])
+}
+
+/// A place card for a setting of the novel. Every field is optional text except the name. Hidden from the list once trashed or archived.
+model Place {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+
+  location       String?
+  roleInStory    String?
+  season         String?
+  uniqueFeatures String?
+  description    String?
+  sights         String?
+  sounds         String?
+  smell          String?
+
+  trashedAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project           Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  relatedCharacters Character[] @relation("PlaceCharacters")
+  notes             PlaceNote[]
+
+  @@index([projectId, createdAt])
+}
+
+/// Free-form notes shown in the right sidebar; a place can have several.
+model PlaceNote {
+  id        String   @id @default(cuid())
+  placeId   String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([placeId, createdAt])
 }

@@ -8,7 +8,8 @@ Standalone notes plus a research library of notes, links, images, and files.
 
 ## Requirements
 - **Notes:** standalone or organized in (nested) folders; Tiptap content.
-- **Research:** items of type NOTE, LINK, IMAGE, FILE, organized in folders.
+- **Research:** items of type NOTE, LINK, IMAGE, FILE, organized in (nested) folders. Items can be created inside a folder, moved between folders (drag and drop or "Move to…"), and folders can be renamed, nested, trashed, and archived.
+- **Worldbuilding:** no separate sidebar section. Worldbuilding is covered by research folders. New projects offer optional starter folders (e.g. Magic & Technology, Cultures, History, Geography, Politics) which are ordinary, deletable folders. Places remain the structured home for settings.
 - Research items can optionally link to a character, place, or scene.
 - Image and file uploads via UploadThing.
 - Trash and archive supported for notes and research items.

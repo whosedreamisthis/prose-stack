@@ -115,8 +115,12 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
   // highlighted straight away; the choice stops applying as soon as the URL moves on.
   const [clicked, setClicked] = useState<{ id: string; from: string | null } | null>(null);
   if (clicked && clicked.from !== sceneParam) setClicked(null);
-  const activeId =
+  const pendingSceneId = usePendingNavStore((s) => s.pending.scene);
+  const openId =
     clicked && clicked.from === sceneParam ? clicked.id : resolveActiveScene(nodes, sceneParam ?? undefined)?.id;
+  // Only one sidebar item is highlighted at a time: a scene is highlighted while the manuscript is open, or from the
+  // click that is taking us there, never while a character or place is the open page.
+  const activeId = onManuscriptPage ? openId : (pendingSceneId ?? undefined);
 
   function focusRow(id: string) {
     // Two frames: after a move the row is re-rendered (often under a new parent) before it can take focus.

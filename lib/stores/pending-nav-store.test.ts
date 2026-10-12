@@ -42,6 +42,6 @@ describe("pending navigation store", () => {
   it("tracks each kind on its own", () => {
     usePendingNavStore.getState().setPending("section", "characters");
     vi.advanceTimersByTime(SKELETON_DELAY_MS);
-    expect(usePendingNavStore.getState().visible).toEqual({ character: false, scene: false, section: true });
+    expect(usePendingNavStore.getState().visible).toEqual({ character: false, place: false, scene: false, section: true });
   });
 });

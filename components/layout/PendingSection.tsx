@@ -4,11 +4,13 @@ import { useEffect, type ReactNode } from "react";
 import { useParams, usePathname } from "next/navigation";
 import { SketchSkeleton } from "@/components/characters/SketchSkeleton";
 import { EditorSkeleton } from "@/components/manuscript/EditorSkeleton";
+import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 
 const SKELETONS: Record<string, ReactNode> = {
   manuscript: <EditorSkeleton />,
   characters: <SketchSkeleton />,
+  places: <PlaceSkeleton />,
 };
 
 /**

@@ -8,6 +8,7 @@ function fakeTx() {
     manuscriptNode: { createMany: vi.fn() },
     character: { createMany: vi.fn() },
     characterNote: { createMany: vi.fn() },
+    place: { create: vi.fn().mockResolvedValue({ id: "pl1" }) },
   };
 }
 
@@ -21,7 +22,12 @@ describe("seedDemoProject", () => {
   it("seeds a valid tree: parents before children, scenes under chapters, chapters under parts or the book", async () => {
     const tx = fakeTx();
     await seedDemoProject(tx as never, "u1");
-    const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as { id: string; parentId: string | null; type: string; projectId: string }[];
+    const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as {
+      id: string;
+      parentId: string | null;
+      type: string;
+      projectId: string;
+    }[];
     const seen = new Map<string, string>();
     for (const node of nodes) {
       expect(node.projectId).toBe("p1");
@@ -64,5 +70,24 @@ describe("seedDemoProject", () => {
     const notes = tx.characterNote.createMany.mock.calls[0][0].data as { characterId: string; content: string }[];
     expect(notes.length).toBeGreaterThan(0);
     for (const note of notes) expect(characters.some((c) => c.id === note.characterId)).toBe(true);
+  });
+
+  it("seeds places in the project, linked only to the seeded characters, with blank fields stored as null", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const characters = tx.character.createMany.mock.calls[0][0].data as { id: string }[];
+    const places = tx.place.create.mock.calls.map((call) => call[0].data) as {
+      projectId: string;
+      smell: string | null;
+      relatedCharacters: { connect: { id: string }[] };
+    }[];
+
+    expect(places.length).toBeGreaterThanOrEqual(2);
+    expect(places.some((p) => p.smell === null)).toBe(true);
+    for (const place of places) {
+      expect(place.projectId).toBe("p1");
+      expect(place.relatedCharacters.connect.length).toBeGreaterThan(0);
+      for (const { id } of place.relatedCharacters.connect) expect(characters.some((c) => c.id === id)).toBe(true);
+    }
   });
 });

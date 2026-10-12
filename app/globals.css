@@ -174,3 +174,9 @@
   outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
+
+/* Muted scrollbars in the accent color (the book cover's color inside a project), so they stay quiet next to the writing. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--primary) 30%, transparent) transparent;
+}

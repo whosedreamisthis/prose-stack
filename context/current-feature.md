@@ -1,20 +1,25 @@
-# Current Feature
+# Current Feature: Places
 
-<!-- Feature name and short description -->
+Place cards that capture the settings of the novel. Spec: [features/places-spec.md](features/places-spec.md).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Place cards with sketch fields: name, location, role in story, season, unique features, description, sights, sounds, smell, notes.
+- Link a place to one or more related characters.
+- Create, edit, trash, and archive places.
+- Route at `/projects/[projectId]/places`.
+- Related-character links persist and update when a character is trashed or deleted.
+- Scoped by `userId`/`projectId`; input validated with Zod.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Data: `Place` (`name`, `location`, `roleInStory`, `season`, `uniqueFeatures`, `description`, `sights`, `sounds`, `smell`, `notes`, `trashedAt`, `archivedAt`); `relatedCharacters` many-to-many with `Character`.
+- Follow the Characters feature for patterns (auto-saving sketches, row menu to archive or trash, `actions/`, `lib/`, tagged `use cache` reads expired with `updateTag`).
+- Per project convention, also seed the demo user with places (see `lib/demo*.ts`).
 
 ## Completed Features
 
