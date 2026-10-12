@@ -33,6 +33,7 @@ import { RenamePlotLineDialog } from "@/components/plot/RenamePlotLineDialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { cellTaken, usePlotActions } from "@/hooks/usePlotActions";
 import { LabelChip } from "@/components/labels/LabelChip";
+import { LabelFilter } from "@/components/labels/LabelFilter";
 import { useLabelData } from "@/hooks/useLabelData";
 import { usePlotData } from "@/hooks/usePlotData";
 import { nodeTitleSchema } from "@/lib/manuscript-config";
@@ -77,6 +78,8 @@ export function PlotGrid({ projectId, plot, labels: serverLabels, scenes }: Plot
   const addedScenes = usePlotStore((s) => s.addedScenes);
   const actions = usePlotActions(projectId);
   const focusLineId = useSearchParams().get("line");
+  /** The label the grid is filtered by: other labels' cards fade. */
+  const [filterLabelId, setFilterLabelId] = useState<string | null>(null);
   const [dragging, setDragging] = useState<Dragging | null>(null);
   const [renaming, setRenaming] = useState<PlotLineItem | null>(null);
   const [trashingLine, setTrashingLine] = useState<PlotLineItem | null>(null);
@@ -190,7 +193,8 @@ export function PlotGrid({ projectId, plot, labels: serverLabels, scenes }: Plot
     <>
       <DndContext id="plot-grid" sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="h-full overflow-auto">
-          <table className="m-4 border-separate border-spacing-0 text-sm">
+          <LabelFilter labels={labels} value={filterLabelId} onChange={setFilterLabelId} className="mx-4 mt-4 w-48" />
+          <table className="mx-4 my-2 border-separate border-spacing-0 text-sm">
             <caption className="sr-only">Plot grid: scenes down the side, plot lines across</caption>
             <thead>
               <tr>
@@ -249,7 +253,7 @@ export function PlotGrid({ projectId, plot, labels: serverLabels, scenes }: Plot
                           <PointCard
                             point={point}
                             label={labelById(point.labelId)}
-                            dimmed={dragging?.type === "point" && dragging.point.id === point.id}
+                            dimmed={(dragging?.type === "point" && dragging.point.id === point.id) || (!!filterLabelId && point.labelId !== filterLabelId)}
                             onOpen={() => editor.openPoint(point.id)}
                             onTrash={() => actions.trashPoint(point.id)}
                           />

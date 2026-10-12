@@ -108,6 +108,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
   const openNodeId = pathname.match(new RegExp(`^/projects/${projectId}/manuscript/(?:chapter|part)/([^/]+)`))?.[1];
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filterLabelId, setFilterLabelId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<ManuscriptNodeSummary | null>(null);
   const [, startTransition] = useTransition();
   /** Rows added but not yet confirmed by the server, each resolving to whether the server created it. */
@@ -267,10 +268,16 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
     );
   }
 
+  /** Whether a row is labeled with the filter's label, or holds a row that is. Everything shows with no filter. */
+  function inFilter(node: ManuscriptNodeSummary): boolean {
+    return !filterLabelId || node.labelId === filterLabelId || childrenOf(nodes, node.id).some(inFilter);
+  }
+
   function renderRows(parentId: string | null): ReactNode {
-    return childrenOf(nodes, parentId).map((node) => {
+    return childrenOf(nodes, parentId).filter(inFilter).map((node) => {
       const isScene = node.type === "SCENE";
-      const isCollapsed = !!collapsed[node.id];
+      // A filtered outline opens up so the matching rows are all in view.
+      const isCollapsed = !filterLabelId && !!collapsed[node.id];
       return (
         <TreeRow
           key={node.id}
@@ -332,6 +339,28 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
                   <AddItem label="Add part" onClick={() => addNode(null, "PART")} />
                   <AddItem label="Add chapter" onClick={() => addNode(null, "CHAPTER")} />
                   <ExportItem type="book" id={projectId} projectId={projectId} name={projectTitle} />
+                  {labels.length > 0 && (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <BookmarkIcon /> Show only label
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="w-48">
+                        {labels.map((label) => (
+                          <DropdownMenuItem key={label.id} onClick={() => setFilterLabelId(label.id)}>
+                            <span aria-hidden className="size-3 shrink-0 rounded-full" style={{ backgroundColor: label.color }} />
+                            <span className="truncate">{label.name}</span>
+                            {filterLabelId === label.id && <CheckIcon className="ml-auto" aria-label="Showing only this label" />}
+                          </DropdownMenuItem>
+                        ))}
+                        {filterLabelId && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setFilterLabelId(null)}>Show all</DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={expandAll}>
                     <ChevronsUpDownIcon /> Expand all

@@ -35,7 +35,7 @@ export function RowMenu({ label, className, children }: { label: string; classNa
         onClick={stop}
         onDoubleClick={stop}
         className={cn(
-          "absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded text-muted-foreground opacity-0 outline-none group-focus-visible/item:opacity-100 group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:opacity-100",
+          "absolute top-1/2 right-1 grid size-6 [@media(pointer:coarse)]:size-8 -translate-y-1/2 place-items-center rounded text-muted-foreground opacity-0 pointer-coarse:opacity-100 outline-none group-focus-visible/item:opacity-100 group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:opacity-100",
           className,
         )}
       >

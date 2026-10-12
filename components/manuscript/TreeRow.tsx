@@ -147,7 +147,7 @@ export function TreeRow({
             {...listeners}
             onClick={stop}
             onDoubleClick={stop}
-            className="absolute top-1/2 left-0.5 z-10 grid size-5 -translate-y-1/2 cursor-grab touch-none place-items-center rounded text-muted-foreground opacity-0 outline-none group-focus-visible/item:opacity-100 group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+            className="absolute top-1/2 left-0.5 z-10 grid size-5 [@media(pointer:coarse)]:size-8 -translate-y-1/2 cursor-grab touch-none place-items-center rounded text-muted-foreground opacity-0 outline-none group-focus-visible/item:opacity-100 group-has-[:focus-visible]/item:opacity-100 group-hover/item:opacity-100 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
           >
             <GripVerticalIcon className="size-3.5" aria-hidden />
           </button>

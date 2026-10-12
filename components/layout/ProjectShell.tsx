@@ -132,11 +132,12 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
             aria-label="Close left sidebar"
             tabIndex={-1}
             onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 z-30 bg-black/10 md:hidden"
+            className="absolute inset-0 z-30 bg-black/40 md:hidden"
           />
         )}
         <aside
           id="left-sidebar"
+          aria-label="Left sidebar"
           className={cn(
             "shrink-0 overflow-hidden border-r bg-background transition-[width,translate,visibility] duration-200 motion-reduce:transition-none md:bg-primary/5 dark:md:bg-transparent",
             "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-72 max-md:shadow-lg",
@@ -164,11 +165,12 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
             aria-label="Close right sidebar"
             tabIndex={-1}
             onClick={() => setRightDrawerOpen(false)}
-            className="absolute inset-0 z-30 bg-black/10 lg:hidden"
+            className="absolute inset-0 z-30 bg-black/40 lg:hidden"
           />
         )}
         <aside
           id="right-sidebar"
+          aria-label="Right sidebar"
           className={cn(
             "shrink-0 overflow-hidden border-l bg-background transition-[width,translate,visibility] duration-200 motion-reduce:transition-none",
             "max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:w-72 max-lg:shadow-lg",
