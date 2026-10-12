@@ -23,7 +23,7 @@ Export a single item to a PDF from its row's "…" menu: a character sketch, a p
 ## Approach
 - Server-side generation in a Route Handler, `GET /api/export/[type]/[id]` with `type` one of `character`, `place`, `node` (scene, chapter, part). It returns `application/pdf` with `Content-Disposition: attachment`.
 - The handler reads through the same cached, user-scoped reads the pages use, so ownership checks are not duplicated.
-- Use the same PDF approach as whole-book export (decision pending there). Recommendation: a server-side PDF library, because print styles cannot guarantee page size, fonts or headers for non-manuscript layouts. The renderer is a small module with one function per item type, so the choice stays swappable.
+- Same approach as whole-book export (decided in [export-pdf-spec.md](export-pdf-spec.md)): a server-side PDF library. The renderer is a small module with one function per item type, so the library stays swappable.
 - No new data is stored.
 
 ## Data
@@ -42,4 +42,4 @@ Export a single item to a PDF from its row's "…" menu: a character sketch, a p
 
 ## Open questions
 - The combined story bible export lives in [export-pdf-spec.md](export-pdf-spec.md); it reuses this spec's character and place layouts.
-- PDF library choice (shared with whole-book export).
+- Which PDF library (chosen at build time, shared with whole-book export).

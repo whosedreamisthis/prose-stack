@@ -21,9 +21,8 @@ Exporting a single character, place, scene, chapter or part from its row menu is
 - Excludes trashed and archived items, like every export. Scene text is not included; that is the manuscript export.
 - Acceptance: only the owner can export; a project with no characters or places offers only what exists; a project of 50 characters and 50 places exports without timing out.
 
-## Approach (undecided)
-- Option A: browser print styles on the book view (simple, no dependency).
-- Option B: a PDF library, server-side (more control over pagination and fonts).
+## Approach (decided)
+A server-side PDF library, generated in a Route Handler. Browser print styles were rejected: they cannot guarantee page size, fonts or headers, and the item and story bible layouts are not on-screen pages. The specific library (for example PDFKit or `@react-pdf/renderer`) is chosen when the feature is built, checked against current docs and Next.js compatibility. Whole-book, per-item and story bible exports share one renderer module.
 
 ## Acceptance criteria
 - Exported PDF matches the on-screen book view.
