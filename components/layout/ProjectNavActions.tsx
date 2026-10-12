@@ -1,7 +1,7 @@
 "use client";
 
-import { FileDownIcon, MenuIcon, SettingsIcon, SpellCheckIcon, type LucideIcon } from "lucide-react";
-import { useParams } from "next/navigation";
+import { BookOpenIcon, MenuIcon, SettingsIcon, SpellCheckIcon, type LucideIcon } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { Hint } from "@/components/layout/Hint";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { Button } from "@/components/ui/button";
@@ -27,15 +27,16 @@ interface Action {
 /** Project-only navbar actions; renders nothing outside /projects/[projectId]. Collapses into a menu on small screens. */
 export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsProps) {
   const { projectId } = useParams<{ projectId?: string }>();
+  const router = useRouter();
   const openSettings = useSettingsStore((s) => s.openSettings);
   if (!projectId) return null;
 
   const project = projects?.find((p) => p.id === projectId);
 
-  // Spell check and PDF export stay disabled until they ship; each feature wires its own button.
+  // Spell check stays disabled until it ships; each feature wires its own button. Exports live in the outline's row menus.
   const actions: Action[] = [
     { label: "Spell check", icon: SpellCheckIcon },
-    { label: "Export to PDF", icon: FileDownIcon },
+    { label: "Book view", icon: BookOpenIcon, onSelect: () => router.push(`/projects/${projectId}/manuscript/book`) },
     {
       label: "Settings",
       icon: SettingsIcon,
