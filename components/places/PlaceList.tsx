@@ -11,7 +11,7 @@ import { ExportItem, RowMenu } from "@/components/manuscript/RowMenu";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { resolveActivePlace } from "@/lib/place-selection";
 import { useLayoutStore } from "@/lib/stores/layout-store";
-import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
+import { useOptimisticActive, usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { cn } from "@/lib/utils";
 import type { PlaceSummary } from "@/types/places";
 import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
@@ -28,6 +28,8 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
   const onPlacesPage = usePathname().startsWith(`/projects/${projectId}/places`);
   // Read from the URL here, not on the server, so the sidebar can live in the layout and stay mounted between pages.
   const activeId = resolveActivePlace(places, useSearchParams().get("place"))?.id ?? null;
+  // The row just clicked is highlighted at once, not when the page has arrived.
+  const selectedId = useOptimisticActive(["place"], onPlacesPage ? activeId : null);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const setPending = usePendingNavStore((s) => s.setPending);
   const [, startTransition] = useTransition();
@@ -56,7 +58,7 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
             <li key={p.id} className="group/item relative">
               <Link
                 href={`/projects/${projectId}/places?place=${p.id}`}
-                aria-current={onPlacesPage && p.id === activeId ? "true" : undefined}
+                aria-current={p.id === selectedId ? "true" : undefined}
                 // Fetch the place as the pointer arrives, so the click is usually served from the browser.
                 onPointerEnter={() => router.prefetch(`/projects/${projectId}/places?place=${p.id}`)}
                 onFocus={() => router.prefetch(`/projects/${projectId}/places?place=${p.id}`)}
@@ -68,7 +70,7 @@ export function PlaceList({ projectId, places }: PlaceListProps) {
                 }}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  onPlacesPage && p.id === activeId ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60",
+                  p.id === selectedId ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60",
                 )}
               >
                 <MapPinIcon className="size-4 shrink-0" aria-hidden />

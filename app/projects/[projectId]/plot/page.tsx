@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { PlotGrid } from "@/components/plot/PlotGrid";
-import { PlotSkeleton } from "@/components/plot/PlotSkeleton";
+import { PlotRouteSkeleton } from "@/components/plot/PlotRouteSkeleton";
 import { ActiveProjectSync } from "@/components/projects/ActiveProjectSync";
 import { getCurrentUser } from "@/lib/auth";
 import { getManuscript } from "@/lib/manuscript";
@@ -37,7 +37,7 @@ async function PlotLoader({ params }: { params: PageParams["params"] }) {
 
 export default function PlotPage(props: PageParams) {
   return (
-    <Suspense fallback={<PlotSkeleton />}>
+    <Suspense fallback={<PlotRouteSkeleton />}>
       <PlotLoader params={props.params} />
     </Suspense>
   );

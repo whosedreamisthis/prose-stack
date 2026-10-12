@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 /** What a click is waiting on: the `?character=`, `?place=`, `?scene=` or `?item=` (a trashed or archived item) on a page, or a whole `section` (a route segment). */
-export type PendingKind = "character" | "place" | "scene" | "item" | "section" | "node";
+export type PendingKind = "character" | "place" | "scene" | "item" | "section" | "node" | "plot";
 
 /**
  * How long a click may wait before its skeleton shows. A page the browser already has arrives within a frame or two, and a
@@ -19,9 +19,22 @@ interface PendingNavStore {
 
 const timers: Partial<Record<PendingKind, ReturnType<typeof setTimeout>>> = {};
 
+/**
+ * What a sidebar list should show as selected while a click is on its way: the item just clicked in one of its own `kinds`
+ * at once, nothing when the click was in another list (so two lists never show a selection together), and otherwise the
+ * item the page has open (`active`, null when the page is not this list's).
+ */
+export function useOptimisticActive(kinds: PendingKind[], active: string | null): string | null {
+  const mine = usePendingNavStore((s) => kinds.map((k) => s.pending[k]).find((id) => id !== null) ?? null);
+  const other = usePendingNavStore((s) =>
+    (Object.keys(s.pending) as PendingKind[]).some((k) => k !== "section" && !kinds.includes(k) && s.pending[k] !== null),
+  );
+  return mine ?? (other ? null : active);
+}
+
 export const usePendingNavStore = create<PendingNavStore>((set) => ({
-  pending: { character: null, place: null, scene: null, item: null, section: null, node: null },
-  visible: { character: false, place: false, scene: false, item: false, section: false, node: false },
+  pending: { character: null, place: null, scene: null, item: null, section: null, node: null, plot: null },
+  visible: { character: false, place: false, scene: false, item: false, section: false, node: false, plot: false },
   setPending: (kind, id) => {
     clearTimeout(timers[kind]);
     set((s) => ({ pending: { ...s.pending, [kind]: id }, visible: { ...s.visible, [kind]: false } }));

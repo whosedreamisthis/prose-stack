@@ -26,7 +26,7 @@ import { requestEditorFocus } from "@/lib/editor-focus";
 import { defaultNodeTitle, nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
 import { applyMove, childrenOf, resolveActiveScene, subtreeIds } from "@/lib/manuscript-tree";
 import { useLayoutStore } from "@/lib/stores/layout-store";
-import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
+import { useOptimisticActive, usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
 import { cn } from "@/lib/utils";
 import type { LabelWithUsage } from "@/types/labels";
@@ -141,7 +141,9 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
   const openId = clicked && clicked.from === sceneParam ? clicked.id : resolveActiveScene(nodes, sceneParam ?? undefined)?.id;
   // Only one sidebar item is highlighted at a time: a scene is highlighted while the manuscript is open, or from the
   // click that is taking us there, never while a character or place is the open page.
-  const activeId = onManuscriptPage ? openId : (openNodeId ?? pendingSceneId ?? undefined);
+  const routedId = onManuscriptPage ? openId : (openNodeId ?? pendingSceneId ?? undefined);
+  // A chapter or part just clicked is highlighted at once too, and a click in another list takes the highlight away.
+  const activeId = useOptimisticActive(["node", "scene"], routedId ?? null) ?? undefined;
 
   function focusRow(id: string) {
     // Two frames: after a move the row is re-rendered (often under a new parent) before it can take focus.

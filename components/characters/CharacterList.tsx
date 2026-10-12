@@ -14,7 +14,7 @@ import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdow
 import { requestNameFocus } from "@/lib/character-focus";
 import { CHARACTER_ROLES, type CharacterRoleKey } from "@/lib/character-config";
 import { resolveActiveCharacter } from "@/lib/character-selection";
-import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
+import { useOptimisticActive, usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { cn } from "@/lib/utils";
 import type { CharacterSummary } from "@/types/characters";
@@ -32,6 +32,8 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
   const onCharactersPage = usePathname().startsWith(`/projects/${projectId}/characters`);
   // Read from the URL here, not on the server, so the sidebar can live in the layout and stay mounted between pages.
   const activeId = resolveActiveCharacter(characters, useSearchParams().get("character"))?.id ?? null;
+  // The row just clicked is highlighted at once, not when the page has arrived.
+  const selectedId = useOptimisticActive(["character"], onCharactersPage ? activeId : null);
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const setPending = usePendingNavStore((s) => s.setPending);
   const [pending, startTransition] = useTransition();
@@ -91,7 +93,7 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
                   <li key={c.id} className="group/item relative">
                     <Link
                       href={`/projects/${projectId}/characters?character=${c.id}`}
-                      aria-current={onCharactersPage && c.id === activeId ? "true" : undefined}
+                      aria-current={c.id === selectedId ? "true" : undefined}
                       // Fetch the character as the pointer arrives, so the click is usually served from the browser.
                       onPointerEnter={() => router.prefetch(`/projects/${projectId}/characters?character=${c.id}`)}
                       onFocus={() => router.prefetch(`/projects/${projectId}/characters?character=${c.id}`)}
@@ -103,7 +105,7 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
                       }}
                       className={cn(
                         "flex items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        onCharactersPage && c.id === activeId
+                        c.id === selectedId
                           ? SELECTED_ROW
                           : "text-foreground/80 hover:bg-muted/60",
                       )}

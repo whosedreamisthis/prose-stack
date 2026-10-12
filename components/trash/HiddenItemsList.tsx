@@ -14,7 +14,7 @@ import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdow
 import { itemParam } from "@/lib/trash-config";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/lib/stores/layout-store";
-import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
+import { useOptimisticActive, usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import type { ArchiveItem, TrashItem } from "@/types/trash";
 import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
@@ -46,6 +46,8 @@ export function HiddenItemsList({ projectId, slug, items, empty }: HiddenItemsLi
   // Only one sidebar item is highlighted at a time, so an item here counts as open only while its own page shows it.
   const onPage = usePathname() === href;
   const openItem = useSearchParams().get("item");
+  // The row just clicked is highlighted at once, not when the page has arrived.
+  const selectedItem = useOptimisticActive(["item"], onPage ? openItem : null);
 
   const run = (item: Item, action: () => Promise<{ success: true } | { success: false; error: string }>, done: string) => {
     startTransition(async () => {
@@ -68,7 +70,7 @@ export function HiddenItemsList({ projectId, slug, items, empty }: HiddenItemsLi
           const Icon = KIND_ICON[item.kind];
           const param = itemParam(item.kind, item.id);
           const itemHref = `${href}?item=${encodeURIComponent(param)}`;
-          const open = onPage && openItem === param;
+          const open = selectedItem === param;
           return (
             <li key={`${item.kind}-${item.id}`} className="group/item relative">
               <Link

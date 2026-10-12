@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowDownIcon, ArrowUpIcon, GitBranchIcon, LayoutGridIcon } from "lucide-react";
@@ -13,7 +13,7 @@ import { usePlotActions } from "@/hooks/usePlotActions";
 import { usePlotData } from "@/hooks/usePlotData";
 import { plotLineNameSchema } from "@/lib/plot-config";
 import { useLayoutStore } from "@/lib/stores/layout-store";
-import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
+import { useOptimisticActive, usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { cn } from "@/lib/utils";
 import type { PlotData, PlotLineItem } from "@/types/plot";
 
@@ -33,6 +33,10 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
   const activeLineId = useSearchParams().get("line");
   const { lines } = usePlotData(plot);
   const actions = usePlotActions(projectId);
+  // The row just clicked is highlighted at once, not when the page has arrived ("grid" is the Plot grid row).
+  const selected = useOptimisticActive(["plot"], onGrid ? (activeLineId ?? "grid") : null);
+  const search = useSearchParams().toString();
+  const pathname = usePathname();
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const setRightDrawerOpen = useLayoutStore((s) => s.setRightDrawerOpen);
   const setHasRightPanel = useLayoutStore((s) => s.setHasRightPanel);
@@ -47,7 +51,14 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
     if (name.success && name.data !== line.name) actions.renameLine(line.id, name.data);
   };
 
-  const open = () => {
+  // Any URL change means the click has arrived (or was replaced by another), so the wait is over.
+  const clearPending = usePendingNavStore((s) => s.setPending);
+  useEffect(() => {
+    clearPending("plot", null);
+  }, [pathname, search, clearPending]);
+
+  const open = (id: string) => {
+    setPending("plot", id);
     if (!onGrid) setPending("section", "plot");
     setDrawerOpen(false);
     // The grid has no right panel: close the scene panel now, not when the page arrives.
@@ -61,18 +72,18 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
         <li>
           <Link
             href={gridPath}
-            aria-current={onGrid && !activeLineId ? "true" : undefined}
+            aria-current={selected === "grid" ? "true" : undefined}
             onPointerEnter={() => router.prefetch(gridPath)}
             onFocus={() => router.prefetch(gridPath)}
-            onClick={open}
-            className={cn(ROW, "pr-2", onGrid && !activeLineId ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60")}
+            onClick={() => open("grid")}
+            className={cn(ROW, "pr-2", selected === "grid" ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60")}
           >
             <LayoutGridIcon className="size-4 shrink-0" aria-hidden />
             <span className="truncate">Plot grid</span>
           </Link>
         </li>
         {lines.map((line, index) => {
-          const selected = onGrid && line.id === activeLineId;
+          const isSelected = line.id === selected;
           return (
             <li key={line.id} className="group/item relative">
               {editingId === line.id ? (
@@ -83,10 +94,10 @@ export function PlotLinesSection({ projectId, plot }: PlotLinesSectionProps) {
               ) : (
                 <Link
                   href={`${gridPath}?line=${line.id}`}
-                  aria-current={selected ? "true" : undefined}
-                  onClick={open}
+                  aria-current={isSelected ? "true" : undefined}
+                  onClick={() => open(line.id)}
                   onDoubleClick={() => setEditingId(line.id)}
-                  className={cn(ROW, selected ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60")}
+                  className={cn(ROW, isSelected ? SELECTED_ROW : "text-foreground/80 hover:bg-muted/60")}
                 >
                   <GitBranchIcon className="size-4 shrink-0" aria-hidden />
                   <span className="truncate">{line.name}</span>

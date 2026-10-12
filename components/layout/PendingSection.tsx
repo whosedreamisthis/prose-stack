@@ -5,7 +5,7 @@ import { useParams, usePathname } from "next/navigation";
 import { SketchSkeleton } from "@/components/characters/SketchSkeleton";
 import { EditorSkeleton } from "@/components/manuscript/EditorSkeleton";
 import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
-import { PlotSkeleton } from "@/components/plot/PlotSkeleton";
+import { PlotRouteSkeleton } from "@/components/plot/PlotRouteSkeleton";
 import { ListSkeleton } from "@/components/trash/ListSkeleton";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 
@@ -13,7 +13,6 @@ const SKELETONS: Record<string, ReactNode> = {
   manuscript: <EditorSkeleton />,
   characters: <SketchSkeleton />,
   places: <PlaceSkeleton />,
-  plot: <PlotSkeleton />,
   trash: <ListSkeleton />,
   archive: <ListSkeleton />,
 };
@@ -28,6 +27,7 @@ export function PendingSection({ children }: { children: ReactNode }) {
   const target = usePendingNavStore((s) => s.pending.section);
   const visible = usePendingNavStore((s) => s.visible.section);
   const setPending = usePendingNavStore((s) => s.setPending);
+  const pendingPlot = usePendingNavStore((s) => s.pending.plot);
   const arrived = target !== null && pathname.startsWith(`/projects/${projectId}/${target}`);
   const waiting = target !== null && !arrived;
 
@@ -37,5 +37,6 @@ export function PendingSection({ children }: { children: ReactNode }) {
   }, [pathname, setPending]);
 
   // The skeleton waits a moment (see SKELETON_DELAY_MS); until then the current page stays, so quick switches don't flash.
+  if (waiting && visible && target === "plot") return <PlotRouteSkeleton lineId={pendingPlot} />;
   return waiting && visible && target ? (SKELETONS[target] ?? children) : children;
 }

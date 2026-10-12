@@ -1,5 +1,5 @@
-import { PlotSkeleton } from "@/components/plot/PlotSkeleton";
+import { PlotRouteSkeleton } from "@/components/plot/PlotRouteSkeleton";
 
 export default function Loading() {
-  return <PlotSkeleton />;
+  return <PlotRouteSkeleton />;
 }
