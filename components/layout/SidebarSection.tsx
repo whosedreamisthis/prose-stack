@@ -46,7 +46,7 @@ export function SidebarSection({ slug, label, action, icon, alsoOpenOn = [], nes
 
   return (
     <section aria-label={label} className="flex flex-col gap-1">
-      <div className="relative">
+      <div className="group/header relative">
         <button
           type="button"
           aria-expanded={open}
@@ -68,7 +68,12 @@ export function SidebarSection({ slug, label, action, icon, alsoOpenOn = [], nes
           )}
           <span className="truncate">{label}</span>
         </button>
-        {action && <div className="absolute top-1/2 right-1 -translate-y-1/2">{action}</div>}
+        {action && (
+          // Like the outline's "…": shown on hover or keyboard focus, while its menu is open, and always on touch screens.
+          <div className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/header:opacity-100 group-has-[:focus-visible]/header:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:opacity-100">
+            {action}
+          </div>
+        )}
       </div>
       <div id={bodyId} hidden={!open} className={cn(nested && "pl-3")}>
         {children}

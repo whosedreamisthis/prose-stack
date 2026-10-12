@@ -55,7 +55,7 @@ export function EmptyTrashMenu({ projectId, count }: { projectId: string; count:
           <AlertDialogHeader>
             <AlertDialogTitle>Empty the trash?</AlertDialogTitle>
             <AlertDialogDescription>
-              All {items} in the trash, and everything inside them, will be deleted for good. This can&apos;t be undone.
+              All {items} in the trash, and everything inside them, will be deleted for good. <strong className="font-semibold">This can&apos;t be undone.</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -67,7 +67,7 @@ export function EmptyTrashMenu({ projectId, count }: { projectId: string; count:
                 empty();
               }}
             >
-              Delete all permanently
+              Delete all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
