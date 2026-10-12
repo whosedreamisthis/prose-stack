@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { BookOpenIcon, ChevronDownIcon, LayoutGridIcon, PlusIcon } from "lucide-react";
 import { NewProjectDialog } from "@/components/projects/NewProjectDialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import type { ProjectSummary } from "@/types/projects";
 export function ProjectSwitcher({ projects }: { projects: ProjectSummary[] }) {
   // The route is the source of truth, and it is correct on the very first render (the store only syncs after mount).
   const { projectId: activeProjectId } = useParams<{ projectId?: string }>();
+  const router = useRouter();
   const setNewProjectOpen = useProjectStore((s) => s.setNewProjectOpen);
   const active = projects.find((p) => p.id === activeProjectId);
   const atLimit = projects.length >= MAX_PROJECTS_PER_USER;
@@ -51,6 +52,8 @@ export function ProjectSwitcher({ projects }: { projects: ProjectSummary[] }) {
                 key={project.id}
                 render={<Link href={`/projects/${project.id}/manuscript`} />}
                 onClick={() => applyAccent(getAccentTokens(project.coverColor))}
+                // Fetch the project as the pointer arrives, so the click is usually served from the browser.
+                onPointerEnter={() => router.prefetch(`/projects/${project.id}/manuscript`)}
                 className={project.id === activeProjectId ? "font-medium" : undefined}
               >
                 <span className="truncate">{project.title}</span>

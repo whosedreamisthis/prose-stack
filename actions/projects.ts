@@ -44,6 +44,7 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
     });
     if (!project) return { success: false, error: PROJECT_LIMIT_MESSAGE };
 
+    updateTag(cacheTags.projects(user.id));
     revalidatePath("/", "layout");
     return { success: true, data: { id: project.id } };
   } catch (error) {
@@ -73,6 +74,7 @@ export async function updateProject(projectId: string, input: UpdateProjectInput
 
     // Every cached read of the project carries this tag, so this drops its characters, outline and scenes too.
     updateTag(cacheTags.project(projectId));
+    updateTag(cacheTags.projects(user.id));
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (error) {
@@ -92,6 +94,7 @@ export async function deleteProject(projectId: string): Promise<ActionResult> {
     if (count === 0) return { success: false, error: NOT_FOUND };
 
     updateTag(cacheTags.project(projectId));
+    updateTag(cacheTags.projects(user.id));
     revalidatePath("/", "layout");
     return { success: true, data: undefined };
   } catch (error) {

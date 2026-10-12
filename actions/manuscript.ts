@@ -166,6 +166,8 @@ export async function saveScene(input: { projectId: string; nodeId: string; cont
     // Not the outline: it never shows a scene's word count, so autosave leaves it cached.
     updateTag(cacheTags.scene(nodeId));
     updateTag(cacheTags.stats(projectId));
+    // The save moved the project to the top of the list and changed its "Edited" date.
+    updateTag(cacheTags.projects(user.id));
 
     return { success: true, data: { updatedAt } };
   } catch (error) {

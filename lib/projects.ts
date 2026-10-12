@@ -14,7 +14,14 @@ const summarySelect = {
   updatedAt: true,
 } as const;
 
+/**
+ * The user's projects, most recently edited first. Cached until a project is created, edited or deleted, or a scene is
+ * saved (which moves the project up and changes its "Edited" date).
+ */
 export async function listProjects(userId: string): Promise<ProjectSummary[]> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.projects(userId));
   return prisma.project.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },

@@ -168,13 +168,13 @@ describe("saveSceneSummary", () => {
 });
 
 describe("cache invalidation", () => {
-  it("expires the scene and the word totals on save, but leaves the outline cached", async () => {
+  it("expires the scene, word totals and project list on save, but leaves the outline cached", async () => {
     prismaMock.manuscriptNode.findFirst.mockResolvedValue({ id: "s1" });
     prismaMock.manuscriptNode.aggregate.mockResolvedValue({ _sum: { wordCount: 0 } });
     prismaMock.manuscriptNode.update.mockResolvedValue({ updatedAt: new Date() });
     prismaMock.project.update.mockResolvedValue({});
     await saveScene({ projectId: "p1", nodeId: "s1", content: docFromText("Hello there") });
-    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["scene:s1", "stats:p1"]);
+    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["projects:user-1", "scene:s1", "stats:p1"]);
   });
 
   it("expires the outline and the scene when a node is renamed", async () => {

@@ -47,6 +47,9 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
     <div className="relative flex flex-col gap-3">
       <Link
         href={`/projects/${project.id}/manuscript`}
+        // Fetch the project as the pointer arrives, so the click is usually served from the browser.
+        onPointerEnter={() => router.prefetch(`/projects/${project.id}/manuscript`)}
+        onFocus={() => router.prefetch(`/projects/${project.id}/manuscript`)}
         aria-label={`Open ${project.title}`}
         className="flex flex-col gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
