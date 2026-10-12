@@ -12,7 +12,7 @@ The app shell: left sidebar, right sidebar, and top navbar.
 - **Top navbar:** project switcher, spell check toggle, **Export to PDF**, settings, Clerk avatar (right side).
 - **Editor toolbar:** undo/redo, find & replace, font size, thesaurus, read aloud. Page-specific, and centered above the main pane (not the window) so it lines up with the writing area whichever sidebars are open.
 - **Editor column:** writing area and stats footer.
-- Calm, distraction-free styling: light mode default, clean typography, subtle borders and shadows.
+- Calm, distraction-free styling: follows the system theme, light if unknown (see [settings-theme-spec.md](settings-theme-spec.md)), clean typography, subtle borders and shadows.
 
 ## State
 - Sidebar open/closed, active project, modals: **Zustand** store (not React Context).
