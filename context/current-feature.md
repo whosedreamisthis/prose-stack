@@ -1,20 +1,33 @@
-# Current Feature
+# Current Feature: Export Item to PDF
 
-<!-- Feature name and short description -->
+Export a single item (character, place, scene, chapter or part) to a PDF from its row's "…" menu. Spec: `context/features/export-item-pdf-spec.md`.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add an **Export as PDF** item to the hover "…" menu of characters, places, scenes, chapters and parts, above the red **Move to trash** item and separated from it.
+- PDF contents:
+  - **Character:** name, group (Main or Supporting), every sketch field with text, then its notes. Empty fields omitted.
+  - **Place:** name, card fields with text, related characters (live only), then its notes.
+  - **Scene:** its text only, no title, no title page.
+  - **Chapter:** chapter title, then each scene's text in order separated by a centered "* * *" (the book view will use the same separator); no scene titles, no page breaks between scenes.
+  - **Part:** part title, then each chapter (title, then its scenes as above) in order. Trashed items excluded.
+- Manuscript text follows the project's formatting (font, size, line spacing); character and place PDFs use a fixed readable layout with the project title as a small header.
+- File name `<item name>.pdf` with invalid file-name characters removed.
+- Download starts straight from the menu click; the item shows a spinner and is disabled while generating; failure shows an error toast.
+- Trashed and archived items are not exportable (no menu item, and enforced server-side).
+- Server-side generation in `GET /api/export/[type]/[id]?projectId=` (`type` = `character` | `place` | `node`), returning `application/pdf` with `Content-Disposition: attachment`.
+- Handler reads through the same cached, user-scoped reads the pages use; renderer is a small module with one function per item type so the PDF library stays swappable.
+- Acceptance: only the owner can export (other user's id returns 404, signed-out is redirected); a character with no fields exports name only; an empty scene exports a blank page; trashed scenes and trashed related characters are left out; a 20,000-word scene exports without timing out; input validated with Zod and ids never used to build file paths; the demo user can export.
 
 ## Notes
 
-<!-- Any extra notes -->
+- No new data stored; reads existing `Character`, `CharacterNote`, `Place`, `PlaceNote`, `ManuscriptNode`.
+- The PDF library is chosen at build time and shared with whole-book export (`context/features/export-pdf-spec.md`), which reuses the character and place layouts.
+- Related specs: characters, places, scene-editor, notes-research.
 
 ## Completed Features
 

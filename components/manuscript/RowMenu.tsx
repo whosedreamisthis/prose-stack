@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { DownloadIcon, Loader2Icon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EXPORT_FAILED, exportUrl, pdfFileName, type ExportType } from "@/lib/export-config";
 import { cn } from "@/lib/utils";
+
+/** Lets an item close the menu itself, for items that keep it open while they work. */
+const CloseMenuContext = createContext<() => void>(() => {});
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
@@ -19,8 +24,11 @@ const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
  * Hidden until the row is hovered or focused, or while the menu is open.
  */
 export function RowMenu({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   return (
-    <DropdownMenu>
+    <CloseMenuContext.Provider value={close}>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         aria-label={label}
         data-row-menu
@@ -37,7 +45,8 @@ export function RowMenu({ label, className, children }: { label: string; classNa
       <DropdownMenuContent align="start" finalFocus={false} onClick={stop} onDoubleClick={stop} className="w-44">
         {children}
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </CloseMenuContext.Provider>
   );
 }
 
@@ -53,6 +62,44 @@ export function RenameItem({ onClick }: { onClick: () => void }) {
   return (
     <DropdownMenuItem onClick={onClick}>
       <PencilIcon /> Rename
+    </DropdownMenuItem>
+  );
+}
+
+/**
+ * "Export as PDF": downloads the item from the export route. The menu stays open with a spinner while the file is
+ * generated, then closes; a failure shows a toast.
+ */
+export function ExportItem({ type, id, projectId, name }: { type: ExportType; id: string; projectId: string; name: string }) {
+  const [busy, setBusy] = useState(false);
+  const closeMenu = useContext(CloseMenuContext);
+
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const response = await fetch(exportUrl(type, id, projectId));
+      if (!response.ok) throw new Error(`Export failed (${response.status})`);
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = pdfFileName(name);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      toast.error(EXPORT_FAILED);
+    } finally {
+      setBusy(false);
+      closeMenu();
+    }
+  };
+
+  return (
+    <DropdownMenuItem closeOnClick={false} disabled={busy} onClick={run}>
+      {busy ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />} Export as PDF
     </DropdownMenuItem>
   );
 }

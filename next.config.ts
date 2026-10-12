@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 300 },
   },
   cacheComponents: true,
+  // pdfkit reads its built-in font files from its own folder at runtime, so it can't be bundled.
+  serverExternalPackages: ["pdfkit"],
   partialPrefetching: true,
   turbopack: {
     rules: {

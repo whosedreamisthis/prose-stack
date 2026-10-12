@@ -8,7 +8,7 @@ import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { createNode, renameNode, trashNode } from "@/actions/manuscript";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
-import { AddItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
+import { AddItem, ExportItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
 import { TreeRow } from "@/components/manuscript/TreeRow";
 import { handleTreeKeyDown } from "@/components/manuscript/tree-keyboard";
 import { NODE_ICON, ROOT_KEY, iconClass, treeRowClass } from "@/components/manuscript/tree-config";
@@ -208,6 +208,7 @@ export function ManuscriptTree({ projectId, nodes: serverNodes }: ManuscriptTree
         {node.type === "CHAPTER" && <AddItem label="Add scene" onClick={() => addNode(node.id, "SCENE")} />}
         {node.type === "PART" && <AddItem label="Add chapter" onClick={() => addNode(node.id, "CHAPTER")} />}
         <RenameItem onClick={() => setEditingId(node.id)} />
+        <ExportItem type="node" id={node.id} projectId={projectId} name={node.title} />
         <TrashItem onClick={() => setConfirming(node)} />
       </RowMenu>
     );
