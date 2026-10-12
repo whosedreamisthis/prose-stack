@@ -135,6 +135,8 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
           className={cn(
             "shrink-0 overflow-hidden border-r bg-background transition-[width,translate,visibility] duration-200 motion-reduce:transition-none md:bg-primary/5 dark:md:bg-transparent",
             "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-72 max-md:shadow-lg",
+            // From md up it is inline; above the right drawer's backdrop (z-30), so it stays clickable while that drawer is open.
+            "md:relative md:z-40",
             !drawerOpen && "max-md:invisible max-md:-translate-x-full",
             leftOpen ? "md:w-64" : "md:invisible md:w-0 md:border-r-0",
           )}
