@@ -5,8 +5,8 @@ import { NodeDetailsLoader } from "@/components/manuscript/NodeDetailsLoader";
 
 export default function ChapterDetailsSlot(props: PageProps<"/projects/[projectId]/manuscript/chapter/[nodeId]">) {
   return (
-    <PendingNodeSwitch fallback={<NotesSkeleton title="Chapter details" />}>
-      <Suspense fallback={<NotesSkeleton title="Chapter details" />}>
+    <PendingNodeSwitch fallback={<NotesSkeleton title="Chapter details" tabs />}>
+      <Suspense fallback={<NotesSkeleton title="Chapter details" tabs />}>
         <NodeDetailsLoader params={props.params} type="CHAPTER" />
       </Suspense>
     </PendingNodeSwitch>

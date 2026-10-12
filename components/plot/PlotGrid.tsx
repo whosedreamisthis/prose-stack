@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -94,7 +94,11 @@ export function PlotGrid({ projectId, plot, labels: serverLabels, scenes }: Plot
   useEffect(() => {
     for (const scene of usePlotStore.getState().addedScenes) if (scenes.some((s) => s.id === scene.id)) usePlotStore.getState().removeScene(scene.id);
   }, [scenes]);
-  const rows = [...scenes, ...addedScenes.filter((a) => !scenes.some((s) => s.id === a.id))].map((s) => ({ ...s, title: titles[s.id] ?? s.title }));
+  const rows = useMemo(() => {
+    const known = new Set(scenes.map((s) => s.id));
+    return [...scenes, ...addedScenes.filter((a) => !known.has(a.id))].map((s) => ({ ...s, title: titles[s.id] ?? s.title }));
+  }, [scenes, addedScenes, titles]);
+  const pointByCell = useMemo(() => new Map(points.map((p) => [`${p.plotLineId}:${p.sceneId}`, p])), [points]);
 
   const editor = usePlotPointEditor({ projectId, lines, points, scenes: rows, labels });
 
@@ -246,7 +250,7 @@ export function PlotGrid({ projectId, plot, labels: serverLabels, scenes }: Plot
                     </RowMenu>
                   </th>
                   {lines.map((line) => {
-                    const point = points.find((p) => p.plotLineId === line.id && p.sceneId === scene.id);
+                    const point = pointByCell.get(`${line.id}:${scene.id}`);
                     return (
                       <Cell key={line.id} line={line} scene={scene}>
                         {point ? (

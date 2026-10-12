@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
+import { useId, useMemo, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BookmarkIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -268,13 +268,20 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
     );
   }
 
-  /** Whether a row is labeled with the filter's label, or holds a row that is. Everything shows with no filter. */
-  function inFilter(node: ManuscriptNodeSummary): boolean {
-    return !filterLabelId || node.labelId === filterLabelId || childrenOf(nodes, node.id).some(inFilter);
-  }
+  /** With a label filter: the rows carrying that label and every row above them. Without one, every row. */
+  const visibleIds = useMemo(() => {
+    if (!filterLabelId) return null;
+    const ids = new Set<string>();
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    for (const n of nodes) {
+      if (n.labelId !== filterLabelId) continue;
+      for (let up: ManuscriptNodeSummary | undefined = n; up && !ids.has(up.id); up = up.parentId ? byId.get(up.parentId) : undefined) ids.add(up.id);
+    }
+    return ids;
+  }, [nodes, filterLabelId]);
 
   function renderRows(parentId: string | null): ReactNode {
-    return childrenOf(nodes, parentId).filter(inFilter).map((node) => {
+    return childrenOf(nodes, parentId).filter((n) => !visibleIds || visibleIds.has(n.id)).map((node) => {
       const isScene = node.type === "SCENE";
       // A filtered outline opens up so the matching rows are all in view.
       const isCollapsed = !filterLabelId && !!collapsed[node.id];

@@ -43,8 +43,8 @@ async function NotesLoader({ params, searchParams }: { params: SlotProps["params
 
 export default function SceneNotesSlot(props: SlotProps) {
   return (
-    <PendingSwitch kind="scene" fallback={<NotesSkeleton title="Scene details" />}>
-      <Suspense fallback={<NotesSkeleton title="Scene details" />}>
+    <PendingSwitch kind="scene" fallback={<NotesSkeleton title="Scene details" tabs />}>
+      <Suspense fallback={<NotesSkeleton title="Scene details" tabs />}>
         <NotesLoader params={props.params} searchParams={props.searchParams} />
       </Suspense>
     </PendingSwitch>
