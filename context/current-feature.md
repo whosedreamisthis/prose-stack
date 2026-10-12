@@ -1,20 +1,22 @@
-# Current Feature
+# Current Feature: Whole-Book PDF Export
 
-<!-- Feature name and short description -->
+Export the whole manuscript as a PDF from the Manuscript row's menu, as the Book view's pages.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- "Export as PDF" in the Manuscript row's "…" menu downloads `<project title>.pdf`
+- The PDF is the Book view's pages from the shared `paginate`: 6 x 9 in, title page, parts, chapters on new pages, page numbers and running header
+- The project's font is embedded (Georgia and Times New Roman through Gelasio and Tinos), so text and line breaks match the Book view
+- Always black on white; trashed items excluded; only the owner can export
 
 ## Notes
 
-<!-- Any extra notes -->
+- Specs: `context/features/export-pdf-spec.md`, `book-view-spec.md`. Fonts come from `@fontsource` packages (Latin subset), traced into the build through `outputFileTracingIncludes`.
+- Reuses `/api/export/[type]/[id]` with type `book` and the project id as the id.
 
 ## Completed Features
 

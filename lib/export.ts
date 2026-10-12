@@ -2,9 +2,11 @@ import { prisma } from "@/lib/db";
 import { CHARACTER_ROLES, SKETCH_FIELDS } from "@/lib/character-config";
 import { getCharacter, listCharacterNotes, listCharacters } from "@/lib/characters";
 import type { ExportType } from "@/lib/export-config";
-import { getManuscript, getScene } from "@/lib/manuscript";
+import { buildBookItems } from "@/lib/book/content";
+import { getBookNodes, getManuscript, getScene } from "@/lib/manuscript";
 import type { DocNode } from "@/lib/manuscript-text";
 import { PLACE_FIELDS } from "@/lib/place-config";
+import { renderBookPdf } from "@/lib/pdf/book";
 import { renderManuscriptPdf, type ManuscriptSection } from "@/lib/pdf/manuscript";
 import { renderSketchPdf } from "@/lib/pdf/sketch";
 import { getPlace, listPlaceNotes } from "@/lib/places";
@@ -30,7 +32,15 @@ export async function buildExport(userId: string, type: ExportType, id: string, 
   if (!project) return null;
   if (type === "character") return exportCharacter(userId, project.title, id, projectId);
   if (type === "place") return exportPlace(userId, project.title, id, projectId);
+  if (type === "book") return exportBook(userId, project);
   return exportNode(userId, project, id);
+}
+
+/** The whole manuscript as the Book view's pages. The id of a book export is its project, which was just checked. */
+async function exportBook(userId: string, project: NonNullable<Awaited<ReturnType<typeof getProject>>>) {
+  const nodes = await getBookNodes(userId, project.id);
+  const meta = { title: project.title, subtitle: project.subtitle ?? "", author: project.author };
+  return { name: project.title, pdf: await renderBookPdf(meta, buildBookItems(nodes), toFormatting(project)) };
 }
 
 async function exportCharacter(userId: string, projectTitle: string, id: string, projectId: string) {

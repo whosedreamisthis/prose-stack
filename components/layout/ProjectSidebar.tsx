@@ -34,7 +34,7 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <ManuscriptTree projectId={projectId} nodes={nodes} />
+      <ManuscriptTree projectId={projectId} projectTitle={project.title} nodes={nodes} />
       <SidebarSection slug="characters" label="Characters">
         <CharacterList projectId={projectId} characters={characters} />
       </SidebarSection>

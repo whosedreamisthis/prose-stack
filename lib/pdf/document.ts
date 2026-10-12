@@ -3,10 +3,13 @@ import PDFDocument from "pdfkit";
 /** Letter page with one-inch margins, in points. */
 export const PAGE_MARGIN = 72;
 
-/** Runs `draw` against a new document and resolves with the finished PDF. */
-export function buildPdf(draw: (doc: PDFKit.PDFDocument) => void): Promise<Buffer> {
+/** Runs `draw` against a new document and resolves with the finished PDF. Letter with one-inch margins unless told otherwise. */
+export function buildPdf(
+  draw: (doc: PDFKit.PDFDocument) => void,
+  { size, margin }: { size?: [number, number]; margin?: number } = {},
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "LETTER", margin: PAGE_MARGIN, info: { Producer: "ProseStack" } });
+    const doc = new PDFDocument({ size: size ?? "LETTER", margin: margin ?? PAGE_MARGIN, info: { Producer: "ProseStack" } });
     const chunks: Buffer[] = [];
     doc.on("data", (chunk: Buffer) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));

@@ -9,6 +9,7 @@ const getPlace = vi.fn();
 const listPlaceNotes = vi.fn();
 const getManuscript = vi.fn();
 const getScene = vi.fn();
+const getBookNodes = vi.fn();
 vi.mock("@/lib/projects", () => ({ getProject: (...a: unknown[]) => getProject(...a) }));
 vi.mock("@/lib/characters", () => ({
   getCharacter: (...a: unknown[]) => getCharacter(...a),
@@ -16,9 +17,14 @@ vi.mock("@/lib/characters", () => ({
   listCharacters: (...a: unknown[]) => listCharacters(...a),
 }));
 vi.mock("@/lib/places", () => ({ getPlace: (...a: unknown[]) => getPlace(...a), listPlaceNotes: (...a: unknown[]) => listPlaceNotes(...a) }));
-vi.mock("@/lib/manuscript", () => ({ getManuscript: (...a: unknown[]) => getManuscript(...a), getScene: (...a: unknown[]) => getScene(...a) }));
+vi.mock("@/lib/manuscript", () => ({ getManuscript: (...a: unknown[]) => getManuscript(...a), getScene: (...a: unknown[]) => getScene(...a),
+  getBookNodes: (...a: unknown[]) => getBookNodes(...a),
+}));
 const renderManuscript = vi.fn();
 vi.mock("@/lib/pdf/manuscript", () => ({ renderManuscriptPdf: (...a: unknown[]) => renderManuscript(...a) }));
+
+const renderBook = vi.fn();
+vi.mock("@/lib/pdf/book", () => ({ renderBookPdf: (...a: unknown[]) => renderBook(...a) }));
 
 import { buildExport } from "@/lib/export";
 
@@ -38,6 +44,24 @@ beforeEach(() => {
 });
 
 describe("buildExport", () => {
+  it("exports the whole book, named after the project, from its live nodes", async () => {
+    getProject.mockResolvedValue({ ...project, subtitle: null, author: "A. Writer" });
+    getBookNodes.mockResolvedValue([node("c1", "CHAPTER", null, 0, "One"), { ...node("s1", "SCENE", "c1", 0), content: null }]);
+    renderBook.mockResolvedValue(Buffer.from("%PDF-"));
+    const result = await buildExport("u1", "book", "p1", "p1");
+    expect(result?.name).toBe("Book");
+    expect(renderBook).toHaveBeenCalledWith(
+      { title: "Book", subtitle: "", author: "A. Writer" },
+      [{ kind: "chapter", title: "One", scenes: [null] }],
+      { fontFamily: "Georgia", fontSize: 12, lineSpacing: "DOUBLE" },
+    );
+  });
+
+  it("is null for a book export of a project that is not the user's", async () => {
+    getProject.mockResolvedValue(null);
+    expect(await buildExport("u1", "book", "p1", "p1")).toBeNull();
+  });
+
   it("is null when the project is not the user's", async () => {
     getProject.mockResolvedValue(null);
     expect(await buildExport("u1", "character", "c1", "p1")).toBeNull();
