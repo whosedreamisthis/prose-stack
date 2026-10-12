@@ -4,11 +4,12 @@ import { useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { updateProjectSettings } from "@/actions/settings";
 import { useEditorState } from "@tiptap/react";
-import { BookAIcon, CheckIcon, HeadphonesIcon, RedoIcon, SearchIcon, TypeIcon, UndoIcon, type LucideIcon } from "lucide-react";
+import { BookAIcon, CheckIcon, HeadphonesIcon, PauseIcon, PlayIcon, RedoIcon, SearchIcon, SquareIcon, TypeIcon, UndoIcon, type LucideIcon } from "lucide-react";
 import { Hint } from "@/components/layout/Hint";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useModKey } from "@/hooks/useModKey";
+import { useReadAloud } from "@/hooks/useReadAloud";
 import { TOOLBAR_FONT_SIZES, DEFAULT_FORMATTING } from "@/lib/project-config";
 import { useEditorStore } from "@/lib/stores/editor-store";
 import { useFormattingStore } from "@/lib/stores/formatting-store";
@@ -58,6 +59,7 @@ export function EditorToolbar() {
   const projectId = useFormattingStore((s) => s.projectId);
   const fontSize = useFormattingStore((s) => s.preview?.fontSize ?? s.saved?.fontSize ?? DEFAULT_FORMATTING.fontSize);
   const setPreview = useFormattingStore((s) => s.setPreview);
+  const speech = useReadAloud();
   const [stop, setStop] = useState(0);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
 
@@ -154,12 +156,15 @@ export function EditorToolbar() {
         tabStop={tab(4)}
         onClick={() => setThesaurusOpen(true)}
       />
-      {/* Read aloud has its own spec; it stays a placeholder here. */}
-      <Hint label="Read aloud (coming soon)">
-        <Button variant="ghost" size="icon" data-tool tabIndex={tab(5) ? 0 : -1} aria-label="Read aloud" aria-disabled className={toolClass}>
-          <HeadphonesIcon className="size-5" />
-        </Button>
-      </Hint>
+      <ToolButton
+        label={!speech.supported ? "Read aloud (not supported in this browser)" : speech.state === "speaking" ? "Pause reading" : speech.state === "paused" ? "Resume reading" : "Read aloud"}
+        icon={speech.state === "speaking" ? PauseIcon : speech.state === "paused" ? PlayIcon : HeadphonesIcon}
+        enabled={hasEditor && speech.supported}
+        pressed={speech.state !== "idle"}
+        tabStop={tab(5)}
+        onClick={speech.state === "speaking" ? speech.pause : speech.state === "paused" ? speech.resume : speech.start}
+      />
+      {speech.state !== "idle" && <ToolButton label="Stop reading" icon={SquareIcon} enabled tabStop={tab(6)} onClick={speech.stop} />}
     </div>
   );
 }
