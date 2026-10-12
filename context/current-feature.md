@@ -1,24 +1,20 @@
-# Current Feature: Chapter and Part View
+# Current Feature
 
-Clicking a part or chapter opens it in editable book form instead of only toggling it.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Clicking a chapter or part row in the outline opens `/manuscript/chapter/[nodeId]` or `/manuscript/part/[nodeId]`
-- A part shows its chapters' titles between their scenes
-- The view shows the chapter title as a header, with each scene's text below as an editable editor, in book form
-- Edits autosave per scene; the toolbar follows whichever scene editor has focus
-- The part or chapter icon still expands and collapses the chapter in the outline
-- Empty chapters show a hint to add a scene
+<!-- Goals and requirements -->
 
 ## Notes
 
-- `SceneEditor` has an `embedded` mode for several editors on one page: no live footer count (totals settle after each save), toolbar and find panels follow the focused editor.
-- Keyboard and tree behaviour are unchanged.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -38,3 +34,4 @@ In Progress
 - **Settings & Theme:** settings modal (General, Appearance), per-user light/dark theme with no-flash paint, constant indigo accent, logo favicon; see `components/settings/`, `lib/theme-config.ts`, `actions/settings.ts`.
 - **Settings Formatting:** Formatting tab with 12 fonts (incl. Courier Prime), size 10-18, line spacing, live preview; toolbar size menu saves the same setting; see `components/settings/FormattingTab.tsx`, `lib/formatting.ts`.
 - **Export Item to PDF:** "Export as PDF" in character, place, scene, chapter and part row menus, served by `/api/export/[type]/[id]` and rendered with pdfkit; see `lib/export.ts`, `lib/pdf/`.
+- **Chapter and Part View:** clicking a chapter or part opens it as editable book text with lazy-loaded scene editors; see `components/manuscript/NodeBookView.tsx`, `LazySceneEditor.tsx`, `SceneEditor.tsx` (`embedded`).
