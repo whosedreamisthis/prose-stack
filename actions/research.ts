@@ -194,7 +194,8 @@ export async function updateResearchItem(input: UpdateItemInput) {
   return run(updateItemSchema, input, "Could not save. Please try again.", async ({ projectId, itemId, changes }, userId) => {
     const { content, url, description, ...rest } = changes;
     const { count } = await prisma.researchItem.updateMany({
-      where: { id: itemId, projectId, project: { userId }, ...live },
+      // An upload's address is the stored file's, set by the server; only a link's can change.
+      where: { id: itemId, projectId, project: { userId }, ...live, ...(url !== undefined && { type: "LINK" as const }) },
       data: {
         ...rest,
         ...(content !== undefined && {
@@ -390,6 +391,18 @@ export async function trashResearchItem(input: { projectId: string; itemId: stri
 
 export async function archiveResearchItem(input: { projectId: string; itemId: string }) {
   return hideItem(input, "archivedAt", "Could not archive the item. Please try again.");
+}
+
+/**
+ * After an upload: the file router added the item outside any Server Action, so this expires the tree's cached read and
+ * the browser's copy of the page.
+ */
+export async function refreshResearch(input: { projectId: string }) {
+  return run(projectRefSchema, input, "Could not refresh research. Please reload the page.", async ({ projectId }, userId) => {
+    const project = await prisma.project.findFirst({ where: { id: projectId, userId }, select: { id: true } });
+    if (!project) throw new ResearchError(PROJECT_NOT_FOUND);
+    refresh(projectId);
+  });
 }
 
 /** Adds the worldbuilding starter folders at the top level. Only for a project with no research folders yet. */

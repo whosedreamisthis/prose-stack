@@ -34,11 +34,7 @@ export async function getResearch(userId: string, projectId: string): Promise<Re
       },
     }),
   ]);
-  // Only NOTE and LINK exist until uploads ship; anything else is left out rather than shown half-working.
-  return {
-    folders,
-    items: items.flatMap((i) => (i.type === "NOTE" || i.type === "LINK" ? [{ ...i, type: i.type }] : [])),
-  };
+  return { folders, items };
 }
 
 /** One live item with its content and story link. Null when it is missing, hidden or not the user's. */
@@ -71,6 +67,9 @@ export async function getResearchItem(userId: string, projectId: string, itemId:
       content: true,
       url: true,
       description: true,
+      fileName: true,
+      fileSize: true,
+      mimeType: true,
       character: {
         select: { id: true, name: true, trashedAt: true, archivedAt: true },
       },
@@ -80,7 +79,7 @@ export async function getResearchItem(userId: string, projectId: string, itemId:
       scene: { select: { id: true, title: true, trashedAt: true } },
     },
   });
-  if (!row || (row.type !== "NOTE" && row.type !== "LINK")) return null;
+  if (!row) return null;
 
   let link: ResearchLinkTarget | null = null;
   if (row.character && !row.character.trashedAt && !row.character.archivedAt) {
@@ -104,6 +103,10 @@ export async function getResearchItem(userId: string, projectId: string, itemId:
     content: (row.content as DocNode | null) ?? null,
     url: row.url ?? "",
     description: row.description ?? "",
+    upload:
+      row.type === "IMAGE" || row.type === "FILE"
+        ? { name: row.fileName ?? row.title, size: row.fileSize ?? 0, mimeType: row.mimeType ?? "" }
+        : null,
     link,
   };
 }

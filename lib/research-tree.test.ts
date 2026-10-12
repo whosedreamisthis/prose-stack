@@ -8,6 +8,7 @@ import {
   folderSubtree,
   itemDragId,
   parseDragId,
+  planFolderDelete,
   reorder,
   resolveResearchDrop,
   subtreeHeight,
@@ -46,6 +47,54 @@ describe("folder shape", () => {
       { id: "y", parentId: "x" },
     ];
     expect(folderDepth(looped, "x")).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("planFolderDelete", () => {
+  const t = new Date("2026-10-12T10:00:00Z");
+  const folder = (id: string, parentId: string | null, hidden: "trash" | "archive" | "live") => ({
+    id,
+    parentId,
+    trashedAt: hidden === "trash" ? t : null,
+    archivedAt: hidden === "archive" ? t : null,
+  });
+  const item = (id: string, folderId: string | null, hidden: "trash" | "archive" | "live") => ({
+    id,
+    folderId,
+    trashedAt: hidden === "trash" ? t : null,
+    archivedAt: hidden === "archive" ? t : null,
+  });
+
+  it("takes the trashed subfolders and trashed items under the root", () => {
+    const plan = planFolderDelete(
+      [folder("a", null, "trash"), folder("b", "a", "trash")],
+      [item("i1", "a", "trash"), item("i2", "b", "trash")],
+      ["a"],
+    );
+    expect(plan).toEqual({ folderIds: ["a", "b"], rescueFolderIds: [], rescueItemIds: [], itemIds: ["i1", "i2"] });
+  });
+
+  it("rescues what was archived inside, so deleting the folder does not take it from the Archive", () => {
+    const plan = planFolderDelete(
+      [folder("a", null, "trash"), folder("arch", "a", "archive"), folder("inner", "arch", "archive")],
+      [item("kept", "a", "archive"), item("gone", "a", "trash"), item("deep", "inner", "archive")],
+      ["a"],
+    );
+    expect(plan.rescueFolderIds).toEqual(["arch"]);
+    expect(plan.rescueItemIds).toEqual(["kept"]);
+    expect(plan.itemIds).toEqual(["gone"]);
+    // The rescued folder carries its own contents, so only it moves.
+    expect(plan.folderIds).toEqual(["a"]);
+  });
+
+  it("handles several roots and leaves other folders alone", () => {
+    const plan = planFolderDelete(
+      [folder("a", null, "trash"), folder("b", null, "trash"), folder("c", null, "live")],
+      [item("i", "c", "live")],
+      ["a", "b"],
+    );
+    expect(plan.folderIds).toEqual(["a", "b"]);
+    expect(plan.itemIds).toEqual([]);
   });
 });
 

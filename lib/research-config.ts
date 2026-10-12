@@ -10,6 +10,75 @@ export const MAX_DESCRIPTION_LENGTH = 2000;
 /** The size of a note's Tiptap document as JSON. */
 export const MAX_NOTE_DOC_BYTES = 2_000_000;
 
+/** What an upload becomes: an IMAGE (shown in the pane) or a FILE (downloaded). */
+export type UploadKind = "IMAGE" | "FILE";
+
+/** The types each kind accepts, by MIME type, with the extension a browser may report instead of a type. */
+export const UPLOAD_TYPES: Record<UploadKind, Record<string, { label: string; extensions: string[] }>> = {
+  IMAGE: {
+    "image/jpeg": { label: "JPEG", extensions: ["jpg", "jpeg"] },
+    "image/png": { label: "PNG", extensions: ["png"] },
+    "image/webp": { label: "WebP", extensions: ["webp"] },
+    "image/gif": { label: "GIF", extensions: ["gif"] },
+  },
+  FILE: {
+    "application/pdf": { label: "PDF", extensions: ["pdf"] },
+    "text/plain": { label: "TXT", extensions: ["txt"] },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { label: "DOCX", extensions: ["docx"] },
+  },
+};
+const MB = 1024 * 1024;
+export const UPLOAD_MAX_BYTES: Record<UploadKind, number> = { IMAGE: 4 * MB, FILE: 8 * MB };
+/** UploadThing's spelling of the same limits, for the file router. */
+export const UPLOAD_MAX_SIZE = { IMAGE: "4MB", FILE: "8MB" } as const;
+/** Research storage per project: the sizes of its uploads, live, archived and trashed. */
+export const PROJECT_STORAGE_BYTES = 100 * MB;
+export const UPLOAD_ENDPOINT = { IMAGE: "researchImage", FILE: "researchFile" } as const;
+
+/** A file's MIME type, from its extension when the browser gives none. Lower case. */
+export function uploadMimeType(file: { name: string; type: string }): string {
+  if (file.type) return file.type.toLowerCase();
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  for (const types of Object.values(UPLOAD_TYPES)) {
+    for (const [mime, { extensions }] of Object.entries(types)) if (extensions.includes(ext)) return mime;
+  }
+  return "";
+}
+
+/** Which kind a file uploads as, or null when it is not a type research takes. */
+export function uploadKindOf(file: { name: string; type: string }): UploadKind | null {
+  const mime = uploadMimeType(file);
+  if (mime in UPLOAD_TYPES.IMAGE) return "IMAGE";
+  if (mime in UPLOAD_TYPES.FILE) return "FILE";
+  return null;
+}
+
+const typeList = (kind: UploadKind) => Object.values(UPLOAD_TYPES[kind]).map((t) => t.label).join(", ");
+
+/** Why a file can't be uploaded as `kind`, or null when it can. The file router and the picker both ask. */
+export function uploadProblem(kind: UploadKind, file: { name: string; type: string; size: number }): string | null {
+  if (!(uploadMimeType(file) in UPLOAD_TYPES[kind])) {
+    return `${file.name} can't be uploaded: ${kind === "IMAGE" ? "images" : "files"} must be ${typeList(kind)}.`;
+  }
+  if (file.size > UPLOAD_MAX_BYTES[kind]) {
+    return `${file.name} is too large: ${kind === "IMAGE" ? "images" : "files"} can be up to ${formatBytes(UPLOAD_MAX_BYTES[kind])}.`;
+  }
+  return null;
+}
+
+/** "512 KB", "3.4 MB": a size for people. */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < MB) return `${Math.round(bytes / 1024)} KB`;
+  return `${Number((bytes / MB).toFixed(1))} MB`;
+}
+
+/** A file's name without its extension, as an item title. */
+export function titleFromFileName(name: string): string {
+  const base = name.replace(/\.[^.]+$/, "").trim() || name.trim();
+  return base.slice(0, MAX_RESEARCH_TITLE_LENGTH).trim() || "Untitled";
+}
+
 export const DEFAULT_NOTE_TITLE = "New note";
 export const DEFAULT_LINK_TITLE = "New link";
 export const DEFAULT_FOLDER_NAME = "New folder";
@@ -114,6 +183,11 @@ export const itemRefSchema = z.object({
   itemId: idSchema,
 });
 export const projectRefSchema = z.object({ projectId: idSchema });
+/** What the client sends with an upload: where the new item goes. Everything about the file comes from UploadThing. */
+export const uploadInputSchema = z.object({
+  projectId: idSchema,
+  folderId: idSchema.nullable(),
+});
 
 export type UpdateItemInput = z.input<typeof updateItemSchema>;
 export type ResearchItemChanges = UpdateItemInput["changes"];

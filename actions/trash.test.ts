@@ -5,6 +5,9 @@ import { updateTag } from "next/cache"; // after the shared mock is registered, 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 
+const deleteStoredFilesMock = vi.fn();
+vi.mock("@/lib/research-storage", () => ({ deleteStoredFiles: (...args: unknown[]) => deleteStoredFilesMock(...args) }));
+
 import { deleteItemPermanently, emptyTrash, restoreItem, trashArchivedItem, unarchiveItem } from "@/actions/trash";
 
 const owner = { projectId: "p1", project: { userId: "user-1" } };
@@ -106,6 +109,23 @@ describe("deleteItemPermanently", () => {
     expect((await deleteItemPermanently({ projectId: "p1", kind: "character", id: "c1" })).success).toBe(true);
     expect(prismaMock.character.deleteMany).toHaveBeenCalledWith({ where: { id: "c1", ...owner, trashedAt: { not: null } } });
     expect(updateTag).toHaveBeenCalledWith("trash:p1");
+  });
+
+  it("deletes a trashed upload's stored file along with its row", async () => {
+    deleteStoredFilesMock.mockClear();
+    prismaMock.researchItem.findFirst.mockResolvedValue({ fileKey: "key-1" });
+    prismaMock.researchItem.deleteMany.mockResolvedValue({ count: 1 });
+    expect((await deleteItemPermanently({ projectId: "p1", kind: "researchItem", id: "i1" })).success).toBe(true);
+    expect(prismaMock.researchItem.deleteMany).toHaveBeenCalledWith({ where: { id: "i1", ...owner, trashedAt: { not: null } } });
+    expect(deleteStoredFilesMock).toHaveBeenCalledWith(["key-1"]);
+  });
+
+  it("keeps the stored file when the item is not in the trash", async () => {
+    deleteStoredFilesMock.mockClear();
+    prismaMock.researchItem.findFirst.mockResolvedValue(null);
+    expect((await deleteItemPermanently({ projectId: "p1", kind: "researchItem", id: "i1" })).success).toBe(false);
+    expect(prismaMock.researchItem.deleteMany).not.toHaveBeenCalled();
+    expect(deleteStoredFilesMock).not.toHaveBeenCalled();
   });
 
   it("refuses an item that is not in the trash", async () => {
@@ -244,7 +264,23 @@ describe("emptyTrash", () => {
     for (const model of models) expect(prismaMock[model].deleteMany).not.toHaveBeenCalled();
   });
 
+  it("deletes the stored files of trashed uploads, loose or in a trashed folder", async () => {
+    for (const model of models) prismaMock[model].deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.researchFolder.findMany.mockImplementation(async (args: { select: { id?: boolean } }) =>
+      args.select.id && !("parentId" in args.select) ? [{ id: "f1" }] : [{ id: "f1", parentId: null, trashedAt: new Date(), archivedAt: null }],
+    );
+    prismaMock.researchItem.findMany.mockImplementation(async (args: { select: { fileKey?: boolean; id?: boolean } }) =>
+      args.select.id
+        ? [{ id: "in-folder", folderId: "f1", trashedAt: new Date(), archivedAt: null, fileKey: "folder-key" }]
+        : [{ fileKey: "loose-key" }],
+    );
+    expect((await emptyTrash({ projectId: "p1" })).success).toBe(true);
+    expect(deleteStoredFilesMock).toHaveBeenCalledWith(expect.arrayContaining(["loose-key", "folder-key"]));
+  });
+
   it("deletes only trashed rows of the project, of every kind, and reports how many", async () => {
+    prismaMock.researchFolder.findMany.mockResolvedValue([]);
+    prismaMock.researchItem.findMany.mockResolvedValue([]);
     for (const model of models) prismaMock[model].deleteMany.mockResolvedValue({ count: 1 });
     expect(await emptyTrash({ projectId: "p1" })).toEqual({ success: true, data: { deleted: models.length } });
     for (const model of models) {

@@ -3,6 +3,12 @@ import { prismaMock } from "@/test/mock-prisma";
 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
+const researchFileKeysMock = vi.fn();
+const deleteStoredFilesMock = vi.fn();
+vi.mock("@/lib/research-storage", () => ({
+  researchFileKeys: (...args: unknown[]) => researchFileKeysMock(...args),
+  deleteStoredFiles: (...args: unknown[]) => deleteStoredFilesMock(...args),
+}));
 const seedManuscriptMock = vi.fn();
 vi.mock("@/lib/manuscript", () => ({ seedManuscript: (...args: unknown[]) => seedManuscriptMock(...args) }));
 
@@ -92,6 +98,8 @@ describe("createProject", () => {
 describe("deleteProject", () => {
   beforeEach(() => {
     getCurrentUserMock.mockResolvedValue({ id: "user-1" });
+    researchFileKeysMock.mockReset().mockResolvedValue([]);
+    deleteStoredFilesMock.mockReset();
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -101,10 +109,19 @@ describe("deleteProject", () => {
     expect(prismaMock.project.deleteMany).toHaveBeenCalledWith({ where: { id: "p1", userId: "user-1" } });
   });
 
+  it("deletes the project's stored research files once the project is gone", async () => {
+    researchFileKeysMock.mockResolvedValue(["k1", "k2"]);
+    prismaMock.project.deleteMany.mockResolvedValue({ count: 1 });
+    await deleteProject("p1");
+    expect(researchFileKeysMock).toHaveBeenCalledWith({ projectId: "p1", project: { userId: "user-1" } });
+    expect(deleteStoredFilesMock).toHaveBeenCalledWith(["k1", "k2"]);
+  });
+
   it("reports not found when the project is missing or belongs to someone else", async () => {
     prismaMock.project.deleteMany.mockResolvedValue({ count: 0 });
     const result = await deleteProject("not-mine");
     expect(result).toEqual({ success: false, error: "Project not found." });
+    expect(deleteStoredFilesMock).not.toHaveBeenCalled();
   });
 
   it("rejects a malformed id without querying", async () => {

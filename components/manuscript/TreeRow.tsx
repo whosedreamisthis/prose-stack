@@ -11,6 +11,7 @@ import { NODE_ICON, TYPE_LABEL, iconClass, treeRowClass } from "@/components/man
 import { cn } from "@/lib/utils";
 import type { LabelItem } from "@/types/labels";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
+import { Hint, ROW_HINT_DELAY_MS, ROW_HINT_WRAPPER } from "@/components/layout/Hint";
 import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
@@ -112,6 +113,7 @@ export function TreeRow({
 
   return (
     <li role="none">
+      <Hint label={node.title} side="right" delay={ROW_HINT_DELAY_MS} wrapperClassName={ROW_HINT_WRAPPER}>
       <div
         ref={setNodeRef}
         role="treeitem"
@@ -121,7 +123,6 @@ export function TreeRow({
         aria-current={active ? "page" : undefined}
         aria-expanded={isScene ? undefined : !collapsed}
         aria-owns={showChildren ? groupId : undefined}
-        title={node.title}
         data-node-id={node.id}
         data-kind={isScene ? "scene" : "parent"}
         // A scene opens when its row is clicked anywhere (its link covers only the title); a parent toggles.
@@ -180,6 +181,7 @@ export function TreeRow({
         {!editing && label && <LabelBar label={label} className="absolute top-1/2 -right-2 -translate-y-1/2" />}
         {!editing && menu}
       </div>
+      </Hint>
       {showChildren && (
         <ul id={groupId} role="group" className="ml-3 border-l pl-1">
           {children}

@@ -7,6 +7,7 @@ import { SKETCH_FIELDS } from "@/lib/character-config";
 import type { DocNode } from "@/lib/manuscript-text";
 import { PLACE_FIELDS } from "@/lib/place-config";
 import { nodeSections } from "@/lib/trash-view";
+import { formatBytes } from "@/lib/research-config";
 import { listHiddenResearch, type HiddenField } from "@/lib/research-hidden";
 import type { ArchiveItem, HiddenView, TrashItem, TrashKind, ViewSection } from "@/types/trash";
 
@@ -141,6 +142,7 @@ export async function listArchive(userId: string, projectId: string): Promise<Ar
 }
 
 const plural = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
+const RESEARCH_ITEM_LABEL = { NOTE: "Research note", LINK: "Research link", IMAGE: "Research image", FILE: "Research file" } as const;
 
 /** Hidden research folders and items as Trash or Archive rows, with the moment they were hidden as `at`. */
 function researchRows(research: Awaited<ReturnType<typeof listHiddenResearch>>) {
@@ -156,7 +158,7 @@ function researchRows(research: Awaited<ReturnType<typeof listHiddenResearch>>) 
       kind: "researchItem" as const,
       id: i.id,
       title: i.title,
-      detail: i.type === "LINK" ? "Research link" : "Research note",
+      detail: RESEARCH_ITEM_LABEL[i.type],
       at: i.at,
     })),
   ];
@@ -174,14 +176,17 @@ async function researchView(
   if (kind === "researchItem") {
     const item = await prisma.researchItem.findFirst({
       where: { id, ...owner, ...hidden },
-      select: { type: true, title: true, content: true, url: true, description: true },
+      select: { type: true, title: true, content: true, url: true, description: true, fileName: true, fileSize: true },
     });
     if (!item) return null;
+    const described: ViewSection[] = item.description ? [{ heading: "Description", text: item.description }] : [];
     const sections: ViewSection[] =
       item.type === "NOTE"
         ? [{ doc: (item.content as DocNode | null) ?? undefined }]
-        : [{ heading: "Link", text: item.url ?? "" }, ...(item.description ? [{ heading: "Description", text: item.description }] : [])];
-    return { kind, id, title: item.title, subtitle: item.type === "LINK" ? "Research link" : "Research note", sections };
+        : item.type === "LINK"
+          ? [{ heading: "Link", text: item.url ?? "" }, ...described]
+          : [{ heading: "File", text: `${item.fileName ?? item.title} (${formatBytes(item.fileSize ?? 0)})` }, ...described];
+    return { kind, id, title: item.title, subtitle: RESEARCH_ITEM_LABEL[item.type], sections };
   }
   const folder = await prisma.researchFolder.findFirst({ where: { id, ...owner, ...hidden }, select: { name: true, trashedAt: true, archivedAt: true } });
   if (!folder) return null;

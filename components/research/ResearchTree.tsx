@@ -9,10 +9,13 @@ import {
   ChevronRightIcon,
   FolderIcon,
   FolderInputIcon,
+  FileIcon,
   FolderPlusIcon,
   ImageIcon,
   LinkIcon,
+  Loader2Icon,
   NotebookTextIcon,
+  UploadIcon,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -27,10 +30,12 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
+import { Hint, ROW_HINT_DELAY_MS, ROW_HINT_WRAPPER } from "@/components/layout/Hint";
 import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 import { AddItem, ExportItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
 import { TitleEditor } from "@/components/manuscript/TitleEditor";
 import { useResearchTree, type ResearchTreeApi } from "@/components/research/useResearchTree";
+import { useResearchUpload } from "@/hooks/useResearchUpload";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -44,7 +49,7 @@ import {
   resolveResearchDrop,
 } from "@/lib/research-tree";
 import { useOptimisticActive } from "@/lib/stores/pending-nav-store";
-import { useResearchStore } from "@/lib/stores/research-store";
+import { useResearchStore, type PendingUpload } from "@/lib/stores/research-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
 import { cn } from "@/lib/utils";
 import type { ResearchFolderSummary, ResearchItemSummary, ResearchLibrary } from "@/types/research";
@@ -52,7 +57,10 @@ import type { ResearchFolderSummary, ResearchItemSummary, ResearchLibrary } from
 const ITEM_ICON: Record<ResearchItemSummary["type"], LucideIcon> = {
   NOTE: NotebookTextIcon,
   LINK: LinkIcon,
+  IMAGE: ImageIcon,
+  FILE: FileIcon,
 };
+const ITEM_NOUN: Record<ResearchItemSummary["type"], string> = { NOTE: "note", LINK: "link", IMAGE: "image", FILE: "file" };
 const rowClass =
   "group/row relative flex min-w-0 items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 /** Indents the "Move to…" list by folder depth (up to the nesting limit). */
@@ -69,6 +77,8 @@ interface ResearchTreeProps {
 /** The Research section of the left sidebar: nested folders and their notes and links, with drag and drop and a menu per row. */
 export function ResearchTree({ projectId, library: serverLibrary }: ResearchTreeProps) {
   const tree = useResearchTree(projectId, serverLibrary);
+  const upload = useResearchUpload(projectId);
+  const uploading = useResearchStore((st) => st.uploads);
   const { folders, items } = tree.library;
   const editing = useResearchStore((st) => st.renamingId);
   const setEditing = useResearchStore((st) => st.setRenamingId);
@@ -77,7 +87,9 @@ export function ResearchTree({ projectId, library: serverLibrary }: ResearchTree
   const [overId, setOverId] = useState<string | null>(null);
   const dndId = useId();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-  const selectedId = useOptimisticActive(["item"], tree.openId);
+  const optimisticId = useOptimisticActive(["item"], tree.openId);
+  // An upload on its way is the selected row; the note or link that was open stops looking selected.
+  const selectedId = uploading.some((u) => u.select) ? null : optimisticId;
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setDragId(null);
@@ -114,10 +126,10 @@ export function ResearchTree({ projectId, library: serverLibrary }: ResearchTree
         ? items.find((i) => i.id === dragged.id)?.title
         : null;
 
-  if (folders.length === 0 && items.length === 0) {
+  if (folders.length === 0 && items.length === 0 && uploading.length === 0) {
     return (
       <div className="flex flex-col items-start gap-2 px-2 py-1">
-        <p className="text-sm text-muted-foreground">No research yet. Use the … above to add a note, link or folder.</p>
+        <p className="text-sm text-muted-foreground">No research yet. Use the … above to add a note, link, upload or folder.</p>
         <Button variant="outline" size="sm" onClick={tree.addStarterFolders}>
           <FolderPlusIcon /> Add starter folders
         </Button>
@@ -133,6 +145,8 @@ export function ResearchTree({ projectId, library: serverLibrary }: ResearchTree
     setHiding,
     selectedId,
     isDropTarget,
+    upload,
+    uploading,
   };
 
   return (
@@ -188,9 +202,11 @@ interface RowContext {
   setHiding: (hiding: Hiding) => void;
   selectedId: string | null;
   isDropTarget: (dragId: string) => boolean;
+  upload: ReturnType<typeof useResearchUpload>;
+  uploading: PendingUpload[];
 }
 
-/** The folders, then the items, directly in one folder (or at the top level). */
+/** The folders, then the items, then the uploads still in flight, directly in one folder (or at the top level). */
 function Level({ ctx, parentId }: { ctx: RowContext; parentId: string | null }) {
   const { folders, items } = ctx.tree.library;
   return (
@@ -201,7 +217,28 @@ function Level({ ctx, parentId }: { ctx: RowContext; parentId: string | null }) 
       {folderItems(items, parentId).map((item) => (
         <ItemRow key={item.id} ctx={ctx} item={item} />
       ))}
+      {ctx.uploading
+        .filter((u) => u.folderId === parentId)
+        .map((u) => (
+          <UploadingRow key={u.id} upload={u} />
+        ))}
     </>
+  );
+}
+
+/** A file on its way up: its name and progress, until the server has the item. */
+function UploadingRow({ upload }: { upload: PendingUpload }) {
+  return (
+    <li className="relative" role="status" aria-label={`Uploading ${upload.name}, ${Math.round(upload.progress)}%`}>
+      <div className={cn(rowClass, "pr-2", upload.select ? SELECTED_ROW : "text-muted-foreground")}>
+        <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
+        <span className="truncate">{upload.name}</span>
+        <span className="ml-auto shrink-0 text-xs tabular-nums">{Math.round(upload.progress)}%</span>
+      </div>
+      <div className="absolute inset-x-2 bottom-0 h-0.5 overflow-hidden rounded bg-muted" aria-hidden>
+        <div className="h-full bg-primary transition-[width]" style={{ width: `${upload.progress}%` }} />
+      </div>
+    </li>
   );
 }
 
@@ -209,6 +246,7 @@ function FolderRow({ ctx, folder }: { ctx: RowContext; folder: ResearchFolderSum
   const collapsed = useTreeStore((s) => !!s.collapsed[collapseKey(folder.id)]);
   const toggle = useTreeStore((s) => s.toggle);
   const editing = ctx.editing === folder.id;
+  const [fileOver, setFileOver] = useState(false);
   // Drops land on the row's wrapper, not the whole entry, so the folder's contents stay separate targets.
   const { setNodeRef: setDropNode } = useDroppable({
     id: folderDragId(folder.id),
@@ -219,7 +257,25 @@ function FolderRow({ ctx, folder }: { ctx: RowContext; folder: ResearchFolderSum
 
   return (
     <li className="relative">
-      <div ref={setDropNode} className="group/item relative">
+      <div
+        ref={setDropNode}
+        className={cn("group/item relative rounded-md", fileOver && "ring-2 ring-primary")}
+        // Files dragged in from the desktop (not dnd-kit's rows) upload into this folder.
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setFileOver(true);
+        }}
+        onDragLeave={() => setFileOver(false)}
+        onDrop={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setFileOver(false);
+          toggle(collapseKey(folder.id), false);
+          ctx.upload.drop([...e.dataTransfer.files], folder.id);
+        }}
+      >
+        <Hint label={folder.name} side="right" delay={ROW_HINT_DELAY_MS} wrapperClassName={ROW_HINT_WRAPPER}>
         <div
           ref={setDragNode}
           // While renaming, the drag attributes would mark the row (and the input in it) disabled.
@@ -230,7 +286,6 @@ function FolderRow({ ctx, folder }: { ctx: RowContext; folder: ResearchFolderSum
           aria-expanded={!collapsed}
           aria-controls={groupId}
           aria-label={folder.name}
-          title={folder.name}
           onClick={() => toggle(collapseKey(folder.id))}
           onDoubleClick={() => ctx.setEditing(folder.id)}
           onKeyDown={(e) => {
@@ -264,13 +319,17 @@ function FolderRow({ ctx, folder }: { ctx: RowContext; folder: ResearchFolderSum
             <span className="truncate">{folder.name}</span>
           )}
         </div>
+        </Hint>
         {!editing && (
           <RowMenu label={`${folder.name} options`}>
             <AddItem label="Add note" onClick={() => ctx.tree.addItem(folder.id, "NOTE")} />
             <AddItem label="Add link" onClick={() => ctx.tree.addItem(folder.id, "LINK")} />
             <AddItem label="Add folder" onClick={() => ctx.setEditing(ctx.tree.addFolder(folder.id))} />
-            <DropdownMenuItem disabled>
-              <ImageIcon /> Add image (coming soon)
+            <DropdownMenuItem onClick={() => void ctx.upload.choose("IMAGE", folder.id)}>
+              <ImageIcon /> Upload image
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void ctx.upload.choose("FILE", folder.id)}>
+              <UploadIcon /> Upload file
             </DropdownMenuItem>
             <RenameItem onClick={() => ctx.setEditing(folder.id)} />
             <MoveToMenu ctx={ctx} kind="folder" id={folder.id} currentParent={folder.parentId} />
@@ -320,7 +379,7 @@ function ItemRow({ ctx, item }: { ctx: RowContext; item: ResearchItemSummary }) 
           <Icon className="size-4 shrink-0" aria-hidden />
           <TitleEditor
             initial={item.title}
-            label={`Rename ${item.type === "LINK" ? "link" : "note"}`}
+            label={`Rename ${ITEM_NOUN[item.type]}`}
             onDone={(value) => {
               ctx.setEditing(null);
               ctx.tree.renameItem(item.id, value, item.title);
@@ -328,13 +387,13 @@ function ItemRow({ ctx, item }: { ctx: RowContext; item: ResearchItemSummary }) 
           />
         </div>
       ) : (
+        <Hint label={item.title} side="right" delay={ROW_HINT_DELAY_MS} wrapperClassName={ROW_HINT_WRAPPER}>
         <Link
           ref={setDragNode}
           {...attributes}
           {...listeners}
           href={href}
           aria-current={selected ? "true" : undefined}
-          title={item.title}
           onPointerEnter={() => router.prefetch(href)}
           onFocus={() => router.prefetch(href)}
           onClick={(e) => {
@@ -347,14 +406,12 @@ function ItemRow({ ctx, item }: { ctx: RowContext; item: ResearchItemSummary }) 
           <Icon className="size-4 shrink-0" aria-hidden />
           <span className="truncate">{item.title}</span>
         </Link>
+        </Hint>
       )}
       {!editing && (
         <RowMenu label={`${item.title} options`}>
           <RenameItem onClick={() => ctx.setEditing(item.id)} />
           <MoveToMenu ctx={ctx} kind="item" id={item.id} currentParent={item.folderId} />
-          <DropdownMenuItem onClick={() => ctx.tree.openItem(item.id)}>
-            <LinkIcon /> Link to…
-          </DropdownMenuItem>
           {item.type === "NOTE" && <ExportItem type="research" id={item.id} projectId={ctx.projectId} name={item.title} />}
           <DropdownMenuItem onClick={() => ctx.tree.hideItem(item.id, "archive")}>
             <ArchiveIcon /> Archive

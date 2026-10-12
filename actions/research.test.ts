@@ -136,7 +136,8 @@ describe("renameResearchFolder and updateResearchItem", () => {
     const result = await updateResearchItem({ projectId: "p1", itemId: "l1", changes: { url: "https://example.com/a", description: "" } });
     expect(result.success).toBe(true);
     expect(prismaMock.researchItem.updateMany).toHaveBeenCalledWith({
-      where: { id: "l1", projectId: "p1", project: { userId: "user-1" }, ...live },
+      // Only a link's address can change: an upload's is the stored file's.
+      where: { id: "l1", projectId: "p1", project: { userId: "user-1" }, ...live, type: "LINK" },
       data: { url: "https://example.com/a", description: null },
     });
     expect(updateTag).toHaveBeenCalledWith("research-item:l1");

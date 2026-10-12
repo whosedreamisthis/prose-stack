@@ -29,6 +29,53 @@ export function folderSubtree(folders: { id: string; parentId: string | null }[]
   return ids;
 }
 
+interface HiddenState {
+  trashedAt: Date | null;
+  archivedAt: Date | null;
+}
+
+export interface FolderDeletePlan {
+  /** The folders that go: the roots and everything under them that isn't rescued. */
+  folderIds: string[];
+  /** Untrashed folders inside, moved to the top level (with what is in them) so the delete does not take them. */
+  rescueFolderIds: string[];
+  /** Untrashed items directly in a folder that goes, moved to the top level. */
+  rescueItemIds: string[];
+  /** The items that go with the folders. */
+  itemIds: string[];
+}
+
+/**
+ * What deleting the trashed folders `rootIds` for good takes with it. A delete cascades to everything under a folder, but
+ * a folder or item archived (or, by bad luck, left live) inside one is not in the Trash, so it is rescued to the top level
+ * instead of disappearing from the Archive.
+ */
+export function planFolderDelete(
+  folders: ({ id: string; parentId: string | null } & HiddenState)[],
+  items: ({ id: string; folderId: string | null } & HiddenState)[],
+  rootIds: string[],
+): FolderDeletePlan {
+  const doomed = new Set<string>();
+  const rescueFolderIds: string[] = [];
+  const visit = (id: string) => {
+    if (doomed.has(id)) return;
+    doomed.add(id);
+    for (const f of folders) {
+      if (f.parentId !== id) continue;
+      if (f.trashedAt) visit(f.id);
+      else rescueFolderIds.push(f.id);
+    }
+  };
+  for (const id of rootIds) visit(id);
+  const inside = items.filter((i) => i.folderId !== null && doomed.has(i.folderId));
+  return {
+    folderIds: [...doomed],
+    rescueFolderIds,
+    rescueItemIds: inside.filter((i) => !i.trashedAt).map((i) => i.id),
+    itemIds: inside.filter((i) => i.trashedAt).map((i) => i.id),
+  };
+}
+
 /** How deep a folder sits: 1 at the top level, and 0 for null (the top level itself). */
 export function folderDepth(folders: { id: string; parentId: string | null }[], id: string | null): number {
   const byId = new Map(folders.map((f) => [f.id, f]));

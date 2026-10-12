@@ -55,7 +55,7 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
       <SidebarSection slug="places" label="Places" action={<AddPlaceButton projectId={projectId} />}>
         <PlaceList projectId={projectId} places={places} />
       </SidebarSection>
-      <SidebarSection slug="research" label="Research" action={<AddResearchButton projectId={projectId} />}>
+      <SidebarSection slug="research" label="Research" opensPage action={<AddResearchButton projectId={projectId} />}>
         <ResearchTree projectId={projectId} library={research} />
       </SidebarSection>
       <SidebarSection slug="utilities" label="Utilities" alsoOpenOn={["archive", "trash"]}>

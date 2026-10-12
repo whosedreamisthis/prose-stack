@@ -59,7 +59,6 @@ function BookRow({ title, collapsed, dropActive, menu, onToggle, onOpen, childre
         aria-selected={false}
         aria-expanded={!collapsed}
         aria-owns={collapsed ? undefined : groupId}
-        title={title}
         data-node-id={ROOT_KEY}
         data-kind="book"
         onClick={onOpen}

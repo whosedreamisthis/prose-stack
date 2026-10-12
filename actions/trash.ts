@@ -8,10 +8,12 @@ import { prisma } from "@/lib/db";
 import { subtreeIds } from "@/lib/manuscript-tree";
 import {
   deleteResearchFolder,
+  prepareResearchFolderDelete,
   restoreResearchFolder,
   restoreResearchItem,
   trashArchivedResearch,
 } from "@/lib/research-hidden";
+import { deleteStoredFiles } from "@/lib/research-storage";
 import { archiveRefSchema, emptyTrashSchema, trashRefSchema, type ArchiveRef, type TrashRef } from "@/lib/trash-config";
 import { trashGroupIds, trashedAncestorIds } from "@/lib/trash-tree";
 import type { ActionResult } from "@/types/actions";
@@ -227,11 +229,17 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       if (count === 0) return { success: false, error: NOT_FOUND };
       tags = [cacheTags.projectNotes(projectId)];
     } else if (kind === "researchFolder") {
-      if (!(await deleteResearchFolder(user.id, projectId, id))) return { success: false, error: NOT_FOUND };
-      tags = [cacheTags.research(projectId)];
+      const fileKeys = await deleteResearchFolder(user.id, projectId, id);
+      if (!fileKeys) return { success: false, error: NOT_FOUND };
+      await deleteStoredFiles(fileKeys);
+      // What was archived inside moved to the top level, so the Archive's rows changed too.
+      tags = [cacheTags.research(projectId), cacheTags.archive(projectId)];
     } else if (kind === "researchItem") {
+      const item = await prisma.researchItem.findFirst({ where: { id, ...owner, trashedAt: hidden }, select: { fileKey: true } });
+      if (!item) return { success: false, error: NOT_FOUND };
       const { count } = await prisma.researchItem.deleteMany({ where: { id, ...owner, trashedAt: hidden } });
       if (count === 0) return { success: false, error: NOT_FOUND };
+      await deleteStoredFiles([item.fileKey]);
       tags = [cacheTags.research(projectId), cacheTags.researchItem(id)];
     } else if (kind === "plotLine") {
       // Its points go with it (they cascade).
@@ -331,8 +339,20 @@ export async function emptyTrash(input: { projectId: string }): Promise<ActionRe
     const { projectId } = parsed.data;
     const trashed = { trashedAt: { not: null } };
 
-    const deleted = await prisma.$transaction(async (tx) => {
+    const emptied = await prisma.$transaction(async (tx) => {
       if (!(await lockOwnedProject(tx, user.id, projectId))) return null;
+      // Uploads in the trash, and anything archived inside a trashed folder moved out first so it survives.
+      const trashedFolders = await tx.researchFolder.findMany({ where: { ...trashed, projectId }, select: { id: true } });
+      const looseItems = await tx.researchItem.findMany({
+        where: { ...trashed, projectId, fileKey: { not: null } },
+        select: { fileKey: true },
+      });
+      const folderKeys = await prepareResearchFolderDelete(
+        tx,
+        projectId,
+        trashedFolders.map((f) => f.id),
+      );
+      const fileKeys = [...new Set([...looseItems.map((i) => i.fileKey!), ...folderKeys])];
       // Contents before containers, so what was trashed on its own inside a trashed container is counted too.
       const steps = [
         () => tx.characterNote.deleteMany({ where: { ...trashed, character: { projectId } } }),
@@ -349,13 +369,14 @@ export async function emptyTrash(input: { projectId: string }): Promise<ActionRe
       ];
       let total = 0;
       for (const step of steps) total += (await step()).count;
-      return total;
+      return { deleted: total, fileKeys };
     });
-    if (deleted === null) return { success: false, error: "Project not found." };
+    if (emptied === null) return { success: false, error: "Project not found." };
+    await deleteStoredFiles(emptied.fileKeys);
 
     // Anything in the project may have been in the trash, so every project read is expired.
     refresh(projectId, [cacheTags.project(projectId), cacheTags.trash(projectId)]);
-    return { success: true, data: { deleted } };
+    return { success: true, data: { deleted: emptied.deleted } };
   } catch (error) {
     console.error("emptyTrash failed:", error);
     return { success: false, error: "Could not empty the trash. Please try again." };

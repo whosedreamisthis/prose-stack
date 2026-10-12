@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import { prismaMock } from "@/test/mock-prisma";
 
+vi.mock("@/lib/research-storage", () => ({ researchFileKeys: async () => [], deleteStoredFiles: async () => {} }));
 const verifyWebhookMock = vi.fn();
 vi.mock("@clerk/nextjs/webhooks", () => ({
   verifyWebhook: (req: unknown) => verifyWebhookMock(req),

@@ -4,6 +4,7 @@ import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { prisma } from "@/lib/db";
 import { DEMO_EMAIL_DOMAIN, DEMO_EMAIL_PREFIX } from "@/lib/demo-config";
 import { releaseSlotForDemo } from "@/lib/demo-store";
+import { deleteStoredFiles, researchFileKeys } from "@/lib/research-storage";
 
 const BATCH = 50;
 /** A demo user in Clerk with no database row is only an orphan once creation has had time to finish. */
@@ -31,7 +32,15 @@ async function deleteClerkUser(clerkId: string) {
 }
 
 /**
- * Removes expired demos. For each: the Clerk user first, then the database user (its projects and everything under them
+ * The demo's uploaded research files, deleted before its rows (which hold the keys). A failed storage delete is logged
+ * and does not stop the cleanup.
+ */
+async function deleteUserFiles(userId: string) {
+  await deleteStoredFiles(await researchFileKeys({ project: { userId } }));
+}
+
+/**
+ * Removes expired demos. For each: the Clerk user first, then its uploaded files, then the database user (its projects and everything under them
  * cascade), then the IP slot. If the Clerk delete fails the database row stays, so the next run retries; the row is
  * never deleted while the Clerk user may still exist.
  */
@@ -45,6 +54,7 @@ async function removeExpired(now: Date, result: CleanupResult) {
   for (const { id, clerkId } of expired) {
     try {
       await deleteClerkUser(clerkId);
+      await deleteUserFiles(id);
       await prisma.user.deleteMany({ where: { id } });
       result.deleted += 1;
     } catch (error) {
@@ -123,6 +133,7 @@ export async function removeExpiredDemo(clerkId: string, now = new Date()): Prom
   if (!user || !user.isDemo || !user.demoExpiresAt || user.demoExpiresAt.getTime() > now.getTime()) return false;
 
   await deleteClerkUser(clerkId);
+  await deleteUserFiles(user.id);
   await prisma.user.deleteMany({ where: { id: user.id } });
   try {
     await releaseSlotForDemo(clerkId);

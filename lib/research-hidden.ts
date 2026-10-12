@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { planFolderDelete } from "@/lib/research-tree";
 import { trashGroupIds, trashRoots } from "@/lib/trash-tree";
 
 /** Which hiding a call is about: the Trash (`trashedAt`) or the Archive (`archivedAt`). */
@@ -134,13 +135,54 @@ export async function restoreResearchFolder(userId: string, projectId: string, i
   });
 }
 
-/** Deletes a hidden folder for good; its subfolders and items go with it (they cascade). */
-export async function deleteResearchFolder(userId: string, projectId: string, id: string): Promise<boolean> {
+/**
+ * Readies trashed folders to be deleted for good, in a transaction that holds the project lock: a folder delete cascades
+ * to everything under it, so anything archived or live under them is moved to the top level first, to survive. Returns
+ * the stored-file keys of the uploads the delete will take, for the caller to delete once the transaction commits.
+ */
+export async function prepareResearchFolderDelete(tx: Tx, projectId: string, rootIds: string[]): Promise<string[]> {
+  if (rootIds.length === 0) return [];
+  const [folders, items] = await Promise.all([
+    allFolders(tx, projectId),
+    tx.researchItem.findMany({
+      where: { projectId, folderId: { not: null } },
+      select: { id: true, folderId: true, trashedAt: true, archivedAt: true, fileKey: true },
+    }),
+  ]);
+  const plan = planFolderDelete(folders, items, rootIds);
+
+  const rescued = [
+    ...folders.filter((f) => plan.rescueFolderIds.includes(f.id)).map((f) => ({ kind: "folder" as const, ...f })),
+    ...items.filter((i) => plan.rescueItemIds.includes(i.id)).map((i) => ({ kind: "item" as const, ...i })),
+  ];
+  // A hidden row gets its position when it is restored; a live one (which should not be here) goes to the end.
+  const next = {
+    folder: await tx.researchFolder.count({ where: { projectId, parentId: null, ...live } }),
+    item: await tx.researchItem.count({ where: { projectId, folderId: null, ...live } }),
+  };
+  for (const row of rescued) {
+    const position = !row.trashedAt && !row.archivedAt ? next[row.kind]++ : undefined;
+    if (row.kind === "folder") {
+      await tx.researchFolder.update({ where: { id: row.id }, data: { parentId: null, ...(position !== undefined && { position }) } });
+    } else {
+      await tx.researchItem.update({ where: { id: row.id }, data: { folderId: null, ...(position !== undefined && { position }) } });
+    }
+  }
+
+  return items.flatMap((i) => (plan.itemIds.includes(i.id) && i.fileKey ? [i.fileKey] : []));
+}
+
+/**
+ * Deletes a trashed folder for good, with what was trashed under it; what was archived under it moves to the top level.
+ * Returns the stored-file keys that went with it, or null when the folder is not in the trash.
+ */
+export async function deleteResearchFolder(userId: string, projectId: string, id: string): Promise<string[] | null> {
   return prisma.$transaction(async (tx) => {
-    if (!(await lockOwnedProject(tx, userId, projectId))) return false;
-    if (!(await folderGroup(tx, projectId, id, "trashedAt"))) return false;
+    if (!(await lockOwnedProject(tx, userId, projectId))) return null;
+    if (!(await folderGroup(tx, projectId, id, "trashedAt"))) return null;
+    const fileKeys = await prepareResearchFolderDelete(tx, projectId, [id]);
     await tx.researchFolder.deleteMany({ where: { id, projectId } });
-    return true;
+    return fileKeys;
   });
 }
 

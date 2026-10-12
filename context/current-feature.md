@@ -1,20 +1,36 @@
-# Current Feature
+# Current Feature: Research Uploads
 
-<!-- Feature name and short description -->
+Adds IMAGE and FILE research items: upload an image or document into the Research library, view or download it, and delete stored files when items are deleted for good. Spec: `context/features/research-uploads-spec.md`.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- UploadThing file router at `/api/uploadthing` with `researchImage` and `researchFile` endpoints
+- Router middleware checks the signed-in user (`getCurrentUser`) owns the project; others are refused before bytes are stored
+- `onUploadComplete` creates the `ResearchItem` on the server (type, title from file name, `url`, `fileKey`, `fileName`, `fileSize`, `mimeType`, folder); client never sends the URL
+- **Upload image** / **Upload file** in the folder row menu and the Research `+` menu; item lands in that folder or the top level
+- Drag files from the desktop onto a folder row or the empty Research pane to upload
+- Upload progress shown in the new row; a failed upload removes the row and toasts the reason (wrong type, too large, storage full)
+- IMAGE view: title, image fitted to the pane (click opens full size in new tab), description
+- FILE view: title, file name, size and type, **Download** button, description; PDFs also get "Open in new tab"
+- Rename, Move to…, Link to…, Archive and Trash work as for notes and links; no Export as PDF for uploads
+- Limits enforced server-side: images JPEG/PNG/WebP/GIF ≤ 4 MB; files PDF/TXT/DOCX ≤ 8 MB
+- 100 MB research storage per project (sum of `fileSize` across live, archived and trashed items), checked on the server before accepting an upload
+- Deleting an IMAGE/FILE forever (or a folder holding them) calls `UTApi.deleteFiles(fileKeys)`; trash-emptying cron and demo cleanup cron do the same before removing rows
+- A failed storage delete is logged and does not block the database delete
+- Unit tests: middleware ownership check, storage-cap check, file deletion on delete forever (UTApi mocked)
 
 ## Notes
 
-<!-- Any extra notes -->
+- Install `uploadthing` + `@uploadthing/react`; read current UploadThing Next.js App Router docs via Context7 before writing code.
+- Data: `ResearchItem` gains `fileKey String?`, `fileName String?`, `fileSize Int?`, `mimeType String?` if not already added in Part 1. No new models.
+- `next.config.ts`: allow the UploadThing image host in `images.remotePatterns` for `next/image`.
+- Env: `UPLOADTHING_TOKEN` in `.env` and on Vercel.
+- Demo seed: no uploaded files; demo users upload within the same limits and demo cleanup removes their files.
+- Decided: types, sizes and the 100 MB cap stay as listed; no thumbnails in the sidebar tree (type icons only), the image shows in the main pane.
 
 ## Completed Features
 

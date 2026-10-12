@@ -1,4 +1,5 @@
 import { BookmarkIcon } from "lucide-react";
+import { Hint, ROW_HINT_DELAY_MS } from "@/components/layout/Hint";
 import { cn } from "@/lib/utils";
 import type { LabelItem } from "@/types/labels";
 
@@ -15,15 +16,17 @@ export function LabelChip({ label, className }: { label: LabelItem; className?: 
   );
 }
 
-/** The label's color as a small vertical bar, for a row of the outline. Its name is its tooltip and accessible name. */
+/** The label's color as a small vertical bar, for a row of the outline. Its name is its hint and accessible name. */
 export function LabelBar({ label, className }: { label: LabelItem; className?: string }) {
   return (
-    <span
-      role="img"
-      aria-label={`Label: ${label.name}`}
-      title={label.name}
-      className={cn("h-4 w-1 shrink-0 rounded-full", className)}
-      style={{ backgroundColor: label.color }}
-    />
+    // The wrapper is not positioned, so the bar's own absolute classes still place it against the row.
+    <Hint label={label.name} side="right" delay={ROW_HINT_DELAY_MS}>
+      <span
+        role="img"
+        aria-label={`Label: ${label.name}`}
+        className={cn("h-4 w-1 shrink-0 rounded-full", className)}
+        style={{ backgroundColor: label.color }}
+      />
+    </Hint>
   );
 }

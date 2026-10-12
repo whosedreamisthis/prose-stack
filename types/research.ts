@@ -1,6 +1,13 @@
 import type { DocNode } from "@/lib/manuscript-text";
 
-export type ResearchItemType = "NOTE" | "LINK";
+export type ResearchItemType = "NOTE" | "LINK" | "IMAGE" | "FILE";
+
+/** An uploaded image's or file's stored details. */
+export interface ResearchUpload {
+  name: string;
+  size: number;
+  mimeType: string;
+}
 
 /** A folder as the sidebar tree needs it. */
 export interface ResearchFolderSummary {
@@ -37,8 +44,11 @@ export interface ResearchLinkTarget {
 /** One item opened in the main pane. */
 export interface ResearchItemDetail extends ResearchItemSummary {
   content: DocNode | null;
+  /** A link's address, or an upload's stored-file address. */
   url: string;
   description: string;
+  /** IMAGE and FILE only. */
+  upload: ResearchUpload | null;
   /** The live character, place or scene the item links to; null when none, or while that target is trashed or archived. */
   link: ResearchLinkTarget | null;
 }

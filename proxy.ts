@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/demo",
   "/api/cron/cleanup-demos", // checks CRON_SECRET itself
   "/api/demo/expired",
+  "/api/uploadthing", // the file router checks the user itself; UploadThing's signed callback has no session
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

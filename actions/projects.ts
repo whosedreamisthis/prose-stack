@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { cacheTags } from "@/lib/cache-tags";
 import { getCurrentUser } from "@/lib/auth";
 import { seedManuscript } from "@/lib/manuscript";
+import { deleteStoredFiles, researchFileKeys } from "@/lib/research-storage";
 import {
   MAX_PROJECTS_PER_USER,
   PROJECT_LIMIT_MESSAGE,
@@ -90,8 +91,10 @@ export async function deleteProject(projectId: string): Promise<ActionResult> {
 
     if (!projectIdSchema.safeParse(projectId).success) return { success: false, error: NOT_FOUND };
 
+    const fileKeys = await researchFileKeys({ projectId, project: { userId: user.id } });
     const { count } = await prisma.project.deleteMany({ where: { id: projectId, userId: user.id } });
     if (count === 0) return { success: false, error: NOT_FOUND };
+    await deleteStoredFiles(fileKeys);
 
     updateTag(cacheTags.project(projectId));
     updateTag(cacheTags.projects(user.id));

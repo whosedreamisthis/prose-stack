@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { ExternalLinkIcon, FileTextIcon, MapPinIcon, UserIcon, XIcon } from "lucide-react";
+import { DownloadIcon, ExternalLinkIcon, FileIcon, FileTextIcon, MapPinIcon, UserIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { setResearchItemLink, updateResearchItem } from "@/actions/research";
 import { PROSE_EXTENSIONS } from "@/components/manuscript/prose-extensions";
@@ -19,6 +20,8 @@ import {
   MAX_DESCRIPTION_LENGTH,
   MAX_RESEARCH_TITLE_LENGTH,
   MAX_URL_LENGTH,
+  UPLOAD_TYPES,
+  formatBytes,
   isWebUrl,
   researchTitleSchema,
   researchUrlSchema,
@@ -39,6 +42,9 @@ const LINK_ICON = {
   scene: FileTextIcon,
 } as const;
 
+/** "PDF", "DOCX": a stored file's type for people. */
+const fileTypeLabel = (mimeType: string) => UPLOAD_TYPES.FILE[mimeType]?.label ?? UPLOAD_TYPES.IMAGE[mimeType]?.label ?? "File";
+
 interface ResearchItemViewProps {
   projectId: string;
   item: ResearchItemDetail;
@@ -53,8 +59,10 @@ export function ResearchItemView({ projectId, item, formatting, linkOptions }: R
       <TitleField projectId={projectId} itemId={item.id} initial={item.title} />
       {item.type === "NOTE" ? (
         <NoteEditor projectId={projectId} itemId={item.id} initial={item.content ?? emptyDoc()} formatting={formatting} />
-      ) : (
+      ) : item.type === "LINK" ? (
         <LinkFields projectId={projectId} itemId={item.id} url={item.url} description={item.description} />
+      ) : (
+        <UploadFields projectId={projectId} item={item} />
       )}
       <StoryLink projectId={projectId} itemId={item.id} initial={item.link} options={linkOptions} />
     </article>
@@ -217,6 +225,76 @@ function LinkFields({ projectId, itemId, url, description }: { projectId: string
           maxLength={MAX_DESCRIPTION_LENGTH}
           placeholder="What this source is and why it matters"
           onChange={(e) => setValues((v) => ({ ...v, description: e.target.value }))}
+          className="min-h-32"
+        />
+      </label>
+      <p role="status" className="text-xs text-muted-foreground">
+        {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
+      </p>
+    </div>
+  );
+}
+
+/** An uploaded image (fitted to the pane, full size in a new tab on click) or file (details and a download), and its description. */
+function UploadFields({ projectId, item }: { projectId: string; item: ResearchItemDetail }) {
+  const [description, setDescription] = useState(item.description);
+  const { status } = useDialogAutosave(description, async (value) => {
+    const result = await updateResearchItem({ projectId, itemId: item.id, changes: { description: value } });
+    if (!result.success) toast.error(result.error);
+  });
+  const upload = item.upload;
+  const href = isWebUrl(item.url) ? item.url : undefined;
+  const isPdf = upload?.mimeType === "application/pdf";
+
+  return (
+    <div className="flex flex-col gap-4">
+      {item.type === "IMAGE" ? (
+        href && (
+          <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`Open ${item.title} full size in a new tab`}>
+            <Image
+              src={href}
+              alt={item.title}
+              width={1200}
+              height={800}
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="h-auto max-h-[70vh] w-full rounded-md border bg-muted/30 object-contain"
+            />
+          </a>
+        )
+      ) : (
+        <div className="flex flex-col gap-3 rounded-md border bg-muted/30 p-4 text-sm">
+          <div className="flex items-start gap-3">
+            <FileIcon className="mt-0.5 size-8 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="min-w-0">
+              <p className="font-medium wrap-break-word">{upload?.name}</p>
+              <p className="text-muted-foreground">
+                {formatBytes(upload?.size ?? 0)} · {fileTypeLabel(upload?.mimeType ?? "")}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              nativeButton={false}
+              disabled={!href}
+              render={<a href={href} download={upload?.name} target="_blank" rel="noopener noreferrer" />}
+            >
+              <DownloadIcon /> Download
+            </Button>
+            {isPdf && (
+              <Button nativeButton={false} variant="outline" disabled={!href} render={<a href={href} target="_blank" rel="noopener noreferrer" />}>
+                Open in new tab <ExternalLinkIcon />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-muted-foreground">Description</span>
+        <Textarea
+          value={description}
+          maxLength={MAX_DESCRIPTION_LENGTH}
+          placeholder="What this is and why it matters"
+          onChange={(e) => setDescription(e.target.value)}
           className="min-h-32"
         />
       </label>

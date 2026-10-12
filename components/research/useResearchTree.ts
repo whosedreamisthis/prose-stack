@@ -174,7 +174,7 @@ export function useResearchTree(projectId: string, serverLibrary: ResearchLibrar
       run({ kind: "addFolder", id, parentId }, () => createResearchFolder({ projectId, parentId, id }));
       return id;
     },
-    addItem(folderId: string | null, type: ResearchItemType) {
+    addItem(folderId: string | null, type: "NOTE" | "LINK") {
       const id = crypto.randomUUID();
       setSectionOpen("research", true);
       if (folderId) toggle(`research:${folderId}`, false);

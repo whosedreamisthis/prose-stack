@@ -2,10 +2,11 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FolderPlusIcon, ImageIcon, LinkIcon, MoreHorizontalIcon, NotebookTextIcon } from "lucide-react";
+import { FolderPlusIcon, ImageIcon, LinkIcon, MoreHorizontalIcon, NotebookTextIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { createResearchFolder, createResearchItem } from "@/actions/research";
 import { Hint } from "@/components/layout/Hint";
+import { useResearchUpload } from "@/hooks/useResearchUpload";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLayoutStore } from "@/lib/stores/layout-store";
@@ -19,6 +20,7 @@ export function AddResearchButton({ projectId }: { projectId: string }) {
   const setSectionOpen = useLayoutStore((s) => s.setSectionOpen);
   const setRenamingId = useResearchStore((s) => s.setRenamingId);
   const [pending, startTransition] = useTransition();
+  const upload = useResearchUpload(projectId);
 
   const addItem = (type: "NOTE" | "LINK") =>
     startTransition(async () => {
@@ -69,9 +71,11 @@ export function AddResearchButton({ projectId }: { projectId: string }) {
         <DropdownMenuItem onClick={addFolder}>
           <FolderPlusIcon /> Add folder
         </DropdownMenuItem>
-        {/* Uploads arrive with the research uploads feature (context/features/research-uploads-spec.md). */}
-        <DropdownMenuItem disabled>
-          <ImageIcon /> Add image (coming soon)
+        <DropdownMenuItem onClick={() => void upload.choose("IMAGE", null)}>
+          <ImageIcon /> Upload image
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void upload.choose("FILE", null)}>
+          <UploadIcon /> Upload file
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

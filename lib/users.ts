@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { deleteStoredFiles, researchFileKeys } from "@/lib/research-storage";
 
 const clerkUserSchema = z.object({
   clerkId: z.string().min(1),
@@ -23,8 +24,12 @@ export async function upsertUser(input: ClerkUserInput) {
   });
 }
 
+/** Deletes the user (everything they own cascades) and their stored research files. */
 export async function deleteUserByClerkId(clerkId: string) {
-  return prisma.user.deleteMany({ where: { clerkId } });
+  const fileKeys = await researchFileKeys({ project: { user: { clerkId } } });
+  const result = await prisma.user.deleteMany({ where: { clerkId } });
+  await deleteStoredFiles(fileKeys);
+  return result;
 }
 
 export async function countUsers() {

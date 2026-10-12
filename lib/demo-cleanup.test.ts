@@ -10,6 +10,13 @@ vi.mock("@clerk/nextjs/errors", () => ({ isClerkAPIResponseError: (error: { cler
 const releaseSlotForDemo = vi.fn();
 vi.mock("@/lib/demo-store", () => ({ releaseSlotForDemo: (...args: unknown[]) => releaseSlotForDemo(...args) }));
 
+const researchFileKeys = vi.fn();
+const deleteStoredFiles = vi.fn();
+vi.mock("@/lib/research-storage", () => ({
+  researchFileKeys: (...args: unknown[]) => researchFileKeys(...args),
+  deleteStoredFiles: (...args: unknown[]) => deleteStoredFiles(...args),
+}));
+
 import { cleanupDemos, removeExpiredDemo } from "@/lib/demo-cleanup";
 
 const now = new Date("2026-10-11T12:00:00Z");
@@ -32,6 +39,8 @@ beforeEach(() => {
   clerk.users.deleteUser.mockResolvedValue({});
   clerk.users.getUserList.mockResolvedValue({ data: [] });
   releaseSlotForDemo.mockResolvedValue(undefined);
+  researchFileKeys.mockReset().mockResolvedValue([]);
+  deleteStoredFiles.mockReset().mockResolvedValue(undefined);
 });
 
 describe("cleanupDemos: expired demos", () => {
@@ -46,15 +55,27 @@ describe("cleanupDemos: expired demos", () => {
     prismaMock.user.findMany.mockResolvedValueOnce([{ id: "db-1", clerkId: "user_1" }]);
     const order: string[] = [];
     clerk.users.deleteUser.mockImplementation(async () => void order.push("clerk"));
+    deleteStoredFiles.mockImplementation(async () => void order.push("files"));
     prismaMock.user.deleteMany.mockImplementation(async () => (order.push("db"), { count: 1 }));
     releaseSlotForDemo.mockImplementation(async () => void order.push("slot"));
 
     const result = await cleanupDemos(now);
 
-    expect(order).toEqual(["clerk", "db", "slot"]);
+    // The files go before the rows, which hold their keys.
+    expect(order).toEqual(["clerk", "files", "db", "slot"]);
     expect(clerk.users.deleteUser).toHaveBeenCalledWith("user_1");
     expect(prismaMock.user.deleteMany).toHaveBeenCalledWith({ where: { id: "db-1" } });
     expect(result).toMatchObject({ deleted: 1, failed: 0 });
+  });
+
+  it("deletes the demo's uploaded research files by their keys", async () => {
+    prismaMock.user.findMany.mockResolvedValueOnce([{ id: "db-1", clerkId: "user_1" }]);
+    researchFileKeys.mockResolvedValue(["k1", "k2"]);
+
+    await cleanupDemos(now);
+
+    expect(researchFileKeys).toHaveBeenCalledWith({ project: { userId: "db-1" } });
+    expect(deleteStoredFiles).toHaveBeenCalledWith(["k1", "k2"]);
   });
 
   it("leaves the database row when the Clerk delete fails, so the next run retries", async () => {

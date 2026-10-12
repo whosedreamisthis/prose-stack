@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   // pdfkit reads its built-in font files from its own folder at runtime, so it can't be bundled.
   serverExternalPackages: ["pdfkit"],
+  // Research images are served by UploadThing from <app id>.ufs.sh/f/<key>.
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "*.ufs.sh", pathname: "/f/**" }],
+  },
   // The PDF embeds the project font from its @fontsource package, read from disk by file name, so tracing cannot see it.
   outputFileTracingIncludes: {
     "/api/export/**": ["./node_modules/@fontsource/*/files/*-latin-{400,700}-{normal,italic}.woff"],

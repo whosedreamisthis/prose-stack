@@ -1,5 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "@/test/mock-prisma";
+
+const researchFileKeys = vi.fn();
+const deleteStoredFiles = vi.fn();
+vi.mock("@/lib/research-storage", () => ({
+  researchFileKeys: (...args: unknown[]) => researchFileKeys(...args),
+  deleteStoredFiles: (...args: unknown[]) => deleteStoredFiles(...args),
+}));
+
 import { countUsers, deleteUserByClerkId, formatName, upsertUser } from "@/lib/users";
 
 describe("countUsers", () => {
@@ -37,10 +45,23 @@ describe("upsertUser", () => {
 });
 
 describe("deleteUserByClerkId", () => {
+  beforeEach(() => {
+    researchFileKeys.mockReset().mockResolvedValue([]);
+    deleteStoredFiles.mockReset();
+  });
+
   it("deletes by clerkId without failing when the row is already gone", async () => {
     prismaMock.user.deleteMany.mockResolvedValue({ count: 0 });
     await deleteUserByClerkId("user_1");
     expect(prismaMock.user.deleteMany).toHaveBeenCalledWith({ where: { clerkId: "user_1" } });
+  });
+
+  it("deletes the user's stored research files after the rows", async () => {
+    researchFileKeys.mockResolvedValue(["k1"]);
+    prismaMock.user.deleteMany.mockResolvedValue({ count: 1 });
+    await deleteUserByClerkId("user_1");
+    expect(researchFileKeys).toHaveBeenCalledWith({ project: { user: { clerkId: "user_1" } } });
+    expect(deleteStoredFiles).toHaveBeenCalledWith(["k1"]);
   });
 });
 

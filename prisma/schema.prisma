@@ -318,7 +318,7 @@ model ResearchFolder {
   @@index([projectId, parentId, position])
 }
 
-/// A research note or link (images and files come later). It may link to one character, place or scene.
+/// A research note, link, uploaded image or uploaded file. It may link to one character, place or scene.
 model ResearchItem {
   id          String       @id @default(cuid())
   projectId   String
@@ -326,8 +326,12 @@ model ResearchItem {
   type        ResearchType
   title       String
   content     Json? // NOTE: Tiptap document
-  url         String? // LINK: the address
+  url         String? // LINK: the address; IMAGE and FILE: the stored file's address, set by the server
   description String?
+  fileKey     String? // IMAGE and FILE: the UploadThing key, for deleting the stored file
+  fileName    String?
+  fileSize    Int? // bytes; counts toward the project's research storage while the row exists
+  mimeType    String?
   position    Int // order among sibling items, 0-based
   characterId String?
   placeId     String?
