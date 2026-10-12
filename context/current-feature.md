@@ -1,20 +1,21 @@
-# Current Feature
+# Current Feature: Full Manuscript View
 
-<!-- Feature name and short description -->
+Clicking the Manuscript header opens the whole manuscript as editable scenes.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Clicking the Manuscript header opens `/manuscript/full`
+- Shows every part, chapter and scene in reading order, scenes as lazy-loaded editable editors
+- Part, chapter and full views share one renderer (`NodeBookView`)
+- The chevron still collapses the tree
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/features/book-view-spec.md` (section 1). The read-only Book view (navbar icon, `/manuscript/book`) is a separate, later feature; until then the outline no longer links to the placeholder.
 
 ## Completed Features
 

@@ -47,4 +47,4 @@ The core writing experience: a collapsible manuscript tree, a rich scene editor,
 ## Open questions
 - Autosave debounce interval confirmation.
 - Spell check: native vs `nspell`.
-- Should each chapter start on a new page in book view?
+- (Decided: each chapter starts on a new page in book view; see [book-view-spec.md](book-view-spec.md).)
