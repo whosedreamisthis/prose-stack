@@ -1,28 +1,20 @@
-# Current Feature: Read Aloud
+# Current Feature
 
-A Read aloud button in the scene editor toolbar that speaks the scene text back to the writer, using the browser's Web Speech API.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Read aloud button in the editor toolbar, after thesaurus.
-- Click to start reading the current scene; the button toggles to Pause; a Stop control cancels.
-- If text is selected in the editor, read only the selection; otherwise read the whole scene.
-- Extract plain text from the Tiptap document, split into sentence/paragraph chunks and queue one utterance per chunk (long utterances get cut off in Chrome).
-- Stop reading when the user switches scenes, leaves the page, or starts typing.
-- Hide or disable the button, with a tooltip, if `speechSynthesis` is not supported.
-- Playback state (idle / speaking / paused) in a small Zustand store.
-- A unit test covers the text extraction and chunking helper.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/features/read-aloud-spec.md`. No library, no API key, no data/database changes.
-- Acceptance: Pause and Stop work; switching scenes or navigating away cancels speech; thousands-of-words scenes read through; unsupported browsers show a disabled button, not an error.
-- Not in the first version: highlighting the current sentence, voice picker and speed setting (could live in localStorage later).
-- Open questions from the spec: highlight the current sentence in v1? Voice and speed controls now or later? (Defaulting to no and later.)
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -48,3 +40,4 @@ In Progress
 - **Whole-Book PDF Export:** "Export as PDF" in the Manuscript row menu downloads the Book view's pages as a 6 x 9 in PDF with the project font embedded; see `lib/pdf/book.ts`, `lib/pdf/fonts.ts`.
 - **Plot:** plot lines grid at `/plot` with draggable points, single-line view, Plots sidebar section and scene tab, trash support, demo seed; see `components/plot/`, `actions/plot.ts`, `lib/plot.ts`.
 - **Settings: Labels:** Labels tab in settings (custom colors, usage counts, autosave), color bars on outline rows, label chips and picker for plot points, demo seed; see `components/settings/LabelsTab.tsx`, `actions/labels.ts`, `lib/labels.ts`.
+- **Read Aloud:** toolbar button speaks the scene or selection in chunks with pause, resume and stop; see `hooks/useReadAloud.ts`, `lib/read-aloud.ts`, `EditorToolbar.tsx`.
