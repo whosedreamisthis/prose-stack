@@ -5,7 +5,6 @@ import { PanelLeftIcon, PanelRightIcon } from "lucide-react";
 import { Hint } from "@/components/layout/Hint";
 import { PendingSection } from "@/components/layout/PendingSection";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { cn } from "@/lib/utils";
 
@@ -29,26 +28,33 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
 
   useEffect(() => {
-    if (!rightDrawerOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && setRightDrawerOpen(false);
+    if (!rightDrawerOpen && !drawerOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setRightDrawerOpen(false);
+      setDrawerOpen(false);
+    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [rightDrawerOpen, setRightDrawerOpen]);
+  }, [rightDrawerOpen, drawerOpen, setRightDrawerOpen, setDrawerOpen]);
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between border-b px-2">
         <div className="flex items-center">
           {/* Small screens open the drawer; larger screens collapse the sidebar. Both are CSS-switched, so no viewport detection runs on the client. */}
-          <Hint label="Open sidebar" side="right" wrapperClassName="md:hidden">
+          <Hint label={drawerOpen ? "Close left sidebar" : "Open left sidebar"} side="right" wrapperClassName="md:hidden">
             <Button
               variant="ghost"
               size="icon"
               className="md:hidden"
-              aria-label="Open sidebar"
+              aria-label={drawerOpen ? "Close left sidebar" : "Open left sidebar"}
               aria-expanded={drawerOpen}
-              aria-controls="left-drawer"
-              onClick={() => setDrawerOpen(true)}
+              aria-controls="left-sidebar"
+              onClick={() => {
+                setRightDrawerOpen(false);
+                setDrawerOpen(!drawerOpen);
+              }}
             >
               <PanelLeftIcon className="size-5" />
             </Button>
@@ -83,7 +89,10 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
               aria-label={rightDrawerOpen ? "Close right sidebar" : "Open right sidebar"}
               aria-expanded={hasRightPanel && rightDrawerOpen}
               aria-controls="right-sidebar"
-              onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
+              onClick={() => {
+                setDrawerOpen(false);
+                setRightDrawerOpen(!rightDrawerOpen);
+              }}
             >
               <PanelRightIcon className="size-5" />
             </Button>
@@ -111,15 +120,26 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
       </div>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {/* One element, like the right sidebar: an overlay below md, an inline column from md up. */}
+        {drawerOpen && (
+          <button
+            type="button"
+            aria-label="Close left sidebar"
+            tabIndex={-1}
+            onClick={() => setDrawerOpen(false)}
+            className="absolute inset-0 z-30 bg-black/10 md:hidden"
+          />
+        )}
         <aside
           id="left-sidebar"
-          inert={!leftOpen}
           className={cn(
-            "hidden shrink-0 overflow-hidden border-r bg-primary/5 dark:bg-transparent transition-[width] duration-200 motion-reduce:transition-none md:block",
-            leftOpen ? "w-64" : "w-0 border-r-0",
+            "shrink-0 overflow-hidden border-r bg-background transition-[width,translate,visibility] duration-200 motion-reduce:transition-none md:bg-primary/5 dark:md:bg-transparent",
+            "max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-72 max-md:shadow-lg",
+            !drawerOpen && "max-md:invisible max-md:-translate-x-full",
+            leftOpen ? "md:w-64" : "md:invisible md:w-0 md:border-r-0",
           )}
         >
-          <div className="h-full w-64 overflow-y-auto p-3">{left}</div>
+          <div className="h-full w-72 overflow-y-auto p-3 md:w-64">{left}</div>
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
@@ -143,7 +163,7 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
         <aside
           id="right-sidebar"
           className={cn(
-            "shrink-0 overflow-hidden border-l bg-background transition-[width,transform] duration-200 motion-reduce:transition-none",
+            "shrink-0 overflow-hidden border-l bg-background transition-[width,translate,visibility] duration-200 motion-reduce:transition-none",
             "max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-40 max-lg:w-72 max-lg:shadow-lg",
             !rightDrawerOpen && "max-lg:invisible max-lg:translate-x-full",
             hasRightPanel && rightOpen ? "lg:w-72" : "lg:invisible lg:w-0 lg:border-l-0",
@@ -153,15 +173,6 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
         </aside>
       </div>
 
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent id="left-drawer" side="left" className="w-72 md:hidden">
-          <SheetHeader>
-            <SheetTitle>Project</SheetTitle>
-            <SheetDescription className="sr-only">Sidebar navigation for this project</SheetDescription>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">{left}</div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
