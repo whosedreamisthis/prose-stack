@@ -44,7 +44,7 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
   }, [rightDrawerOpen, drawerOpen, setRightDrawerOpen, setDrawerOpen]);
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col">
+    <div className="project-shell flex min-h-0 flex-1 flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between border-b px-2">
         <div className="flex items-center">
           {/* Small screens open the drawer; larger screens collapse the sidebar. Both are CSS-switched, so no viewport detection runs on the client. */}

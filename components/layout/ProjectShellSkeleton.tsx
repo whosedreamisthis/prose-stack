@@ -5,7 +5,7 @@ const bar = "animate-pulse rounded-md bg-muted motion-reduce:animate-none";
 /** The project page's frame while it loads, from the Projects page: the toolbar strip, the sidebars and the editor, so it answers the click at once. */
 export function ProjectShellSkeleton() {
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col" role="status" aria-label="Loading project">
+    <div className="project-shell flex min-h-0 flex-1 flex-col" role="status" aria-label="Loading project">
       <div className="flex h-10 shrink-0 items-center justify-between border-b px-2">
         <div className={`${bar} size-6`} />
         <div className={`${bar} size-6`} />

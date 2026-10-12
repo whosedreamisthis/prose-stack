@@ -37,7 +37,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">
+      {/* A project page (its shell is a direct child) is exactly one window tall: the navbar and the demo banner, when shown,
+          take what they need and the shell fills the rest, so the main pane's own scrollbars (such as the plot grid's
+          horizontal one) stay in view instead of sitting below the fold. */}
+      <body className="min-h-full flex flex-col has-[>.project-shell]:h-dvh has-[>.project-shell]:overflow-hidden">
         {/* dynamic: hand the signed-in state to client components on first render, so UserButton hydrates cleanly */}
         <Suspense>
           <ClerkProvider dynamic>
