@@ -36,7 +36,7 @@ export async function createSceneNote(input: {
     const { projectId, sceneId, title, content, id } = parsed.data;
 
     const scene = await prisma.manuscriptNode.findFirst({
-      where: { id: sceneId, projectId, project: { userId: user.id }, type: "SCENE", trashedAt: null },
+      where: { id: sceneId, projectId, project: { userId: user.id }, trashedAt: null },
       select: { id: true, _count: { select: { notes: { where: { trashedAt: null } } } } },
     });
     if (!scene) return { success: false, error: NOT_FOUND };

@@ -23,15 +23,17 @@ import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyb
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeftIcon, ArrowRightIcon, GripVerticalIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { trashNode } from "@/actions/manuscript";
+import { renameNode, trashNode } from "@/actions/manuscript";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
+import { TitleEditor } from "@/components/manuscript/TitleEditor";
 import { PlotLineView } from "@/components/plot/PlotLineView";
 import { usePlotPointEditor } from "@/components/plot/PlotPointEditor";
 import { RenamePlotLineDialog } from "@/components/plot/RenamePlotLineDialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { cellTaken, usePlotActions } from "@/hooks/usePlotActions";
 import { usePlotData } from "@/hooks/usePlotData";
+import { nodeTitleSchema } from "@/lib/manuscript-config";
 import { CELL_TAKEN, MAX_PLOT_LINES } from "@/lib/plot-config";
 import { usePlotStore } from "@/lib/stores/plot-store";
 import { cn } from "@/lib/utils";
@@ -73,6 +75,9 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
   const [renaming, setRenaming] = useState<PlotLineItem | null>(null);
   const [trashingLine, setTrashingLine] = useState<PlotLineItem | null>(null);
   const [trashingScene, setTrashingScene] = useState<PlotScene | null>(null);
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
+  /** Scene names just typed, shown until the outline arrives with them (or put back if the server refuses). */
+  const [titles, setTitles] = useState<Record<string, string>>({});
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -80,7 +85,7 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
   useEffect(() => {
     for (const scene of usePlotStore.getState().addedScenes) if (scenes.some((s) => s.id === scene.id)) usePlotStore.getState().removeScene(scene.id);
   }, [scenes]);
-  const rows = [...scenes, ...addedScenes.filter((a) => !scenes.some((s) => s.id === a.id))];
+  const rows = [...scenes, ...addedScenes.filter((a) => !scenes.some((s) => s.id === a.id))].map((s) => ({ ...s, title: titles[s.id] ?? s.title }));
 
   const editor = usePlotPointEditor({ projectId, lines, points, scenes: rows });
 
@@ -121,6 +126,20 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
     }
   };
 
+  /** Ends an inline scene rename: a changed, valid title is saved; Escape, a blank or an unchanged title just closes the input. */
+  const finishSceneRename = (scene: PlotScene, value: string | null) => {
+    setEditingSceneId(null);
+    const title = nodeTitleSchema.safeParse(value ?? "");
+    if (!title.success || title.data === scene.title) return;
+    setTitles((t) => ({ ...t, [scene.id]: title.data }));
+    startTransition(async () => {
+      const result = await renameNode({ projectId, nodeId: scene.id, title: title.data });
+      if (!result.success) toast.error(result.error);
+      // Either way the outline now has the real title (or the old one back), so the typed one is dropped.
+      setTitles((t) => Object.fromEntries(Object.entries(t).filter(([id]) => id !== scene.id)));
+    });
+  };
+
   const trashScene = (scene: PlotScene) =>
     startTransition(async () => {
       const result = await trashNode({ projectId, nodeId: scene.id });
@@ -157,7 +176,7 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
 
   return (
     <>
-      <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+      <DndContext id="plot-grid" sensors={sensors} collisionDetection={collision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="h-full overflow-auto">
           <table className="m-4 border-separate border-spacing-0 text-sm">
             <caption className="sr-only">Plot grid: scenes down the side, plot lines across</caption>
@@ -195,10 +214,18 @@ export function PlotGrid({ projectId, plot, scenes }: PlotGridProps) {
               {rows.map((scene) => (
                 <tr key={scene.id}>
                   <th scope="row" className="group/item sticky left-0 z-10 w-44 min-w-44 border-b bg-background p-2 pr-8 text-left align-top font-medium">
-                    <Link href={`/projects/${projectId}/manuscript?scene=${scene.id}`} className="block rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-                      <span className="line-clamp-3 wrap-break-word">{scene.title}</span>
-                    </Link>
+                    {editingSceneId === scene.id ? (
+                      <TitleEditor initial={scene.title} label="Rename scene" onDone={(value) => finishSceneRename(scene, value)} />
+                    ) : (
+                      <Link
+                        href={`/projects/${projectId}/manuscript?scene=${scene.id}`}
+                        className="block rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="line-clamp-3 wrap-break-word">{scene.title}</span>
+                      </Link>
+                    )}
                     <RowMenu label={`${scene.title} options`} className="top-2 translate-y-0">
+                      <RenameItem onClick={() => setEditingSceneId(scene.id)} />
                       <TrashItem onClick={() => setTrashingScene(scene)} />
                     </RowMenu>
                   </th>

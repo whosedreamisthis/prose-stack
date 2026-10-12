@@ -11,19 +11,38 @@ import { usePlotActions } from "@/hooks/usePlotActions";
 import { usePlotData } from "@/hooks/usePlotData";
 import type { PlotData, PlotPointItem, PlotScene } from "@/types/plot";
 
+/** The grid icon at the top right of a Plots tab: opens the plot grid. */
+export function PlotGridLink({ projectId }: { projectId: string }) {
+  return (
+    <div className="flex justify-end">
+      <Hint label="Open plot grid" side="left">
+        <Link
+          href={`/projects/${projectId}/plot`}
+          aria-label="Open plot grid"
+          className="grid size-7 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <LayoutGridIcon className="size-4" aria-hidden />
+        </Link>
+      </Hint>
+    </div>
+  );
+}
+
 interface ScenePlotsPanelProps {
   projectId: string;
   sceneId: string;
   plot: PlotData;
   /** Every scene, in manuscript order, for the scene choice in the dialog. */
   scenes: PlotScene[];
+  /** Show the grid icon. Off for all but the first of several panels on one sidebar. */
+  showGridLink?: boolean;
 }
 
 /**
  * The Plots tab of a scene's right sidebar: the scene's plot points (at most one per plot line) as compact cards, built
  * like the notes list. A card, or the dashed add card, opens the plot point dialog.
  */
-export function ScenePlotsPanel({ projectId, sceneId, plot, scenes }: ScenePlotsPanelProps) {
+export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, showGridLink = true }: ScenePlotsPanelProps) {
   const { lines, points } = usePlotData(plot);
   const actions = usePlotActions(projectId);
   const editor = usePlotPointEditor({ projectId, lines, points, scenes });
@@ -35,17 +54,7 @@ export function ScenePlotsPanel({ projectId, sceneId, plot, scenes }: ScenePlots
 
   return (
     <div className="flex flex-col gap-2 pt-3">
-      <div className="flex justify-end">
-        <Hint label="Open plot grid" side="left">
-          <Link
-            href={`/projects/${projectId}/plot`}
-            aria-label="Open plot grid"
-            className="grid size-7 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <LayoutGridIcon className="size-4" aria-hidden />
-          </Link>
-        </Hint>
-      </div>
+      {showGridLink && <PlotGridLink projectId={projectId} />}
       <ul className="flex flex-col gap-2">
         {here.map((point) => (
           <li key={point.id} className="group/item relative">
