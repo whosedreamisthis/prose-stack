@@ -50,24 +50,32 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
   const full = notes.length >= maxNotes;
   const openNote = open && !open.isNew ? notes.find((n) => n.id === open.id) : undefined;
 
+  /** Runs a server call as a transition; the promise settles when it has finished, so an autosave can show "Saving…" until then. */
+  const sent = (run: () => Promise<void>) =>
+    new Promise<void>((resolve) => {
+      startTransition(async () => {
+        await run();
+        resolve();
+      });
+    });
+
   /**
    * Saves what the dialog shows. A new note is created once it has a title or text; an existing one is updated if it changed.
    * `quiet` is for autosaves: a note emptied mid-edit is skipped without a complaint, since the writer is still typing.
    */
-  const persist = (target: Open, raw: NoteValues, quiet = false) => {
+  const persist = (target: Open, raw: NoteValues, quiet = false): Promise<void> | void => {
     const values = { title: raw.title.trim(), content: raw.content.trim() };
     const existing = notes.find((n) => n.id === target.id);
     if (!existing) {
       if (isBlank(values)) return;
       setNotes((prev) => [...prev, { id: target.id, ...values }]);
-      startTransition(async () => {
+      return sent(async () => {
         const result = await onCreate({ id: target.id, ...values });
         if (!result.success) {
           setNotes((prev) => prev.filter((n) => n.id !== target.id));
           toast.error(result.error);
         }
       });
-      return;
     }
     if (values.title === existing.title && values.content === existing.content) return;
     if (isBlank(values)) {
@@ -75,7 +83,7 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
       return;
     }
     setNotes((prev) => prev.map((n) => (n.id === target.id ? { ...n, ...values } : n)));
-    startTransition(async () => {
+    return sent(async () => {
       const result = await onUpdate({ noteId: target.id, ...values });
       if (!result.success) {
         setNotes((prev) => prev.map((n) => (n.id === target.id ? existing : n)));
@@ -176,13 +184,13 @@ interface NoteDialogProps {
   initial: NoteValues;
   isNew: boolean;
   maxLength: number;
-  onAutosave: (values: NoteValues) => void;
+  onAutosave: (values: NoteValues) => Promise<void> | void;
   onClose: (values: NoteValues) => void;
 }
 
 function NoteDialog({ initial, isNew, maxLength, onAutosave, onClose }: NoteDialogProps) {
   const [values, setValues] = useState(initial);
-  const { dirty } = useDialogAutosave(values, onAutosave);
+  const { status } = useDialogAutosave(values, onAutosave);
 
   return (
     <>
@@ -201,7 +209,7 @@ function NoteDialog({ initial, isNew, maxLength, onAutosave, onClose }: NoteDial
             value={values.title}
             maxLength={MAX_NOTE_TITLE_LENGTH}
             onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
-            className="mr-8 h-9 border-0 bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-9 border-0 bg-transparent pr-8 pl-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
           <Textarea
             autoFocus
@@ -212,7 +220,7 @@ function NoteDialog({ initial, isNew, maxLength, onAutosave, onClose }: NoteDial
             onChange={(e) => setValues((v) => ({ ...v, content: e.target.value }))}
             className="min-h-48 flex-1 resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
-          <DialogSaveBar dirty={dirty} empty={!values.title.trim() && !values.content.trim()} onDone={() => onClose(values)} />
+          <DialogSaveBar status={status} onDone={() => onClose(values)} />
         </DialogContent>
       </Dialog>
     </>

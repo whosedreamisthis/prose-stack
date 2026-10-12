@@ -73,7 +73,7 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
   };
 
   /** Saves what the dialog shows. `quiet` is for autosaves: a point emptied mid-edit is skipped without a complaint. */
-  const save = (raw: DialogValues, quiet = false) => {
+  const save = (raw: DialogValues, quiet = false): Promise<void> | void => {
     const was = saved.current;
     const values = { ...raw, title: raw.title.trim(), text: raw.text.trim() };
     const blank = !values.title && !values.text;
@@ -82,8 +82,9 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
     if (!was.id) {
       if (blank) return;
       const created = actions.createPoint({ plotLineId: values.plotLineId, sceneId, title: values.title, text: values.text });
-      if (created) saved.current = { id: created.id, values, newSceneId: values.sceneId === NEW_SCENE ? created.sceneId : null };
-      return;
+      if (!created) return;
+      saved.current = { id: created.id, values, newSceneId: values.sceneId === NEW_SCENE ? created.sceneId : null };
+      return created.done;
     }
     const b = was.values;
     if (values.title === b.title && values.text === b.text && values.plotLineId === b.plotLineId && values.sceneId === b.sceneId) return;
@@ -92,8 +93,8 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
       return;
     }
     if (!sceneId) return;
-    actions.updatePoint(was.id, { ...values, sceneId });
     saved.current = { ...was, values };
+    return actions.updatePoint(was.id, { ...values, sceneId });
   };
 
   const dialog = open && (
@@ -116,7 +117,7 @@ export function usePlotPointEditor({ projectId, lines, points, scenes }: EditorI
 
 interface PlotPointDialogProps {
   open: Open;
-  onAutosave: (values: DialogValues) => void;
+  onAutosave: (values: DialogValues) => Promise<void> | void;
   lines: PlotLineItem[];
   points: PlotPointItem[];
   scenes: PlotScene[];
@@ -125,7 +126,7 @@ interface PlotPointDialogProps {
 
 function PlotPointDialog({ open, lines, points, scenes, onAutosave, onClose }: PlotPointDialogProps) {
   const [values, setValues] = useState(open.initial);
-  const { dirty } = useDialogAutosave(values, onAutosave);
+  const { status } = useDialogAutosave(values, onAutosave);
   const isNew = open.pointId === null;
   const taken = (plotLineId: string, sceneId: string) => sceneId !== NEW_SCENE && cellTaken(points, plotLineId, sceneId, open.pointId ?? undefined);
 
@@ -136,7 +137,7 @@ function PlotPointDialog({ open, lines, points, scenes, onAutosave, onClose }: P
         if (!next) onClose(values);
       }}
     >
-      <DialogContent className="flex max-h-[85dvh] flex-col gap-3 overflow-y-auto sm:max-w-lg">
+      <DialogContent className="flex max-h-[85dvh] flex-col gap-3 overflow-x-hidden overflow-y-auto sm:max-w-lg">
         <DialogTitle className="sr-only">{isNew ? "New plot point" : "Plot point"}</DialogTitle>
         <DialogDescription className="sr-only">Changes are saved as you type.</DialogDescription>
         <Input
@@ -145,7 +146,7 @@ function PlotPointDialog({ open, lines, points, scenes, onAutosave, onClose }: P
           value={values.title}
           maxLength={MAX_NOTE_TITLE_LENGTH}
           onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
-          className="mr-8 h-9 border-0 bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
+          className="h-9 border-0 bg-transparent pr-8 pl-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
         <Textarea
           autoFocus
@@ -189,7 +190,7 @@ function PlotPointDialog({ open, lines, points, scenes, onAutosave, onClose }: P
             </select>
           </label>
         </div>
-        <DialogSaveBar dirty={dirty} empty={!values.title.trim() && !values.text.trim()} onDone={() => onClose(values)} />
+        <DialogSaveBar status={status} onDone={() => onClose(values)} />
       </DialogContent>
     </Dialog>
   );

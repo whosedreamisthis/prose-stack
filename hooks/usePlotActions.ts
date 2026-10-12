@@ -30,17 +30,17 @@ export function usePlotActions(projectId: string) {
 
   return useMemo(() => {
     /** Runs `send` after the optimistic change; on failure runs `rollback` and shows the error. */
-    const commit = (send: () => Promise<ActionResult<unknown>>, rollback: () => void, done?: string) => {
-      startTransition(async () => {
-        const result = await send();
-        if (!result.success) {
-          rollback();
-          toast.error(result.error);
-          return;
-        }
-        if (done) toast.success(done);
+    const commit = (send: () => Promise<ActionResult<unknown>>, rollback: () => void, done?: string): Promise<void> =>
+      new Promise((resolve) => {
+        startTransition(async () => {
+          const result = await send();
+          if (!result.success) {
+            rollback();
+            toast.error(result.error);
+          } else if (done) toast.success(done);
+          resolve();
+        });
       });
-    };
 
     const keepLines = () => {
       const lines = store().lines;
@@ -98,7 +98,7 @@ export function usePlotActions(projectId: string) {
       },
 
       /** Adds a point to a scene, or to a new scene at the end of the manuscript when `sceneId` is null. Returns the ids it was added under. */
-      createPoint(values: Omit<PointValues, "sceneId"> & { sceneId: string | null }): { id: string; sceneId: string } | null {
+      createPoint(values: Omit<PointValues, "sceneId"> & { sceneId: string | null }): { id: string; sceneId: string; done: Promise<void> } | null {
         const { plotLineId, title, text } = values;
         const id = crypto.randomUUID();
         const newSceneId = values.sceneId ? undefined : crypto.randomUUID();
@@ -110,18 +110,18 @@ export function usePlotActions(projectId: string) {
         const rollback = keepPoints();
         store().setPoints([...store().points, { id, plotLineId, sceneId, title, text }]);
         if (newSceneId) store().addScene({ id: newSceneId, title: "New scene" });
-        commit(
+        const done = commit(
           () => createPlotPoint({ projectId, plotLineId, id, title, text, ...(newSceneId ? { newSceneId } : { sceneId }) }),
           () => {
             rollback();
             if (newSceneId) store().removeScene(newSceneId);
           },
         );
-        return { id, sceneId };
+        return { id, sceneId, done };
       },
 
       /** Saves a point's text, and moves it when its line or scene changed. */
-      updatePoint(pointId: string, values: PointValues) {
+      updatePoint(pointId: string, values: PointValues): Promise<void> | void {
         const current = store().points.find((p) => p.id === pointId);
         if (!current) return;
         if (cellTaken(store().points, values.plotLineId, values.sceneId, pointId)) {
@@ -130,7 +130,7 @@ export function usePlotActions(projectId: string) {
         }
         const rollback = keepPoints();
         store().setPoints(store().points.map((p) => (p.id === pointId ? { ...p, ...values } : p)));
-        commit(
+        return commit(
           () =>
             updatePlotPoint({
               projectId,
