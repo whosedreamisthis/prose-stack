@@ -28,6 +28,7 @@ const NOT_SIGNED_IN = "You need to be signed in.";
 const LINE_NOT_FOUND = "Plot line not found.";
 const SCENE_NOT_FOUND = "Scene not found.";
 const POINT_NOT_FOUND = "Plot point not found.";
+const LABEL_NOT_FOUND = "Label not found.";
 
 function invalid(error: { issues: { message: string }[] }): { success: false; error: string } {
   return { success: false, error: error.issues[0]?.message ?? "Invalid request." };
@@ -223,12 +224,15 @@ export async function createPlotPoint(input: CreatePlotPointInput): Promise<Acti
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = createPlotPointSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, plotLineId, sceneId, newSceneId, id, title, text } = parsed.data;
+    const { projectId, plotLineId, sceneId, newSceneId, id, labelId, title, text } = parsed.data;
 
     const result = await prisma.$transaction(async (tx): Promise<{ error: string } | { id: string; sceneId: string; addedScene: boolean }> => {
       if (!(await lockOwnedProject(tx, user.id, projectId))) return { error: "Project not found." };
       if (!(await tx.plotLine.findFirst({ where: liveLine(projectId, user.id, plotLineId), select: { id: true } }))) {
         return { error: LINE_NOT_FOUND };
+      }
+      if (labelId && !(await tx.label.findFirst({ where: { id: labelId, projectId, project: { userId: user.id } }, select: { id: true } }))) {
+        return { error: LABEL_NOT_FOUND };
       }
       if (sceneId) {
         if (!(await tx.manuscriptNode.findFirst({ where: liveScene(projectId, user.id, sceneId), select: { id: true } }))) {
@@ -238,7 +242,7 @@ export async function createPlotPoint(input: CreatePlotPointInput): Promise<Acti
       }
       const target = sceneId ?? (await appendScene(tx, projectId, newSceneId));
       const created = await tx.plotPoint.create({
-        data: { ...(id && { id }), plotLineId, sceneId: target, ...(title && { title }), text },
+        data: { ...(id && { id }), plotLineId, sceneId: target, ...(labelId && { labelId }), ...(title && { title }), text },
         select: { id: true },
       });
       return { id: created.id, sceneId: target, addedScene: !sceneId };
@@ -260,7 +264,7 @@ export async function updatePlotPoint(input: UpdatePlotPointInput): Promise<Acti
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = updatePlotPointSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, pointId, title, text, plotLineId, sceneId } = parsed.data;
+    const { projectId, pointId, title, text, plotLineId, sceneId, labelId } = parsed.data;
 
     const error = await prisma.$transaction(async (tx) => {
       if (!(await lockOwnedProject(tx, user.id, projectId))) return POINT_NOT_FOUND;
@@ -275,6 +279,9 @@ export async function updatePlotPoint(input: UpdatePlotPointInput): Promise<Acti
       });
       if (!point) return POINT_NOT_FOUND;
 
+      if (labelId && !(await tx.label.findFirst({ where: { id: labelId, projectId, project: { userId: user.id } }, select: { id: true } }))) {
+        return LABEL_NOT_FOUND;
+      }
       const toLine = plotLineId ?? point.plotLineId;
       const toScene = sceneId ?? point.sceneId;
       if (toLine !== point.plotLineId || toScene !== point.sceneId) {
@@ -292,6 +299,7 @@ export async function updatePlotPoint(input: UpdatePlotPointInput): Promise<Acti
         data: {
           ...(title !== undefined && { title: title || null }),
           ...(text !== undefined && { text }),
+          ...(labelId !== undefined && { labelId }),
           plotLineId: toLine,
           sceneId: toScene,
         },

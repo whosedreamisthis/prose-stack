@@ -287,6 +287,40 @@ describe("trashPlotPoint", () => {
   });
 });
 
+describe("labels on plot points", () => {
+  it("puts a label of the same project on a new point", async () => {
+    prismaMock.plotLine.findFirst.mockResolvedValue({ id: "l1" });
+    prismaMock.label.findFirst.mockResolvedValue({ id: "lab1" });
+    prismaMock.manuscriptNode.findFirst.mockResolvedValue({ id: "s1" });
+    prismaMock.plotPoint.findFirst.mockResolvedValue(null);
+    prismaMock.plotPoint.create.mockResolvedValue({ id: "pt1" });
+
+    expect((await createPlotPoint({ projectId: "p1", plotLineId: "l1", sceneId: "s1", labelId: "lab1", text: "x" })).success).toBe(true);
+    expect(prismaMock.label.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "lab1", projectId: "p1", project: { userId: "user-1" } } }),
+    );
+    expect(prismaMock.plotPoint.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ labelId: "lab1" }) }));
+  });
+
+  it("refuses a label of another project or user, on create and on update", async () => {
+    prismaMock.plotLine.findFirst.mockResolvedValue({ id: "l1" });
+    prismaMock.label.findFirst.mockResolvedValue(null);
+    expect((await createPlotPoint({ projectId: "p1", plotLineId: "l1", sceneId: "s1", labelId: "theirs", text: "x" })).success).toBe(false);
+    expect(prismaMock.plotPoint.create).not.toHaveBeenCalled();
+
+    prismaMock.plotPoint.findFirst.mockResolvedValue({ plotLineId: "l1", sceneId: "s1", title: "T", text: "x" });
+    expect((await updatePlotPoint({ projectId: "p1", pointId: "pt1", labelId: "theirs" })).success).toBe(false);
+    expect(prismaMock.plotPoint.update).not.toHaveBeenCalled();
+  });
+
+  it("takes a label off with null, without looking one up", async () => {
+    prismaMock.plotPoint.findFirst.mockResolvedValue({ plotLineId: "l1", sceneId: "s1", title: "T", text: "x" });
+    expect((await updatePlotPoint({ projectId: "p1", pointId: "pt1", labelId: null })).success).toBe(true);
+    expect(prismaMock.label.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.plotPoint.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ labelId: null }) }));
+  });
+});
+
 describe("addScene", () => {
   it("adds a scene at the end of the manuscript and expires the outline", async () => {
     prismaMock.manuscriptNode.findMany.mockResolvedValue([{ id: "c1", parentId: null, type: "CHAPTER", title: "Chapter 1", position: 0 }]);

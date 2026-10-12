@@ -6,6 +6,7 @@ import { updateProjectSettings, updateUserTheme } from "@/actions/settings";
 import { AppearanceTab } from "@/components/settings/AppearanceTab";
 import { FormattingTab } from "@/components/settings/FormattingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
+import { LabelsTab } from "@/components/settings/LabelsTab";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ const PANELS: Record<SettingsTab, () => ReactNode> = {
   general: () => <GeneralTab />,
   appearance: () => <AppearanceTab />,
   formatting: () => <FormattingTab />,
+  labels: () => <LabelsTab />,
 };
 
 /** The project settings modal. Open it with `useSettingsStore().openSettings`; it is mounted once, in the navbar. */
@@ -45,6 +47,7 @@ export function SettingsDialog() {
   const tab = useSettingsStore((s) => s.tab);
   const saved = useSettingsStore((s) => s.saved);
   const draft = useSettingsStore((s) => s.draft);
+  const labelsChanged = useSettingsStore((s) => s.labelsChanged);
   const setTab = useSettingsStore((s) => s.setTab);
   const closeSettings = useSettingsStore((s) => s.closeSettings);
   const markSaved = useSettingsStore((s) => s.markSaved);
@@ -57,7 +60,11 @@ export function SettingsDialog() {
 
   const changes = saved && draft ? getChanges(saved, draft) : null;
   const dirty = changes !== null && hasChanges(changes);
-  const dirtyTabs = saved && draft ? getDirtyTabs(saved, draft) : null;
+  // The Labels tab is marked once a label changed, though it needs no Save: the dot says "you touched this tab".
+  const dirtyTabs = saved && draft ? { ...getDirtyTabs(saved, draft), labels: labelsChanged } : null;
+  // The Labels tab saves each change on its own, so a Save button there only ever looks broken: it offers Done instead,
+  // unless another tab has edits that still need Save or Cancel.
+  const autoSaves = tab === "labels" && !dirty;
 
   // The theme previews live: the draft's theme is on <html> while the modal is open, and the saved one is put back on cancel.
   const draftTheme = draft?.theme ?? null;
@@ -170,7 +177,7 @@ export function SettingsDialog() {
                   {dirtyTabs?.[id] && (
                     <>
                       <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-                      <span className="sr-only">(unsaved changes)</span>
+                      <span className="sr-only">{id === "labels" ? "(changed)" : "(unsaved changes)"}</span>
                     </>
                   )}
                 </button>
@@ -194,21 +201,32 @@ export function SettingsDialog() {
           </div>
 
           <div className="flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 p-4">
-            <div>
+            <div className="flex items-center">
+              {tab === "labels" && (
+                <p className="text-sm text-muted-foreground">
+                  {autoSaves ? "Labels save automatically." : "Labels save automatically. Save applies to your other changes."}
+                </p>
+              )}
               {RESETTABLE_TABS.includes(tab) && (
                 <Button type="button" variant="ghost" onClick={() => setConfirm("reset")} disabled={pending}>
                   Reset to default
                 </Button>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={requestClose} disabled={pending}>
-                Cancel
+            {autoSaves ? (
+              <Button type="button" onClick={discard}>
+                Done
               </Button>
-              <Button type="button" onClick={save} disabled={!dirty || pending}>
-                {pending ? "Saving…" : "Save"}
-              </Button>
-            </div>
+            ) : (
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={requestClose} disabled={pending}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={save} disabled={!dirty || pending}>
+                  {pending ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

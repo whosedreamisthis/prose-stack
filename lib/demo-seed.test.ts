@@ -6,6 +6,7 @@ function fakeTx() {
   return {
     project: { create: vi.fn().mockResolvedValue({ id: "p1" }) },
     manuscriptNode: { createMany: vi.fn() },
+    label: { createMany: vi.fn() },
     sceneNote: { createMany: vi.fn() },
     projectNote: { createMany: vi.fn() },
     plotLine: { createMany: vi.fn() },
@@ -88,6 +89,29 @@ describe("seedDemoProject", () => {
       expect(note.projectId).toBe("p1");
       expect(note.content).toBeTruthy();
     }
+  });
+
+  it("seeds labels and applies them to the outline and to plot points, all of this project", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const labels = tx.label.createMany.mock.calls[0][0].data as { id: string; projectId: string; name: string; nameKey: string; color: string }[];
+    expect(labels.map((l) => l.name)).toEqual(["Draft", "Revise", "Final"]);
+    for (const label of labels) {
+      expect(label.projectId).toBe("p1");
+      expect(label.nameKey).toBe(label.name.toLowerCase());
+      expect(label.color).toMatch(/^#[0-9a-f]{6}$/);
+    }
+    expect(new Set(labels.map((l) => l.color)).size).toBe(labels.length);
+
+    const ids = new Set(labels.map((l) => l.id));
+    const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as { type: string; labelId?: string }[];
+    const labelled = nodes.filter((n) => n.labelId);
+    expect(new Set(labelled.map((n) => n.type))).toEqual(new Set(["PART", "CHAPTER", "SCENE"]));
+    for (const node of labelled) expect(ids.has(node.labelId!)).toBe(true);
+
+    const points = tx.plotPoint.createMany.mock.calls[0][0].data as { labelId?: string }[];
+    expect(points.some((p) => p.labelId)).toBe(true);
+    for (const point of points.filter((p) => p.labelId)) expect(ids.has(point.labelId!)).toBe(true);
   });
 
   it("seeds plot lines in order, with points on scenes of the project and never two on one cell", async () => {

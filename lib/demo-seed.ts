@@ -11,7 +11,16 @@ interface SeedNode {
   title: string;
   position: number;
   paragraphs?: string[];
+  /** The name of the demo label on it, if any. */
+  label?: DemoLabel;
 }
+
+const DEMO_LABELS = [
+  { name: "Draft", color: "#ca8a04" },
+  { name: "Revise", color: "#dc2626" },
+  { name: "Final", color: "#16a34a" },
+] as const;
+type DemoLabel = (typeof DEMO_LABELS)[number]["name"];
 
 const DEMO_PROJECT = {
   title: "The Lighthouse Keeper",
@@ -43,6 +52,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "PART",
       title: "Part One: The Storm",
       position: 0,
+      label: "Draft",
     },
     {
       id: partTwo,
@@ -57,6 +67,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "CHAPTER",
       title: "Chapter 1",
       position: 0,
+      label: "Final",
     },
     {
       id: ch2,
@@ -78,6 +89,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "SCENE",
       title: "The last ferry",
       position: 0,
+      label: "Final",
       paragraphs: [
         "The last ferry of the season pulled away from the pier, and Mara Quill stood on the slick boards with one suitcase and a letter she had read so often the folds had gone soft.",
         "Ahead of her, across a mile of grey water, the lighthouse waited. It looked smaller than it had in the photograph, and a good deal angrier.",
@@ -89,6 +101,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "SCENE",
       title: "A key left under the lamp",
       position: 1,
+      label: "Revise",
       paragraphs: [
         "Inside, everything smelled of salt and cold iron. Someone had left a key on the lowest step, tied with blue string, and beside it a note in a hand she almost recognised: Don't let the light go out.",
         "She laughed, because it was a ridiculous thing to say to a stranger, and then she did not laugh, because upstairs a door closed on its own.",
@@ -111,6 +124,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "SCENE",
       title: "The first night",
       position: 1,
+      label: "Draft",
       paragraphs: [
         "At midnight the wind found the one loose shutter and played it like a drum. Mara climbed the spiral stair with a lantern, counting steps to keep her mind quiet. One hundred and twelve.",
         "At the top, the great lens turned slowly on its own, though no one had wound it.",
@@ -238,13 +252,13 @@ const SCENE_NOTES: readonly (readonly [string, string])[][] = [
 const PLOT_LINES = ["Main plot", "The keeper's secret", "Mara and Edric"] as const;
 
 /** Plot points as [plot line, scene, title, text]; the scene is an index into the demo scenes in manuscript order, so none repeats a line. */
-const PLOT_POINTS: readonly (readonly [line: number, scene: number, title: string, text: string])[] = [
-  [0, 0, "Mara arrives", "The last ferry leaves her at the lighthouse with one suitcase and a letter."],
-  [0, 1, "The first warning", "A key and a note: don't let the light go out."],
+const PLOT_POINTS: readonly (readonly [line: number, scene: number, title: string, text: string, label?: DemoLabel])[] = [
+  [0, 0, "Mara arrives", "The last ferry leaves her at the lighthouse with one suitcase and a letter.", "Final"],
+  [0, 1, "The first warning", "A key and a note: don't let the light go out.", "Revise"],
   [0, 3, "Climbing the stair", "Her first night. The loose shutter, the hundred and twelve steps, the lens turning by itself."],
   [0, 4, "She takes the post", "Mara writes her own name in the logbook."],
   [1, 1, "A familiar hand", "The note looks like handwriting she should know."],
-  [1, 3, "The lens turns itself", "No one wound it. Someone, or something, is keeping the light."],
+  [1, 3, "The lens turns itself", "No one wound it. Someone, or something, is keeping the light.", "Draft"],
   [1, 4, "What the lamp remembers", "The logbook records every ship guided home, and the one that was not."],
   [2, 2, "A grudging dinner", "Edric tests her, and sits down at her table as if it were still his."],
   [2, 4, "A truce", "He admits he was wrong about her, and says he has a secret of his own."],
@@ -261,7 +275,7 @@ const BOOK_NOTES: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * Seeds the demo user's one project: manuscript (with notes on the book, a part, a chapter and scenes), characters and places (each with notes), the places linked to their characters, and plot
+ * Seeds the demo user's one project: labels applied to some of the outline and plot points, manuscript (with notes on the book, a part, a chapter and scenes), characters and places (each with notes), the places linked to their characters, and plot
  * lines with points on several scenes. Research joins this as that feature ships. Runs inside the caller's transaction; uses a handful of bulk inserts, not a query per row.
  */
 export async function seedDemoProject(tx: Prisma.TransactionClient, userId: string) {
@@ -269,6 +283,11 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
     data: { userId, ...DEMO_PROJECT },
     select: { id: true },
   });
+
+  // The labels come first: the outline and the plot points refer to them.
+  const labels = DEMO_LABELS.map((l) => ({ id: id(), projectId: project.id, name: l.name, nameKey: l.name.toLowerCase(), color: l.color }));
+  await tx.label.createMany({ data: labels });
+  const labelId = (name?: DemoLabel) => labels.find((l) => l.name === name)?.id;
 
   const nodes = manuscriptNodes();
   await tx.manuscriptNode.createMany({
@@ -281,6 +300,7 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
           type: node.type,
           title: node.title,
           position: node.position,
+          labelId: labelId(node.label),
         };
       const content = docFromParagraphs(node.paragraphs ?? []);
       return {
@@ -292,6 +312,7 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
         position: node.position,
         content: content as Prisma.InputJsonValue,
         wordCount: countDocWords(content),
+        labelId: labelId(node.label),
       };
     }),
   });
@@ -315,7 +336,13 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
   const plotLines = PLOT_LINES.map((name, position) => ({ id: id(), projectId: project.id, name, position }));
   await tx.plotLine.createMany({ data: plotLines });
   await tx.plotPoint.createMany({
-    data: PLOT_POINTS.map(([line, scene, title, text]) => ({ plotLineId: plotLines[line].id, sceneId: scenes[scene].id, title, text })),
+    data: PLOT_POINTS.map(([line, scene, title, text, label]) => ({
+      plotLineId: plotLines[line].id,
+      sceneId: scenes[scene].id,
+      title,
+      text,
+      labelId: labelId(label),
+    })),
   });
 
   const characters = CHARACTERS.map((c) => ({ ...c, id: id() }));

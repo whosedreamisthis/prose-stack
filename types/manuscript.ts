@@ -8,6 +8,8 @@ export interface ManuscriptNodeSummary {
   title: string;
   position: number;
   wordCount: number;
+  /** The label on this part, chapter or scene, if any. */
+  labelId: string | null;
 }
 
 export interface SceneDetail {

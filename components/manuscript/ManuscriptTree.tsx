@@ -2,18 +2,26 @@
 
 import { useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
+import { BookmarkIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { createNode, renameNode, trashNode } from "@/actions/manuscript";
+import { setNodeLabel } from "@/actions/labels";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { AddItem, ExportItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
 import { TreeRow } from "@/components/manuscript/TreeRow";
 import { handleTreeKeyDown } from "@/components/manuscript/tree-keyboard";
 import { NODE_ICON, ROOT_KEY, iconClass, treeRowClass } from "@/components/manuscript/tree-config";
 import { noShift, useTreeDnd, type TreeChange } from "@/components/manuscript/useTreeDnd";
-import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useLabelData } from "@/hooks/useLabelData";
 import { requestEditorFocus } from "@/lib/editor-focus";
 import { defaultNodeTitle, nodeTitleSchema, type NodeType } from "@/lib/manuscript-config";
 import { applyMove, childrenOf, resolveActiveScene, subtreeIds } from "@/lib/manuscript-tree";
@@ -21,6 +29,7 @@ import { useLayoutStore } from "@/lib/stores/layout-store";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useTreeStore } from "@/lib/stores/tree-store";
 import { cn } from "@/lib/utils";
+import type { LabelWithUsage } from "@/types/labels";
 import type { ManuscriptNodeSummary } from "@/types/manuscript";
 
 /** The tree's root row is also the sidebar's Manuscript header; the book's own title is already in the navbar. */
@@ -86,9 +95,11 @@ interface ManuscriptTreeProps {
   /** The book's title, which names the whole-book PDF. */
   projectTitle: string;
   nodes: ManuscriptNodeSummary[];
+  labels: LabelWithUsage[];
 }
 
-export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: ManuscriptTreeProps) {
+export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, labels: serverLabels }: ManuscriptTreeProps) {
+  const labels = useLabelData(serverLabels);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -109,7 +120,9 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
         ? [...state, change.node]
         : change.kind === "trash"
           ? state.filter((n) => !subtreeIds(state, change.id).includes(n.id))
-          : applyMove(state, change.plan),
+          : change.kind === "label"
+            ? state.map((n) => (n.id === change.id ? { ...n, labelId: change.labelId } : n))
+            : applyMove(state, change.plan),
   );
   const collapsed = useTreeStore((s) => s.collapsed);
   const toggle = useTreeStore((s) => s.toggle);
@@ -170,7 +183,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
     startTransition(async () => {
       applyChange({
         kind: "add",
-        node: { id, parentId, type, title: defaultNodeTitle(type, sameType), position: childrenOf(nodes, parentId).length, wordCount: 0 },
+        node: { id, parentId, type, title: defaultNodeTitle(type, sameType), position: childrenOf(nodes, parentId).length, wordCount: 0, labelId: null },
       });
       const created = createNode({ projectId, parentId, type, id });
       creating.current.set(
@@ -207,12 +220,45 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
     });
   }
 
+  /** Puts a label on a row, or takes it off (null). It shows at once and goes back if the server refuses. */
+  function labelNode(node: ManuscriptNodeSummary, labelId: string | null) {
+    if (labelId === node.labelId) return;
+    startTransition(async () => {
+      applyChange({ kind: "label", id: node.id, labelId });
+      // A row added a moment ago may not exist on the server yet; wait for it, and drop the change if it failed.
+      if (!(await (creating.current.get(node.id) ?? true))) return;
+      const result = await setNodeLabel({ projectId, nodeId: node.id, labelId });
+      if (!result.success) toast.error(result.error);
+    });
+  }
+
   function nodeMenu(node: ManuscriptNodeSummary) {
     return (
       <RowMenu label={`${node.title} options`}>
         {node.type === "CHAPTER" && <AddItem label="Add scene" onClick={() => addNode(node.id, "SCENE")} />}
         {node.type === "PART" && <AddItem label="Add chapter" onClick={() => addNode(node.id, "CHAPTER")} />}
         <RenameItem onClick={() => setEditingId(node.id)} />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <BookmarkIcon /> Label
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-48">
+            {labels.map((label) => (
+              <DropdownMenuItem key={label.id} onClick={() => labelNode(node, label.id)}>
+                <span aria-hidden className="size-3 shrink-0 rounded-full" style={{ backgroundColor: label.color }} />
+                <span className="truncate">{label.name}</span>
+                {node.labelId === label.id && <CheckIcon className="ml-auto" aria-label="Current label" />}
+              </DropdownMenuItem>
+            ))}
+            {labels.length === 0 && <p className="px-1.5 py-1 text-sm text-muted-foreground">No labels yet. Add some in Settings.</p>}
+            {node.labelId && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => labelNode(node, null)}>No label</DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <ExportItem type="node" id={node.id} projectId={projectId} name={node.title} />
         <TrashItem onClick={() => setConfirming(node)} />
       </RowMenu>
@@ -232,6 +278,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes }: 
           collapsed={isCollapsed}
           editing={editingId === node.id}
           dropActive={dnd.isDropTarget(node.id)}
+          label={labels.find((l) => l.id === node.labelId) ?? null}
           menu={nodeMenu(node)}
           onToggle={() => toggle(node.id)}
           onStartRename={() => setEditingId(node.id)}

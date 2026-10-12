@@ -20,7 +20,8 @@ export type TreeChange =
   | { kind: "rename"; id: string; title: string }
   | { kind: "move"; plan: MovePlan }
   | { kind: "add"; node: ManuscriptNodeSummary }
-  | { kind: "trash"; id: string };
+  | { kind: "trash"; id: string }
+  | { kind: "label"; id: string; labelId: string | null };
 
 /** Rows keep their place while dragging; the drop target is shown by a ring and the dragged item by the overlay. */
 export const noShift: SortingStrategy = () => null;

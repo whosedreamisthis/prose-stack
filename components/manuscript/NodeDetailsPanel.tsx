@@ -6,6 +6,7 @@ import { RightPanel } from "@/components/layout/RightPanel";
 import { SceneNotes } from "@/components/manuscript/SceneNotesPanel";
 import { PlotGridLink, ScenePlotsPanel } from "@/components/plot/ScenePlotsPanel";
 import type { SceneNoteItem } from "@/types/manuscript";
+import type { LabelWithUsage } from "@/types/labels";
 import type { PlotData, PlotScene } from "@/types/plot";
 
 interface NodeDetailsPanelProps {
@@ -20,12 +21,13 @@ interface NodeDetailsPanelProps {
   plot: PlotData;
   /** Every scene in the manuscript, for the plot point dialog. */
   scenes: PlotScene[];
+  labels: LabelWithUsage[];
 }
 
 const heading = (text: string) => <h3 className="truncate pt-3 text-sm font-medium text-primary">{text}</h3>;
 
 /** The right sidebar for an open chapter or part: its own notes then each scene's, and the plot points of each scene. */
-export function NodeDetailsPanel({ projectId, title, ownTitle, ownNotes, items, plot, scenes }: NodeDetailsPanelProps) {
+export function NodeDetailsPanel({ projectId, title, ownTitle, ownNotes, items, plot, scenes, labels }: NodeDetailsPanelProps) {
   const groups = items.filter((i) => i.type === "SCENE").map(({ id, title }) => ({ scene: { id, title } }));
   const empty = <p className="pt-3 text-sm text-muted-foreground">No scenes yet.</p>;
 
@@ -59,7 +61,7 @@ export function NodeDetailsPanel({ projectId, title, ownTitle, ownNotes, items, 
               {groups.map(({ scene }) => (
                 <section key={scene.id} aria-label={scene.title}>
                   {heading(scene.title)}
-                  <ScenePlotsPanel projectId={projectId} sceneId={scene.id} plot={plot} scenes={scenes} showGridLink={false} />
+                  <ScenePlotsPanel projectId={projectId} sceneId={scene.id} plot={plot} scenes={scenes} labels={labels} showGridLink={false} />
                 </section>
               ))}
             </div>

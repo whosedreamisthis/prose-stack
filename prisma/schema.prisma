@@ -62,6 +62,7 @@ model Project {
   places          Place[]
   plotLines       PlotLine[]
   notes           ProjectNote[]
+  labels          Label[]
 
   @@index([userId])
 }
@@ -83,7 +84,7 @@ model ManuscriptNode {
   content   Json? // scenes only: Tiptap document
   summary   String? // scenes only
   wordCount Int                @default(0) // scenes only
-  labelId   String? // scenes only; labels arrive with the scene sidebar
+  labelId   String?
   trashedAt DateTime? // set on a trashed node and all of its descendants together
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
@@ -91,6 +92,7 @@ model ManuscriptNode {
   project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent     ManuscriptNode?  @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children   ManuscriptNode[] @relation("NodeChildren")
+  label      Label?           @relation(fields: [labelId], references: [id], onDelete: SetNull)
   notes      SceneNote[]
   plotPoints PlotPoint[]
 
@@ -238,6 +240,7 @@ model PlotPoint {
   id         String    @id @default(cuid())
   plotLineId String
   sceneId    String
+  labelId    String?
   title      String?
   text       String
   trashedAt  DateTime?
@@ -246,6 +249,7 @@ model PlotPoint {
 
   plotLine PlotLine       @relation(fields: [plotLineId], references: [id], onDelete: Cascade)
   scene    ManuscriptNode @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  label    Label?         @relation(fields: [labelId], references: [id], onDelete: SetNull)
 
   @@unique([plotLineId, sceneId])
   @@index([sceneId])
@@ -264,4 +268,20 @@ model ProjectNote {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
+}
+
+/// A named color a writer attaches to scenes, chapters, parts and plot points. Deleting one unlabels what carried it.
+model Label {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  nameKey   String // the name trimmed and lower-cased, so names are unique ignoring case
+  color     String // #rrggbb
+  createdAt DateTime @default(now())
+
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nodes      ManuscriptNode[]
+  plotPoints PlotPoint[]
+
+  @@unique([projectId, nameKey])
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
+import { LabelChip } from "@/components/labels/LabelChip";
+import type { LabelItem } from "@/types/labels";
 import type { PlotLineItem, PlotPointItem, PlotScene } from "@/types/plot";
 
 interface PlotLineViewProps {
@@ -12,12 +14,13 @@ interface PlotLineViewProps {
   points: PlotPointItem[];
   /** Every scene in manuscript order: a line's points are shown in this order. */
   scenes: PlotScene[];
+  labelById: (id: string | null) => LabelItem | null;
   onOpen: (pointId: string) => void;
   onTrash: (pointId: string) => void;
 }
 
 /** One plot line on its own: its points as cards in story order, joined by a connector, each with the scene it belongs to. */
-export function PlotLineView({ projectId, line, points, scenes, onOpen, onTrash }: PlotLineViewProps) {
+export function PlotLineView({ projectId, line, points, scenes, labelById, onOpen, onTrash }: PlotLineViewProps) {
   const [confirming, setConfirming] = useState<PlotPointItem | null>(null);
   const items = scenes.flatMap((scene) => {
     const point = points.find((p) => p.plotLineId === line.id && p.sceneId === scene.id);
@@ -42,6 +45,7 @@ export function PlotLineView({ projectId, line, points, scenes, onOpen, onTrash 
                 <span className="min-h-16 px-4 py-3 wrap-break-word whitespace-pre-wrap text-foreground/80">{point.text}</span>
               </button>
               <div className="flex items-center justify-between gap-2 px-4 pb-3">
+                {labelById(point.labelId) ? <LabelChip label={labelById(point.labelId)!} /> : <span />}
                 <Link
                   href={`/projects/${projectId}/manuscript?scene=${scene.id}`}
                   className="truncate rounded text-xs text-muted-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
