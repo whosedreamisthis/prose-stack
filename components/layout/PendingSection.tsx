@@ -5,6 +5,7 @@ import { useParams, usePathname } from "next/navigation";
 import { SketchSkeleton } from "@/components/characters/SketchSkeleton";
 import { EditorSkeleton } from "@/components/manuscript/EditorSkeleton";
 import { PlaceSkeleton } from "@/components/places/PlaceSkeleton";
+import { PlotSkeleton } from "@/components/plot/PlotSkeleton";
 import { ListSkeleton } from "@/components/trash/ListSkeleton";
 import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 
@@ -12,6 +13,7 @@ const SKELETONS: Record<string, ReactNode> = {
   manuscript: <EditorSkeleton />,
   characters: <SketchSkeleton />,
   places: <PlaceSkeleton />,
+  plot: <PlotSkeleton />,
   trash: <ListSkeleton />,
   archive: <ListSkeleton />,
 };

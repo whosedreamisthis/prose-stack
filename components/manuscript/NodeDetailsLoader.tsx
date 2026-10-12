@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { NodeDetailsPanel } from "@/components/manuscript/NodeDetailsPanel";
 import { getCurrentUser } from "@/lib/auth";
 import { getManuscript } from "@/lib/manuscript";
-import { sceneOrder, subtreeIds } from "@/lib/manuscript-tree";
+import { childrenOf, sceneOrder } from "@/lib/manuscript-tree";
 import { getPlot } from "@/lib/plot";
 import { listSceneNotes } from "@/lib/scene-notes";
 
@@ -21,15 +21,20 @@ export async function NodeDetailsLoader({ params, type }: NodeDetailsLoaderProps
   const node = nodes.find((n) => n.id === nodeId && n.type === type);
   if (!node) return null;
 
-  const inside = new Set(subtreeIds(nodes, nodeId));
   const allScenes = sceneOrder(nodes);
-  const [notes, groups] = await Promise.all([
+  // Everything inside, in reading order: a part lists its chapters and their scenes, a chapter its scenes.
+  const inside: { id: string; title: string; type: "CHAPTER" | "SCENE" }[] = [];
+  const walk = (parentId: string) => {
+    for (const child of childrenOf(nodes, parentId)) {
+      if (child.type === "PART") continue;
+      inside.push({ id: child.id, title: child.title, type: child.type });
+      walk(child.id);
+    }
+  };
+  walk(nodeId);
+  const [notes, items] = await Promise.all([
     listSceneNotes(user.id, projectId, nodeId),
-    Promise.all(
-      allScenes
-        .filter((s) => inside.has(s.id))
-        .map(async (s) => ({ scene: { id: s.id, title: s.title }, notes: await listSceneNotes(user.id, projectId, s.id) })),
-    ),
+    Promise.all(inside.map(async (item) => ({ ...item, notes: await listSceneNotes(user.id, projectId, item.id) }))),
   ]);
 
   return (
@@ -40,7 +45,7 @@ export async function NodeDetailsLoader({ params, type }: NodeDetailsLoaderProps
       nodeId={nodeId}
       nodeTitle={node.title}
       notes={notes}
-      groups={groups}
+      items={items}
       plot={plot}
       scenes={allScenes.map((s) => ({ id: s.id, title: s.title }))}
     />

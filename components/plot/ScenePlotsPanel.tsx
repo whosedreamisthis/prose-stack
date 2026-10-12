@@ -7,18 +7,22 @@ import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { Hint } from "@/components/layout/Hint";
 import { RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
 import { usePlotPointEditor } from "@/components/plot/PlotPointEditor";
+import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { usePlotActions } from "@/hooks/usePlotActions";
 import { usePlotData } from "@/hooks/usePlotData";
 import type { PlotData, PlotPointItem, PlotScene } from "@/types/plot";
 
 /** The grid icon at the top right of a Plots tab: opens the plot grid. */
 export function PlotGridLink({ projectId }: { projectId: string }) {
+  const setPending = usePendingNavStore((s) => s.setPending);
   return (
     <div className="flex justify-end">
       <Hint label="Open plot grid" side="left">
         <Link
           href={`/projects/${projectId}/plot`}
           aria-label="Open plot grid"
+          // Show the grid skeleton straight away, while the page loads.
+          onClick={() => setPending("section", "plot")}
           className="grid size-7 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <LayoutGridIcon className="size-4" aria-hidden />

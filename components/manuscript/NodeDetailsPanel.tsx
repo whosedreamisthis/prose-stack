@@ -15,8 +15,8 @@ interface NodeDetailsPanelProps {
   nodeId: string;
   nodeTitle: string;
   notes: SceneNoteItem[];
-  /** The scenes inside the chapter or part, in reading order, each with its notes (the Plots tab shows their plot points). */
-  groups: { scene: PlotScene; notes: SceneNoteItem[] }[];
+  /** The chapters and scenes inside, in reading order, each with its notes (the Plots tab shows the plot points of the scenes). */
+  items: { id: string; title: string; type: "CHAPTER" | "SCENE"; notes: SceneNoteItem[] }[];
   plot: PlotData;
   /** Every scene in the manuscript, for the plot point dialog. */
   scenes: PlotScene[];
@@ -25,7 +25,8 @@ interface NodeDetailsPanelProps {
 const heading = (text: string) => <h3 className="truncate pt-3 text-sm font-medium text-primary">{text}</h3>;
 
 /** The right sidebar for an open chapter or part: its own notes then each scene's, and the plot points of each scene. */
-export function NodeDetailsPanel({ projectId, title, nodeId, nodeTitle, notes, groups, plot, scenes }: NodeDetailsPanelProps) {
+export function NodeDetailsPanel({ projectId, title, nodeId, nodeTitle, notes, items, plot, scenes }: NodeDetailsPanelProps) {
+  const groups = items.filter((i) => i.type === "SCENE").map(({ id, title }) => ({ scene: { id, title } }));
   const empty = <p className="pt-3 text-sm text-muted-foreground">No scenes yet.</p>;
 
   return (
@@ -38,10 +39,10 @@ export function NodeDetailsPanel({ projectId, title, nodeId, nodeTitle, notes, g
               {heading(nodeTitle)}
               <SceneNotes projectId={projectId} sceneId={nodeId} notes={notes} />
             </section>
-            {groups.map(({ scene, notes: sceneNotes }) => (
-              <section key={scene.id} aria-label={scene.title}>
-                {heading(scene.title)}
-                <SceneNotes projectId={projectId} sceneId={scene.id} notes={sceneNotes} />
+            {items.map((item) => (
+              <section key={item.id} aria-label={item.title}>
+                {heading(item.title)}
+                <SceneNotes projectId={projectId} sceneId={item.id} notes={item.notes} />
               </section>
             ))}
           </div>
