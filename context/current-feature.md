@@ -1,27 +1,20 @@
-# Current Feature: Settings: Labels
+# Current Feature
 
-Labels tab in the settings modal: named colors writers attach to scenes and plot points. Spec: [features/settings-labels-spec.md](features/settings-labels-spec.md).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Labels tab listing labels with color swatch, name and scene/plot-point usage counts
-- Add (inline name + color), rename in place, recolor (preset palette + custom color with contrast warning), delete with usage-count confirmation (`onDelete: SetNull`)
-- Names unique per project (case-insensitive, trimmed, 1-40 chars); max 20 labels; `#rrggbb` color validated
-- Each change saves immediately with rollback and error toast on failure
-- `Label` model; `ManuscriptNode.labelId` becomes a relation and `PlotPoint.labelId` is added the same way (both `SetNull`); `actions/labels.ts`, cached `lib/labels.ts` with `cacheTags.labels`
-- Label shown as a color bar at the right of scene/chapter/part rows in the left sidebar (tooltip + aria-label)
-- Label chip (bookmark icon + name) on plot point cards (right sidebar Plots tab, and the plot grid and single-line view)
-- Seed the demo user with labels (Draft, Revise, Final) applied to some scenes/chapters/parts and plot points; test in `lib/demo-seed.test.ts`
-- Keyboard-operable; other projects'/users' labels never accessible
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Plot already exists, so plot points get `labelId` and the chip now. The pickers that apply a label (scene sidebar, plot point dialog) belong to those features per the spec; open question whether to add the plot point dialog picker here.
-- Open questions: preset-only vs custom colors (spec allows custom), one label per scene (current model), reorderable vs alphabetical.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -46,3 +39,4 @@ In Progress
 - **Book View:** read-only book from a navbar icon at `/manuscript/book`: title page, pages by chapter, two-page spread, swipe and slide animation; see `components/book/BookView.tsx`, `lib/book/paginate.ts`.
 - **Whole-Book PDF Export:** "Export as PDF" in the Manuscript row menu downloads the Book view's pages as a 6 x 9 in PDF with the project font embedded; see `lib/pdf/book.ts`, `lib/pdf/fonts.ts`.
 - **Plot:** plot lines grid at `/plot` with draggable points, single-line view, Plots sidebar section and scene tab, trash support, demo seed; see `components/plot/`, `actions/plot.ts`, `lib/plot.ts`.
+- **Settings: Labels:** Labels tab in settings (custom colors, usage counts, autosave), color bars on outline rows, label chips and picker for plot points, demo seed; see `components/settings/LabelsTab.tsx`, `actions/labels.ts`, `lib/labels.ts`.
