@@ -1,0 +1,243 @@
+"use client";
+
+import { useEffect, useRef, useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
+import { toast } from "sonner";
+import { updateProjectSettings, updateUserTheme } from "@/actions/settings";
+import { AppearanceTab } from "@/components/settings/AppearanceTab";
+import { GeneralTab } from "@/components/settings/GeneralTab";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  RESETTABLE_TABS,
+  SETTINGS_TABS,
+  getChanges,
+  getDirtyTabs,
+  hasChanges,
+  updateProjectSettingsSchema,
+  type SettingsTab,
+} from "@/lib/settings-config";
+import { useSettingsStore } from "@/lib/stores/settings-store";
+import { applyTheme, persistThemeCookie } from "@/lib/theme-config";
+import { cn } from "@/lib/utils";
+
+const PANELS: Record<SettingsTab, () => ReactNode> = {
+  general: () => <GeneralTab />,
+  appearance: () => <AppearanceTab />,
+};
+
+/** The project settings modal. Open it with `useSettingsStore().openSettings`; it is mounted once, in the navbar. */
+export function SettingsDialog() {
+  const open = useSettingsStore((s) => s.open);
+  const projectId = useSettingsStore((s) => s.projectId);
+  const tab = useSettingsStore((s) => s.tab);
+  const saved = useSettingsStore((s) => s.saved);
+  const draft = useSettingsStore((s) => s.draft);
+  const setTab = useSettingsStore((s) => s.setTab);
+  const closeSettings = useSettingsStore((s) => s.closeSettings);
+  const markSaved = useSettingsStore((s) => s.markSaved);
+  const resetDraftTab = useSettingsStore((s) => s.resetDraftTab);
+
+  const [confirm, setConfirm] = useState<"discard" | "reset" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const changes = saved && draft ? getChanges(saved, draft) : null;
+  const dirty = changes !== null && hasChanges(changes);
+  const dirtyTabs = saved && draft ? getDirtyTabs(saved, draft) : null;
+
+  // The theme previews live: the draft's theme is on <html> while the modal is open, and the saved one is put back on cancel.
+  const draftTheme = draft?.theme ?? null;
+  useEffect(() => {
+    if (open) applyTheme(draftTheme);
+  }, [open, draftTheme]);
+
+  function discard() {
+    if (saved) applyTheme(saved.theme);
+    setConfirm(null);
+    setError(null);
+    closeSettings();
+  }
+
+  function requestClose() {
+    if (dirty) setConfirm("discard");
+    else discard();
+  }
+
+  function save() {
+    if (!changes || !dirty || !projectId) return;
+    const hasProjectChanges = Object.keys(changes.project).length > 0;
+    if (hasProjectChanges) {
+      const parsed = updateProjectSettingsSchema.safeParse(changes.project);
+      if (!parsed.success) {
+        setTab("general");
+        setError(parsed.error.issues[0]?.message ?? "Invalid settings.");
+        return;
+      }
+    }
+    setError(null);
+    startTransition(async () => {
+      const ok = { success: true as const, data: undefined };
+      const [projectResult, themeResult] = await Promise.all([
+        hasProjectChanges ? updateProjectSettings(projectId, changes.project) : ok,
+        changes.theme !== undefined ? updateUserTheme(changes.theme) : ok,
+      ]);
+      if (themeResult.success && changes.theme !== undefined) {
+        persistThemeCookie(changes.theme);
+        markSaved({ theme: changes.theme });
+      }
+      const failed = [projectResult, themeResult].find((r) => !r.success);
+      if (failed && !failed.success) {
+        setError(failed.error);
+        toast.error(failed.error);
+        return;
+      }
+      closeSettings();
+      toast.success("Settings saved");
+    });
+  }
+
+  function onTabKeyDown(e: KeyboardEvent, index: number) {
+    const count = SETTINGS_TABS.length;
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (index + 1) % count;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (index - 1 + count) % count;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = count - 1;
+    if (next === null) return;
+    e.preventDefault();
+    const id = SETTINGS_TABS[next].id;
+    setTab(id);
+    tabRefs.current[id]?.focus();
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(next) => !next && requestClose()}>
+        <DialogContent className="h-[min(32rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b px-4 py-3">
+            <DialogTitle className="text-base">Settings</DialogTitle>
+            <DialogDescription className="sr-only">Change this project&apos;s details and how the app looks.</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex min-h-0 flex-col md:flex-row">
+            <div
+              role="tablist"
+              aria-label="Settings"
+              className="flex shrink-0 gap-1 overflow-x-auto border-b p-2 md:w-44 md:flex-col md:overflow-visible md:border-r md:border-b-0"
+            >
+              {SETTINGS_TABS.map(({ id, label }, index) => (
+                <button
+                  key={id}
+                  ref={(el) => {
+                    tabRefs.current[id] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`settings-tab-${id}`}
+                  aria-selected={tab === id}
+                  aria-controls={`settings-panel-${id}`}
+                  tabIndex={tab === id ? 0 : -1}
+                  onClick={() => setTab(id)}
+                  onKeyDown={(e) => onTabKeyDown(e, index)}
+                  className={cn(
+                    "flex shrink-0 items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+                    tab === id && "bg-muted font-medium",
+                  )}
+                >
+                  {label}
+                  {dirtyTabs?.[id] && (
+                    <>
+                      <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+                      <span className="sr-only">(unsaved changes)</span>
+                    </>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div
+              role="tabpanel"
+              id={`settings-panel-${tab}`}
+              aria-labelledby={`settings-tab-${tab}`}
+              tabIndex={0}
+              className="min-h-0 flex-1 overflow-y-auto p-4 outline-none"
+            >
+              {PANELS[tab]()}
+              {error && (
+                <p role="alert" className="mt-4 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 p-4">
+            <div>
+              {RESETTABLE_TABS.includes(tab) && (
+                <Button type="button" variant="ghost" onClick={() => setConfirm("reset")} disabled={pending}>
+                  Reset to default
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={requestClose} disabled={pending}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={save} disabled={!dirty || pending}>
+                {pending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirm === "discard"} onOpenChange={(next) => !next && setConfirm(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard your changes?</AlertDialogTitle>
+            <AlertDialogDescription>Your unsaved settings will be lost.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={discard}>
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirm === "reset"} onOpenChange={(next) => !next && setConfirm(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to default?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This tab&apos;s settings go back to their defaults. Nothing is saved until you press Save.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                resetDraftTab(tab);
+                setConfirm(null);
+              }}
+            >
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

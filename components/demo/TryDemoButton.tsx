@@ -53,7 +53,7 @@ export function TryDemoButton({ className }: { className?: string }) {
       disabled={busy}
       onClick={start}
       // The ProseStack indigo, the same as the logo's mark.
-      className={cn("bg-indigo-500 text-white hover:bg-indigo-400", className)}
+      className={cn("bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400", className)}
     >
       {busy ? "Starting demo…" : "Try demo"}
     </Button>

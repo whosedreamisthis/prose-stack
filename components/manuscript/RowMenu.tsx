@@ -23,6 +23,7 @@ export function RowMenu({ label, className, children }: { label: string; classNa
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label}
+        data-row-menu
         onClick={stop}
         onDoubleClick={stop}
         className={cn(

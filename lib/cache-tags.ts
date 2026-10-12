@@ -4,6 +4,8 @@
  * deleting or editing a project drops everything cached for it.
  */
 export const cacheTags = {
+  /** Settings stored on the user rather than a project: today, the theme. */
+  user: (userId: string) => `user:${userId}`,
   /** A user's project list: the navbar switcher and the Projects page. */
   projects: (userId: string) => `projects:${userId}`,
   project: (projectId: string) => `project:${projectId}`,

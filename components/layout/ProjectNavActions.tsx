@@ -3,27 +3,66 @@
 import { FileDownIcon, MenuIcon, SettingsIcon, SpellCheckIcon, type LucideIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Hint } from "@/components/layout/Hint";
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useSettingsStore } from "@/lib/stores/settings-store";
+import type { ThemeChoice } from "@/lib/theme-config";
+import type { ProjectSummary } from "@/types/projects";
 
-// Disabled until spell check, PDF export and settings ship; each feature wires its own button.
-const ACTIONS: { label: string; icon: LucideIcon }[] = [
-  { label: "Spell check", icon: SpellCheckIcon },
-  { label: "Export to PDF", icon: FileDownIcon },
-  { label: "Settings", icon: SettingsIcon },
-];
+interface ProjectNavActionsProps {
+  /** The user's projects and saved theme. Until they load (or off a project page) the settings button stays disabled. */
+  projects?: ProjectSummary[];
+  theme?: ThemeChoice | null;
+}
+
+interface Action {
+  label: string;
+  icon: LucideIcon;
+  /** Without a handler the action is not built yet and stays disabled. */
+  onSelect?: () => void;
+}
 
 /** Project-only navbar actions; renders nothing outside /projects/[projectId]. Collapses into a menu on small screens. */
-export function ProjectNavActions() {
+export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsProps) {
   const { projectId } = useParams<{ projectId?: string }>();
+  const openSettings = useSettingsStore((s) => s.openSettings);
   if (!projectId) return null;
+
+  const project = projects?.find((p) => p.id === projectId);
+
+  // Spell check and PDF export stay disabled until they ship; each feature wires its own button.
+  const actions: Action[] = [
+    { label: "Spell check", icon: SpellCheckIcon },
+    { label: "Export to PDF", icon: FileDownIcon },
+    {
+      label: "Settings",
+      icon: SettingsIcon,
+      onSelect: project
+        ? () =>
+            openSettings(project.id, {
+              title: project.title,
+              subtitle: project.subtitle ?? "",
+              author: project.author,
+              theme,
+            })
+        : undefined,
+    },
+  ];
 
   return (
     <>
       <div className="hidden items-center gap-1 md:flex">
-        {ACTIONS.map(({ label, icon: Icon }) => (
-          <Hint key={label} label={`${label} (coming soon)`} disabled>
-            <Button variant="ghost" size="default" disabled aria-label={label} className="disabled:opacity-70">
+        {actions.map(({ label, icon: Icon, onSelect }) => (
+          <Hint key={label} label={onSelect ? label : `${label} (coming soon)`} disabled={!onSelect}>
+            <Button
+              variant="ghost"
+              size="default"
+              disabled={!onSelect}
+              aria-label={label}
+              onClick={onSelect}
+              className="disabled:opacity-70"
+            >
               <Icon className="size-5" />
               <span className="hidden lg:inline">{label}</span>
             </Button>
@@ -36,14 +75,15 @@ export function ProjectNavActions() {
             <MenuIcon className="size-5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {ACTIONS.map(({ label, icon: Icon }) => (
-              <DropdownMenuItem key={label} disabled>
+            {actions.map(({ label, icon: Icon, onSelect }) => (
+              <DropdownMenuItem key={label} disabled={!onSelect} onClick={onSelect}>
                 <Icon /> {label}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <SettingsDialog />
     </>
   );
 }

@@ -18,6 +18,7 @@ import { usePendingNavStore } from "@/lib/stores/pending-nav-store";
 import { useLayoutStore } from "@/lib/stores/layout-store";
 import { cn } from "@/lib/utils";
 import type { CharacterSummary } from "@/types/characters";
+import { SELECTED_ROW } from "@/components/layout/sidebar-styles";
 
 interface CharacterListProps {
   projectId: string;
@@ -103,7 +104,7 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
                       className={cn(
                         "flex items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         onCharactersPage && c.id === activeId
-                          ? "bg-accent font-medium text-primary"
+                          ? SELECTED_ROW
                           : "text-foreground/80 hover:bg-muted/60",
                       )}
                     >

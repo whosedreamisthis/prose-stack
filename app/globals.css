@@ -9,36 +9,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Typed so a project's accent color can fade in instead of jumping (see lib/accent.ts). Initial values match the dark theme defaults. */
-@property --primary {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(0.922 0 0);
-}
-@property --primary-foreground {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(0.205 0 0);
-}
-@property --ring {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(0.556 0 0);
-}
-
-:root {
-  transition:
-    --primary 150ms ease,
-    --primary-foreground 150ms ease,
-    --ring 150ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    transition: none;
-  }
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -84,24 +54,26 @@
 }
 
 :root {
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  /* The ProseStack logo indigo (indigo-600 in light, indigo-500 in dark), the same in every project. */
+  --primary: oklch(0.511 0.262 276.966);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.5 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.66 0 0); /* control borders: 3:1 on white */
+  --ring: oklch(0.511 0.262 276.966);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -119,14 +91,15 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.27 0 0);
   --foreground: oklch(0.96 0 0);
   --card: oklch(0.31 0 0);
   --card-foreground: oklch(0.96 0 0);
   --popover: oklch(0.31 0 0);
   --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.585 0.233 277.117);
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.36 0 0);
   --secondary-foreground: oklch(0.96 0 0);
   --muted: oklch(0.36 0 0);
@@ -136,7 +109,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.95 0 0 / 16%);
   --input: oklch(0.95 0 0 / 16%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.585 0.233 277.117);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -162,6 +135,13 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 resets buttons to the default cursor; clickable controls should show the pointer. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  summary {
+    cursor: pointer;
+  }
 }
 /* Find and replace highlights in the editor. */
 .search-match {
@@ -179,4 +159,15 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--primary) 30%, transparent) transparent;
+}
+
+/* The row menu on a selected sidebar row (a solid accent fill in light) needs light dots and a light hover chip. */
+:root:not(.dark) [aria-current] [data-row-menu],
+:root:not(.dark) :has(> [aria-current]) > [data-row-menu] {
+  color: var(--primary-foreground);
+}
+:root:not(.dark) [aria-current] [data-row-menu]:hover,
+:root:not(.dark) :has(> [aria-current]) > [data-row-menu]:hover {
+  background: color-mix(in oklab, var(--primary-foreground) 20%, transparent);
+  color: var(--primary-foreground);
 }
