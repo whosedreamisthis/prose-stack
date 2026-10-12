@@ -1,29 +1,20 @@
-# Current Feature: Plot
+# Current Feature
 
-Plan the story with plot points, scene cards and a plot lines grid that links planning to scenes. Spec: [features/plot-spec.md](features/plot-spec.md).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- `PlotLine` and `PlotPoint` models (ordered by `position`); `PlotPoint.sceneId` required with `onDelete: Cascade`, `@@unique([plotLineId, sceneId])`, `trashedAt` on both (no label field yet)
-- Plot grid at `/projects/[projectId]/plot` (`?line=<id>` focuses one line): scenes down the left in manuscript order, plot lines across, a plot point is the cell where they meet
-- Add a point on an empty row creates the scene too (appended to the outline with a default title); empty state with "Add scene" when there are no scenes
-- Add, rename, reorder and trash plot lines from the grid (column header menu, "Add plot line" column) and from the left sidebar (row menu), each appearing in both at once
-- Drag and drop via dnd-kit (points between scenes, lines reorder); reordering persists in one transaction
-- Left sidebar collapsible **Plots** section: "Plot grid" row, then one row per line; open grid or line highlighted like the selected scene
-- Right sidebar Plots tab: compact cards per scene (at most one per line, with line name) built like `NotesList`; click a card or the add button opens an edit modal (text, plot line, scene which can change but never be empty); grid icon button (tooltip "Open plot grid") opens the grid
-- A scene cannot get two plot points on the same line; a point can never exist without a scene
-- Trashing a scene trashes its points, restoring restores them, permanent delete removes them; trashed points and lines appear in Trash as new kinds
-- Plot board state managed with Zustand
-- Seed the demo user with 2-3 plot lines and points on several scenes; test in `lib/demo-seed.test.ts`
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Plot is built before Settings: Labels. Leave out `PlotPoint.labelId`, the label picker in the modal, label chips and labelled demo points; Settings: Labels ([features/settings-labels-spec.md](features/settings-labels-spec.md)) adds them later.
-- Spec lists "plot points: draggable index cards" and "scene cards with summary, label and ellipsis menu (send to trash)".
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -47,3 +38,4 @@ In Progress
 - **Full Manuscript View:** the Manuscript header opens `/manuscript/full`, the whole book as editable lazy-loaded scenes; one `NodeBookView` renders book, part and chapter.
 - **Book View:** read-only book from a navbar icon at `/manuscript/book`: title page, pages by chapter, two-page spread, swipe and slide animation; see `components/book/BookView.tsx`, `lib/book/paginate.ts`.
 - **Whole-Book PDF Export:** "Export as PDF" in the Manuscript row menu downloads the Book view's pages as a 6 x 9 in PDF with the project font embedded; see `lib/pdf/book.ts`, `lib/pdf/fonts.ts`.
+- **Plot:** plot lines grid at `/plot` with draggable points, single-line view, Plots sidebar section and scene tab, trash support, demo seed; see `components/plot/`, `actions/plot.ts`, `lib/plot.ts`.
