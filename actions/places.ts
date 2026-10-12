@@ -202,6 +202,7 @@ const NOTE_NOT_FOUND = "Note not found.";
 export async function createPlaceNote(input: {
   projectId: string;
   placeId: string;
+  title?: string;
   content: string;
   id?: string;
 }): Promise<ActionResult<{ id: string }>> {
@@ -210,7 +211,7 @@ export async function createPlaceNote(input: {
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = createNoteSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, placeId, content, id } = parsed.data;
+    const { projectId, placeId, title, content, id } = parsed.data;
 
     const place = await prisma.place.findFirst({
       where: {
@@ -231,7 +232,7 @@ export async function createPlaceNote(input: {
     }
 
     const created = await prisma.placeNote.create({
-      data: { ...(id && { id }), placeId, content },
+      data: { ...(id && { id }), placeId, ...(title && { title }), content },
       select: { id: true },
     });
 
@@ -250,14 +251,15 @@ export async function updatePlaceNote(input: {
   projectId: string;
   placeId: string;
   noteId: string;
-  content: string;
+  title?: string;
+  content?: string;
 }): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = updateNoteSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, placeId, noteId, content } = parsed.data;
+    const { projectId, placeId, noteId, title, content } = parsed.data;
 
     const { count } = await prisma.placeNote.updateMany({
       where: {
@@ -265,7 +267,7 @@ export async function updatePlaceNote(input: {
         placeId,
         place: { projectId, project: { userId: user.id } },
       },
-      data: { content },
+      data: { ...(title !== undefined && { title: title || null }), ...(content !== undefined && { content }) },
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 

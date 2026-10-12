@@ -14,5 +14,7 @@ export type PlaceDetail = PlaceSummary &
 
 export interface PlaceNoteItem {
   id: string;
+  /** Empty when the note has no title. */
+  title: string;
   content: string;
 }

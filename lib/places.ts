@@ -63,9 +63,10 @@ export async function listPlaceNotes(userId: string, projectId: string, placeId:
   "use cache";
   cacheLife("days");
   cacheTag(cacheTags.placeNotes(placeId), cacheTags.project(projectId));
-  return prisma.placeNote.findMany({
+  const rows = await prisma.placeNote.findMany({
     where: { placeId, place: { projectId, project: { userId }, ...visible } },
     orderBy: { createdAt: "asc" },
-    select: { id: true, content: true },
+    select: { id: true, title: true, content: true },
   });
+  return rows.map((n) => ({ id: n.id, title: n.title ?? "", content: n.content }));
 }

@@ -119,6 +119,7 @@ export async function archiveCharacter(input: { projectId: string; characterId: 
 export async function createCharacterNote(input: {
   projectId: string;
   characterId: string;
+  title?: string;
   content: string;
   id?: string;
 }): Promise<ActionResult<{ id: string }>> {
@@ -127,7 +128,7 @@ export async function createCharacterNote(input: {
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = createNoteSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, characterId, content, id } = parsed.data;
+    const { projectId, characterId, title, content, id } = parsed.data;
 
     const character = await prisma.character.findFirst({
       where: { id: characterId, projectId, project: { userId: user.id }, trashedAt: null, archivedAt: null },
@@ -139,7 +140,7 @@ export async function createCharacterNote(input: {
     }
 
     const created = await prisma.characterNote.create({
-      data: { ...(id && { id }), characterId, content },
+      data: { ...(id && { id }), characterId, ...(title && { title }), content },
       select: { id: true },
     });
 
@@ -151,17 +152,23 @@ export async function createCharacterNote(input: {
   }
 }
 
-export async function updateCharacterNote(input: { projectId: string; characterId: string; noteId: string; content: string }): Promise<ActionResult> {
+export async function updateCharacterNote(input: {
+  projectId: string;
+  characterId: string;
+  noteId: string;
+  title?: string;
+  content?: string;
+}): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: NOT_SIGNED_IN };
     const parsed = updateNoteSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { projectId, characterId, noteId, content } = parsed.data;
+    const { projectId, characterId, noteId, title, content } = parsed.data;
 
     const { count } = await prisma.characterNote.updateMany({
       where: { id: noteId, characterId, character: { projectId, project: { userId: user.id } } },
-      data: { content },
+      data: { ...(title !== undefined && { title: title || null }), ...(content !== undefined && { content }) },
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 

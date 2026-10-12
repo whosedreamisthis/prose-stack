@@ -36,8 +36,8 @@ export function PlaceNotesPanel({ projectId, placeId, notes }: PlaceNotesPanelPr
           initialNotes={notes}
           maxNotes={MAX_NOTES_PER_PLACE}
           maxLength={MAX_NOTE_LENGTH}
-          onCreate={({ id, content }) => createPlaceNote({ projectId, placeId, content, id })}
-          onUpdate={({ noteId, content }) => updatePlaceNote({ projectId, placeId, noteId, content })}
+          onCreate={({ id, title, content }) => createPlaceNote({ projectId, placeId, title, content, id })}
+          onUpdate={({ noteId, title, content }) => updatePlaceNote({ projectId, placeId, noteId, title, content })}
           onDelete={({ noteId }) => deletePlaceNote({ projectId, placeId, noteId })}
         />
       </div>

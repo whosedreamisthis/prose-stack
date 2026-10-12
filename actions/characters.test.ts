@@ -127,6 +127,26 @@ describe("character notes", () => {
     );
   });
 
+  it("stores a note's title, and allows a title with no text but not neither", async () => {
+    prismaMock.character.findFirst.mockResolvedValue({ id: "c1", _count: { notes: 0 } });
+    prismaMock.characterNote.create.mockResolvedValue({ id: "n1" });
+
+    expect((await createCharacterNote({ projectId: "p1", characterId: "c1", title: "  Fear  ", content: "" })).success).toBe(true);
+    expect(prismaMock.characterNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: { characterId: "c1", title: "Fear", content: "" } }));
+
+    prismaMock.characterNote.create.mockClear();
+    expect((await createCharacterNote({ projectId: "p1", characterId: "c1", title: "  ", content: "" })).success).toBe(false);
+    expect(prismaMock.characterNote.create).not.toHaveBeenCalled();
+  });
+
+  it("updates a title and clears it with a blank one", async () => {
+    prismaMock.characterNote.updateMany.mockResolvedValue({ count: 1 });
+    await updateCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1", title: "Fear", content: "Water" });
+    expect(prismaMock.characterNote.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({ data: { title: "Fear", content: "Water" } }));
+    await updateCharacterNote({ projectId: "p1", characterId: "c1", noteId: "n1", title: " ", content: "Water" });
+    expect(prismaMock.characterNote.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({ data: { title: null, content: "Water" } }));
+  });
+
   it("rejects an empty note and a character that is not found", async () => {
     expect((await createCharacterNote({ projectId: "p1", characterId: "c1", content: "  " })).success).toBe(false);
     prismaMock.character.findFirst.mockResolvedValue(null);

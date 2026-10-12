@@ -11,5 +11,7 @@ export type CharacterDetail = CharacterSummary & Record<SketchField, string>;
 
 export interface CharacterNoteItem {
   id: string;
+  /** Empty when the note has no title. */
+  title: string;
   content: string;
 }

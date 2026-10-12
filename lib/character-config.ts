@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { MAX_NOTE_LENGTH, NOTE_EMPTY, hasNoteText, noteContentSchema, noteTitleSchema } from "@/lib/note-config";
+
+export { MAX_NOTE_LENGTH };
 
 export type CharacterRoleKey = "MAIN" | "SUPPORTING";
 
@@ -10,7 +13,6 @@ export const CHARACTER_ROLES: { value: CharacterRoleKey; label: string; plural: 
 export const DEFAULT_CHARACTER_NAME = "New character";
 export const MAX_NOTES_PER_CHARACTER = 100;
 export const MAX_FIELD_LENGTH = 5000;
-export const MAX_NOTE_LENGTH = 5000;
 
 export type SketchField =
   | "age"
@@ -84,16 +86,25 @@ export const updateCharacterSchema = z.object({
 
 export const characterRefSchema = z.object({ projectId: idSchema, characterId: idSchema });
 
-export const noteContentSchema = z.string().trim().min(1, "A note can't be empty").max(MAX_NOTE_LENGTH, `Notes must be ${MAX_NOTE_LENGTH} characters or fewer`);
+export const createNoteSchema = z
+  .object({
+    projectId: idSchema,
+    characterId: idSchema,
+    title: noteTitleSchema.optional(),
+    content: noteContentSchema,
+    id: clientIdSchema,
+  })
+  .refine(hasNoteText, NOTE_EMPTY);
 
-export const createNoteSchema = z.object({
-  projectId: idSchema,
-  characterId: idSchema,
-  content: noteContentSchema,
-  id: clientIdSchema,
-});
-
-export const updateNoteSchema = z.object({ projectId: idSchema, characterId: idSchema, noteId: idSchema, content: noteContentSchema });
+export const updateNoteSchema = z
+  .object({
+    projectId: idSchema,
+    characterId: idSchema,
+    noteId: idSchema,
+    title: noteTitleSchema.optional(),
+    content: noteContentSchema.optional(),
+  })
+  .refine(hasNoteText, NOTE_EMPTY);
 export const deleteNoteSchema = z.object({ projectId: idSchema, characterId: idSchema, noteId: idSchema });
 
 export type CreateCharacterInput = z.input<typeof createCharacterSchema>;

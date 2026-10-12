@@ -274,6 +274,20 @@ describe("place notes", () => {
     expect(updateTag).toHaveBeenCalledWith("place-notes:pl1");
   });
 
+  it("stores a title, clears it with a blank one and refuses a note with neither title nor text", async () => {
+    prismaMock.place.findFirst.mockResolvedValue({ id: "pl1", _count: { notes: 0 } });
+    prismaMock.placeNote.create.mockResolvedValue({ id: "n1" });
+    prismaMock.placeNote.updateMany.mockResolvedValue({ count: 1 });
+
+    expect((await createPlaceNote({ projectId: "p1", placeId: "pl1", title: " Tides ", content: "" })).success).toBe(true);
+    expect(prismaMock.placeNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: { placeId: "pl1", title: "Tides", content: "" } }));
+    expect((await createPlaceNote({ projectId: "p1", placeId: "pl1", title: "", content: " " })).success).toBe(false);
+
+    await updatePlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1", title: "", content: "Low at noon" });
+    expect(prismaMock.placeNote.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({ data: { title: null, content: "Low at noon" } }));
+    expect((await updatePlaceNote({ projectId: "p1", placeId: "pl1", noteId: "n1", content: "  " })).success).toBe(false);
+  });
+
   it("rejects an empty note, a hidden place and a full place", async () => {
     expect(
       (

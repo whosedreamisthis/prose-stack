@@ -49,8 +49,8 @@ export function CharacterNotesPanel({ projectId, characterId, notes }: NotesPane
             initialNotes={notes}
             maxNotes={MAX_NOTES_PER_CHARACTER}
             maxLength={MAX_NOTE_LENGTH}
-            onCreate={({ id, content }) => createCharacterNote({ projectId, characterId, content, id })}
-            onUpdate={({ noteId, content }) => updateCharacterNote({ projectId, characterId, noteId, content })}
+            onCreate={({ id, title, content }) => createCharacterNote({ projectId, characterId, title, content, id })}
+            onUpdate={({ noteId, title, content }) => updateCharacterNote({ projectId, characterId, noteId, title, content })}
             onDelete={({ noteId }) => deleteCharacterNote({ projectId, characterId, noteId })}
           />
         </div>

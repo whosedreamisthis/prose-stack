@@ -144,6 +144,7 @@ model Character {
 model CharacterNote {
   id          String   @id @default(cuid())
   characterId String
+  title       String?
   content     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -184,6 +185,7 @@ model Place {
 model PlaceNote {
   id        String   @id @default(cuid())
   placeId   String
+  title     String?
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

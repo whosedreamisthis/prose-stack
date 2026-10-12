@@ -14,61 +14,73 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MAX_NOTE_TITLE_LENGTH } from "@/lib/note-config";
 import type { ActionResult } from "@/types/actions";
 
 export interface NoteItem {
   id: string;
+  /** Empty when the note has no title. */
+  title: string;
   content: string;
 }
+
+type NoteValues = Pick<NoteItem, "title" | "content">;
 
 interface NotesListProps {
   initialNotes: NoteItem[];
   maxNotes: number;
   maxLength: number;
   /** Server actions for the owner (a character or a place). Each result is checked, and a failed change is rolled back. */
-  onCreate: (input: { id: string; content: string }) => Promise<ActionResult<unknown>>;
-  onUpdate: (input: { noteId: string; content: string }) => Promise<ActionResult>;
+  onCreate: (input: NoteValues & { id: string }) => Promise<ActionResult<unknown>>;
+  onUpdate: (input: NoteValues & { noteId: string }) => Promise<ActionResult>;
   onDelete: (input: { noteId: string }) => Promise<ActionResult>;
 }
 
-function newClientId() {
-  return crypto.randomUUID();
-}
+/** Which note the dialog shows: one that exists, or a new one that is only created when it is closed with something in it. */
+type Open = { id: string; isNew: boolean };
 
-/** A list of free-form notes: edit in place, delete with confirmation, and a dashed button that opens a draft. Remount it per owner. */
+const isBlank = (v: NoteValues) => !v.title.trim() && !v.content.trim();
+
+/**
+ * Notes as cards (a bold title and as much of the text as fits). A card, or the dashed "Add a note" card, opens the note
+ * in a dialog; closing it with the X, Esc or a click outside saves, so nothing is lost. Remount it per owner.
+ */
 export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdate, onDelete }: NotesListProps) {
   const [notes, setNotes] = useState(initialNotes);
-  const [draft, setDraft] = useState<string | null>(null);
+  const [open, setOpen] = useState<Open | null>(null);
   const [, startTransition] = useTransition();
-  const discardDraft = useRef(false);
   const full = notes.length >= maxNotes;
+  const openNote = open && !open.isNew ? notes.find((n) => n.id === open.id) : undefined;
 
-  const commitDraft = () => {
-    const content = (draft ?? "").trim();
-    setDraft(null);
-    if (discardDraft.current || !content) {
-      discardDraft.current = false;
+  /** Saves what the dialog shows. A new note is created once it has a title or text; an existing one is updated if it changed. */
+  const persist = (target: Open, raw: NoteValues) => {
+    const values = { title: raw.title.trim(), content: raw.content.trim() };
+    const existing = notes.find((n) => n.id === target.id);
+    if (!existing) {
+      if (isBlank(values)) return;
+      setNotes((prev) => [...prev, { id: target.id, ...values }]);
+      startTransition(async () => {
+        const result = await onCreate({ id: target.id, ...values });
+        if (!result.success) {
+          setNotes((prev) => prev.filter((n) => n.id !== target.id));
+          toast.error(result.error);
+        }
+      });
       return;
     }
-    const id = newClientId();
-    setNotes((prev) => [...prev, { id, content }]);
+    if (values.title === existing.title && values.content === existing.content) return;
+    if (isBlank(values)) {
+      toast.error("A note can't be empty. Use Delete to remove it.");
+      return;
+    }
+    setNotes((prev) => prev.map((n) => (n.id === target.id ? { ...n, ...values } : n)));
     startTransition(async () => {
-      const result = await onCreate({ id, content });
+      const result = await onUpdate({ noteId: target.id, ...values });
       if (!result.success) {
-        setNotes((prev) => prev.filter((n) => n.id !== id));
-        toast.error(result.error);
-      }
-    });
-  };
-
-  const saveNote = (id: string, content: string) => {
-    const previous = notes.find((n) => n.id === id)?.content ?? "";
-    setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, content } : n)));
-    startTransition(async () => {
-      const result = await onUpdate({ noteId: id, content });
-      if (!result.success) {
-        setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, content: previous } : n)));
+        setNotes((prev) => prev.map((n) => (n.id === target.id ? existing : n)));
         toast.error(result.error);
       }
     });
@@ -89,23 +101,26 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
   };
 
   return (
-    <ul className="flex flex-col gap-2 pt-3">
-      {notes.map((note) => (
-        <li key={note.id}>
-          <NoteCard
-            note={note}
-            maxLength={maxLength}
-            onSave={(content) => saveNote(note.id, content)}
-            onDelete={() => removeNote(note.id)}
-          />
-        </li>
-      ))}
-      <li>
-        {draft === null ? (
+    <>
+      <ul className="flex flex-col gap-2 pt-3">
+        {notes.map((note) => (
+          <li key={note.id}>
+            <button
+              type="button"
+              onClick={() => setOpen({ id: note.id, isNew: false })}
+              className="flex max-h-40 min-h-16 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-3 text-left text-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {note.title && <span className="truncate font-semibold">{note.title}</span>}
+              {/* Clamped by lines rather than cut at a height, so the last visible line is never sliced in half. */}
+              {note.content && <span className="line-clamp-6 wrap-break-word whitespace-pre-wrap text-foreground/80">{note.content}</span>}
+            </button>
+          </li>
+        ))}
+        <li>
           <button
             type="button"
             disabled={full}
-            onClick={() => setDraft("")}
+            onClick={() => setOpen({ id: crypto.randomUUID(), isNew: true })}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border px-3 py-4 text-sm text-muted-foreground outline-none transition-colors hover:border-primary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
           >
             {full ? (
@@ -116,72 +131,90 @@ export function NotesList({ initialNotes, maxNotes, maxLength, onCreate, onUpdat
               </>
             )}
           </button>
-        ) : (
-          <Textarea
-            autoFocus
-            aria-label="New note"
-            placeholder="Write a note… (click away to save, Esc to cancel)"
-            value={draft}
-            maxLength={maxLength}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitDraft}
-            onKeyDown={(e) => {
-              if (e.key !== "Escape") return;
-              discardDraft.current = true;
-              e.currentTarget.blur();
-            }}
-            className="border-2 border-dashed border-primary"
-          />
-        )}
-      </li>
-    </ul>
+        </li>
+      </ul>
+      {open && (
+        <NoteDialog
+          // Remounted per note, so its fields always belong to one note.
+          key={open.id}
+          initial={openNote ?? { title: "", content: "" }}
+          isNew={open.isNew}
+          maxLength={maxLength}
+          onBlurSave={(values) => !open.isNew && persist(open, values)}
+          onClose={(values) => {
+            persist(open, values);
+            // A new note now exists in the list; if it was blank nothing was created and nothing is left to open.
+            setOpen(null);
+          }}
+          onDelete={() => {
+            removeNote(open.id);
+            setOpen(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
-function NoteCard({
-  note,
-  maxLength,
-  onSave,
-  onDelete,
-}: {
-  note: NoteItem;
+interface NoteDialogProps {
+  initial: NoteValues;
+  isNew: boolean;
   maxLength: number;
-  onSave: (content: string) => void;
+  onBlurSave: (values: NoteValues) => void;
+  onClose: (values: NoteValues) => void;
   onDelete: () => void;
-}) {
-  const [value, setValue] = useState(note.content);
-  const [confirming, setConfirming] = useState(false);
+}
 
-  const commit = () => {
-    const content = value.trim();
-    if (!content) {
-      setValue(note.content);
-      toast.error("A note can't be empty. Use the delete button to remove it.");
-      return;
-    }
-    if (content !== note.content) onSave(content);
-    setValue(content);
-  };
+function NoteDialog({ initial, isNew, maxLength, onBlurSave, onClose, onDelete }: NoteDialogProps) {
+  const [values, setValues] = useState(initial);
+  const [confirming, setConfirming] = useState(false);
+  const deleting = useRef(false);
 
   return (
-    <div className="group/note relative rounded-lg border bg-card">
-      <Textarea
-        aria-label="Note"
-        value={value}
-        maxLength={maxLength}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={commit}
-        className="min-h-20 resize-none border-0 bg-transparent pr-8 dark:bg-transparent"
-      />
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Delete note"
-        onClick={() => setConfirming(true)}
-        className="absolute top-1.5 right-1.5 text-muted-foreground opacity-0 group-focus-within/note:opacity-100 group-hover/note:opacity-100 focus-visible:opacity-100"
+    <>
+      <Dialog
+        open
+        onOpenChange={(next) => {
+          // Deleting closes the dialog too, and must not save the note it just removed.
+          if (!next && !deleting.current) onClose(values);
+        }}
       >
-        <Trash2Icon />
-      </Button>
+        <DialogContent className="flex max-h-[85dvh] flex-col gap-3 sm:max-w-lg">
+          <DialogTitle className="sr-only">{isNew ? "New note" : "Note"}</DialogTitle>
+          <DialogDescription className="sr-only">Changes are saved when you close this note.</DialogDescription>
+          <Input
+            aria-label="Note title"
+            placeholder="Title"
+            value={values.title}
+            maxLength={MAX_NOTE_TITLE_LENGTH}
+            onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
+            onBlur={() => onBlurSave(values)}
+            className="mr-8 h-9 border-0 bg-transparent px-0 text-base font-semibold shadow-none focus-visible:ring-0 dark:bg-transparent"
+          />
+          <Textarea
+            autoFocus
+            aria-label="Note content"
+            placeholder="Note content"
+            value={values.content}
+            maxLength={maxLength}
+            onChange={(e) => setValues((v) => ({ ...v, content: e.target.value }))}
+            onBlur={() => onBlurSave(values)}
+            className="min-h-48 flex-1 resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
+          />
+          {!isNew && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirming(true)}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2Icon /> Delete
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
@@ -193,6 +226,7 @@ function NoteCard({
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
+                deleting.current = true;
                 setConfirming(false);
                 onDelete();
               }}
@@ -202,6 +236,6 @@ function NoteCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
