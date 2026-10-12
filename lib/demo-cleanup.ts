@@ -110,3 +110,24 @@ export async function cleanupDemos(now = new Date()): Promise<CleanupResult> {
   await sweepOrphans(now, result);
   return result;
 }
+
+/**
+ * Removes one expired demo right away, for the visitor who just hit its expiry: the Clerk user (which ends its
+ * sessions), the database rows and the IP slot. Does nothing for a user that is not an expired demo.
+ */
+export async function removeExpiredDemo(clerkId: string, now = new Date()): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { id: true, isDemo: true, demoExpiresAt: true },
+  });
+  if (!user || !user.isDemo || !user.demoExpiresAt || user.demoExpiresAt.getTime() > now.getTime()) return false;
+
+  await deleteClerkUser(clerkId);
+  await prisma.user.deleteMany({ where: { id: user.id } });
+  try {
+    await releaseSlotForDemo(clerkId);
+  } catch (error) {
+    console.error(`Demo IP slot release failed for ${clerkId}:`, error);
+  }
+  return true;
+}

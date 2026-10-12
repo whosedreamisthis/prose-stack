@@ -10,7 +10,7 @@ vi.mock("@clerk/nextjs/errors", () => ({ isClerkAPIResponseError: (error: { cler
 const releaseSlotForDemo = vi.fn();
 vi.mock("@/lib/demo-store", () => ({ releaseSlotForDemo: (...args: unknown[]) => releaseSlotForDemo(...args) }));
 
-import { cleanupDemos } from "@/lib/demo-cleanup";
+import { cleanupDemos, removeExpiredDemo } from "@/lib/demo-cleanup";
 
 const now = new Date("2026-10-11T12:00:00Z");
 const hoursAgo = (h: number) => now.getTime() - h * 3_600_000;
@@ -158,5 +158,26 @@ describe("cleanupDemos: orphans in Clerk", () => {
     const result = await cleanupDemos(now);
     expect(result).toEqual({ deleted: 0, failed: 0, orphans: 0 });
     expect(clerk.users.deleteUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeExpiredDemo", () => {
+  const row = (demoExpiresAt: Date | null, isDemo = true) => ({ id: "u1", isDemo, demoExpiresAt });
+
+  it("deletes the Clerk user, the rows and the IP slot of an expired demo", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(row(new Date(hoursAgo(1))));
+    await expect(removeExpiredDemo("user_1", now)).resolves.toBe(true);
+    expect(clerk.users.deleteUser).toHaveBeenCalledWith("user_1");
+    expect(prismaMock.user.deleteMany).toHaveBeenCalledWith({ where: { id: "u1" } });
+    expect(releaseSlotForDemo).toHaveBeenCalledWith("user_1");
+  });
+
+  it("leaves a live demo, a real user and a missing row alone", async () => {
+    for (const found of [row(new Date(now.getTime() + 60_000)), row(null, false), null]) {
+      prismaMock.user.findUnique.mockResolvedValue(found);
+      await expect(removeExpiredDemo("user_1", now)).resolves.toBe(false);
+    }
+    expect(clerk.users.deleteUser).not.toHaveBeenCalled();
+    expect(prismaMock.user.deleteMany).not.toHaveBeenCalled();
   });
 });

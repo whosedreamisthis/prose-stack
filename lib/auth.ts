@@ -15,7 +15,7 @@ export function isExpiredDemo(user: { isDemo: boolean; demoExpiresAt: Date | nul
  * Creates the row on first request if the Clerk webhook has not arrived yet.
  *
  * A demo whose time is up is blocked here, even if the cleanup job has not deleted it yet: the visitor is sent to
- * /demo-expired, which ends their session.
+ * /api/demo/expired, which deletes the demo and signs them out.
  */
 export const getCurrentUser = cache(async () => {
   const { userId } = await auth();
@@ -23,7 +23,7 @@ export const getCurrentUser = cache(async () => {
 
   const existing = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (existing) {
-    if (isExpiredDemo(existing)) redirect("/demo-expired");
+    if (isExpiredDemo(existing)) redirect("/api/demo/expired");
     return existing;
   }
 

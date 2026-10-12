@@ -8,7 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks/clerk(.*)",
   "/api/demo",
   "/api/cron/cleanup-demos", // checks CRON_SECRET itself
-  "/demo-expired",
+  "/api/demo/expired",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

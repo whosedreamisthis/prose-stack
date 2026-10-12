@@ -64,11 +64,11 @@ describe("expired demos", () => {
     expect(isExpiredDemo(demo(new Date(Date.now() - 1000), false))).toBe(false);
   });
 
-  it("sends an expired demo to /demo-expired instead of returning its user", async () => {
+  it("sends an expired demo to /api/demo/expired instead of returning its user", async () => {
     authMock.mockResolvedValue({ userId: "user_1" });
     prismaMock.user.findUnique.mockResolvedValue(demo(new Date(Date.now() - 1000)));
-    await expect(getCurrentUser()).rejects.toThrow("NEXT_REDIRECT /demo-expired");
-    expect(redirectMock).toHaveBeenCalledWith("/demo-expired");
+    await expect(getCurrentUser()).rejects.toThrow("NEXT_REDIRECT /api/demo/expired");
+    expect(redirectMock).toHaveBeenCalledWith("/api/demo/expired");
   });
 
   it("returns a live demo as usual", async () => {
