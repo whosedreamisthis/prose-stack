@@ -1,20 +1,28 @@
-# Current Feature
+# Current Feature: Trash & Archive
 
-<!-- Feature name and short description -->
+Pages to restore trashed items and to view and unarchive archived ones. Spec: [features/trash-archive-spec.md](features/trash-archive-spec.md).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Trash page at `/projects/[projectId]/trash` listing trashed items (manuscript parts, chapters and scenes, characters, places, notes), each with **Restore** and **Delete permanently**.
+- Archive page at `/projects/[projectId]/archive` listing archived items (characters, places), each with **Unarchive**.
+- Restoring a part or chapter restores everything trashed with it (same `trashedAt`).
+- Permanent delete asks for confirmation and is the only thing that removes rows.
+- Trashed and archived items stay excluded from lists and word counts; restoring puts them back in the lists.
+- Trash and Archive sections in the left sidebar, as the other sections.
+- Everything scoped by `userId`/`projectId`, validated with Zod, with cache tags expired on every change.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Already in place: `trashedAt` on `ManuscriptNode` (set on the whole subtree together by `trashNode`), `Character`, `Place`, `CharacterNote` and `PlaceNote`; `archivedAt` on `Character` and `Place`. Trash actions and the shared `ConfirmTrashDialog` exist; there are no restore, unarchive or permanent-delete actions yet.
+- Decide while building: where a restored node goes when its parent is still trashed (suggest: restore the parent chain, or put it at the top level), where it lands among its siblings (suggest: the end), and what a trashed note shows when its character or place is also trashed or archived.
+- Archiving scenes, chapters and parts and notes is not built; the spec's archive requirement is met for characters and places first. Say so in the review if it stays that way.
+- Follow the Characters and Places features for patterns (`actions/`, `lib/`, tagged `use cache` reads, `updateTag` in actions, skeletons, `SidebarSection`).
+- No new user-created data, so no demo seed change; the demo user can trash and restore like anyone.
 
 ## Completed Features
 

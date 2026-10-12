@@ -106,7 +106,13 @@ async function setHidden(
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
-    refresh(projectId, cacheTags.characters(projectId), cacheTags.character(characterId), cacheTags.characterNotes(characterId));
+    refresh(
+      projectId,
+      cacheTags.characters(projectId),
+      cacheTags.character(characterId),
+      cacheTags.characterNotes(characterId),
+      field === "trashedAt" ? cacheTags.trash(projectId) : cacheTags.archive(projectId),
+    );
     return { success: true, data: undefined };
   } catch (error) {
     console.error(`${field} update failed:`, error);
@@ -200,7 +206,7 @@ export async function trashCharacterNote(input: { projectId: string; characterId
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 
-    refresh(projectId, cacheTags.characterNotes(characterId));
+    refresh(projectId, cacheTags.characterNotes(characterId), cacheTags.trash(projectId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("trashCharacterNote failed:", error);

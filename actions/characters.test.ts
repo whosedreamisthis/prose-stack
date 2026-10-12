@@ -196,7 +196,14 @@ describe("cache invalidation", () => {
   it("expires everything about a character that is trashed", async () => {
     prismaMock.character.updateMany.mockResolvedValue({ count: 1 });
     await trashCharacter({ projectId: "p1", characterId: "c1" });
-    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["character-notes:c1", "character:c1", "characters:p1"]);
+    expect(vi.mocked(updateTag).mock.calls.map(([tag]) => tag).sort()).toEqual(["character-notes:c1", "character:c1", "characters:p1", "trash:p1"]);
+  });
+
+  it("expires the Archive page when a character is archived", async () => {
+    prismaMock.character.updateMany.mockResolvedValue({ count: 1 });
+    await archiveCharacter({ projectId: "p1", characterId: "c1" });
+    expect(updateTag).toHaveBeenCalledWith("archive:p1");
+    expect(updateTag).not.toHaveBeenCalledWith("trash:p1");
   });
 
   it("expires nothing when the write found no row", async () => {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
-/** What a click is waiting on: the `?character=`, `?place=` or `?scene=` item on a page, or a whole `section` (a route segment). */
-export type PendingKind = "character" | "place" | "scene" | "section";
+/** What a click is waiting on: the `?character=`, `?place=`, `?scene=` or `?item=` (a trashed or archived item) on a page, or a whole `section` (a route segment). */
+export type PendingKind = "character" | "place" | "scene" | "item" | "section";
 
 /**
  * How long a click may wait before its skeleton shows. A page the browser already has arrives within a frame or two, and a
@@ -20,8 +20,8 @@ interface PendingNavStore {
 const timers: Partial<Record<PendingKind, ReturnType<typeof setTimeout>>> = {};
 
 export const usePendingNavStore = create<PendingNavStore>((set) => ({
-  pending: { character: null, place: null, scene: null, section: null },
-  visible: { character: false, place: false, scene: false, section: false },
+  pending: { character: null, place: null, scene: null, item: null, section: null },
+  visible: { character: false, place: false, scene: false, item: false, section: false },
   setPending: (kind, id) => {
     clearTimeout(timers[kind]);
     set((s) => ({ pending: { ...s.pending, [kind]: id }, visible: { ...s.visible, [kind]: false } }));

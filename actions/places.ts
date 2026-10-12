@@ -181,7 +181,13 @@ async function setHidden(
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 
-    refresh(projectId, cacheTags.places(projectId), cacheTags.place(placeId), cacheTags.placeNotes(placeId));
+    refresh(
+      projectId,
+      cacheTags.places(projectId),
+      cacheTags.place(placeId),
+      cacheTags.placeNotes(placeId),
+      field === "trashedAt" ? cacheTags.trash(projectId) : cacheTags.archive(projectId),
+    );
     return { success: true, data: undefined };
   } catch (error) {
     console.error(`${field} update failed:`, error);
@@ -302,7 +308,7 @@ export async function trashPlaceNote(input: { projectId: string; placeId: string
     });
     if (count === 0) return { success: false, error: NOTE_NOT_FOUND };
 
-    refresh(projectId, cacheTags.placeNotes(placeId));
+    refresh(projectId, cacheTags.placeNotes(placeId), cacheTags.trash(projectId));
     return { success: true, data: undefined };
   } catch (error) {
     console.error("trashPlaceNote failed:", error);

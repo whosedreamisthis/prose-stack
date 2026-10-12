@@ -13,6 +13,9 @@ export const cacheTags = {
   places: (projectId: string) => `places:${projectId}`,
   place: (placeId: string) => `place:${placeId}`,
   placeNotes: (placeId: string) => `place-notes:${placeId}`,
+  /** The project's Trash and Archive pages and their counts in the sidebar. Every trash, archive, restore and delete expires these. */
+  trash: (projectId: string) => `trash:${projectId}`,
+  archive: (projectId: string) => `archive:${projectId}`,
   manuscript: (projectId: string) => `manuscript:${projectId}`,
   scene: (nodeId: string) => `scene:${nodeId}`,
   stats: (projectId: string) => `stats:${projectId}`,

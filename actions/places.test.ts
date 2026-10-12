@@ -231,6 +231,9 @@ describe("trashPlace and archivePlace", () => {
     expect((await archivePlace({ projectId: "p1", placeId: "pl1" })).success).toBe(true);
     expect(prismaMock.place.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({ data: { archivedAt: expect.any(Date) } }));
     expect(updateTag).toHaveBeenCalledWith("places:p1");
+    // Trashing fills the Trash page, archiving fills the Archive page.
+    expect(updateTag).toHaveBeenCalledWith("trash:p1");
+    expect(updateTag).toHaveBeenCalledWith("archive:p1");
   });
 
   it("fail for a place that is already hidden or not the user's", async () => {

@@ -166,7 +166,7 @@ export async function trashNode(input: { projectId: string; nodeId: string }): P
     if (!trashedIds) return { success: false, error: NOT_FOUND };
 
     // The scenes' cached reads and the word totals no longer include what was trashed.
-    refreshTree(projectId, cacheTags.stats(projectId), ...trashedIds.map((id) => cacheTags.scene(id)));
+    refreshTree(projectId, cacheTags.stats(projectId), cacheTags.trash(projectId), ...trashedIds.map((id) => cacheTags.scene(id)));
     return { success: true, data: { trashedIds } };
   } catch (error) {
     console.error("trashNode failed:", error);

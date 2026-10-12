@@ -23,6 +23,7 @@ export const prismaMock = {
   },
   manuscriptNode: {
     count: vi.fn(),
+    deleteMany: vi.fn(),
     create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -32,24 +33,28 @@ export const prismaMock = {
   },
   character: {
     count: vi.fn(),
+    deleteMany: vi.fn(),
     create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
   },
   characterNote: {
+    findFirst: vi.fn(),
     create: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
   },
   placeNote: {
+    findFirst: vi.fn(),
     create: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
   },
   place: {
+    deleteMany: vi.fn(),
     create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
