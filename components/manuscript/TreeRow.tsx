@@ -2,6 +2,7 @@
 
 import { useId, useRef, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSortable } from "@dnd-kit/sortable";
 import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, GripVerticalIcon } from "lucide-react";
 import { TitleEditor } from "@/components/manuscript/TitleEditor";
@@ -70,6 +71,7 @@ export function TreeRow({
   onOpen,
   children,
 }: TreeRowProps) {
+  const router = useRouter();
   const isScene = node.type === "SCENE";
   const groupId = useId();
   const linkRef = useRef<HTMLAnchorElement>(null);
@@ -135,6 +137,9 @@ export function TreeRow({
             ref={linkRef}
             href={href}
             tabIndex={-1}
+            // Fetch the scene as the pointer arrives, so the click is usually served from the browser.
+            onPointerEnter={() => router.prefetch(href)}
+            onFocus={() => router.prefetch(href)}
             onClick={onOpen}
             className="flex min-w-0 flex-1 items-center gap-1.5 outline-none"
           >

@@ -89,6 +89,9 @@ export function CharacterList({ projectId, characters }: CharacterListProps) {
                     <Link
                       href={`/projects/${projectId}/characters?character=${c.id}`}
                       aria-current={onCharactersPage && c.id === activeId ? "true" : undefined}
+                      // Fetch the character as the pointer arrives, so the click is usually served from the browser.
+                      onPointerEnter={() => router.prefetch(`/projects/${projectId}/characters?character=${c.id}`)}
+                      onFocus={() => router.prefetch(`/projects/${projectId}/characters?character=${c.id}`)}
                       onClick={() => {
                         // Show the sketch skeleton straight away; only for a character that isn't already open.
                         if (!onCharactersPage) setPending("section", "characters");

@@ -28,5 +28,5 @@ export function PendingSection({ children }: { children: ReactNode }) {
     setPending("section", null);
   }, [pathname, setPending]);
 
-  return waiting ? (SKELETONS[target] ?? children) : children;
+  return waiting && target ? (SKELETONS[target] ?? children) : children;
 }
