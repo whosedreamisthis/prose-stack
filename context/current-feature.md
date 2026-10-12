@@ -1,25 +1,20 @@
-# Current Feature: Places
+# Current Feature
 
-Place cards that capture the settings of the novel. Spec: [features/places-spec.md](features/places-spec.md).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Place cards with sketch fields: name, location, role in story, season, unique features, description, sights, sounds, smell, notes.
-- Link a place to one or more related characters.
-- Create, edit, trash, and archive places.
-- Route at `/projects/[projectId]/places`.
-- Related-character links persist and update when a character is trashed or deleted.
-- Scoped by `userId`/`projectId`; input validated with Zod.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Data: `Place` (`name`, `location`, `roleInStory`, `season`, `uniqueFeatures`, `description`, `sights`, `sounds`, `smell`, `notes`, `trashedAt`, `archivedAt`); `relatedCharacters` many-to-many with `Character`.
-- Follow the Characters feature for patterns (auto-saving sketches, row menu to archive or trash, `actions/`, `lib/`, tagged `use cache` reads expired with `updateTag`).
-- Per project convention, also seed the demo user with places (see `lib/demo*.ts`).
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -34,3 +29,4 @@ In Progress
 - **Characters:** auto-saving sketches grouped Main/Supporting, row menu to archive or trash, multi-note Notes tab in the right sidebar; code in `components/characters/`, `actions/characters.ts`, `lib/characters.ts`, `ProjectSidebar.tsx`.
 - **Read Caching:** tagged `use cache` reads for projects, outline, scenes, characters and notes, expired by `updateTag` in the actions, plus a 5-minute browser cache and hover prefetch; see `lib/cache-tags.ts`, `next.config.ts`.
 - **Demo User:** Try demo button creates or resumes a temporary seeded Clerk user, one per IP via namespaced Upstash keys, expiry enforced per request and by a daily cleanup cron; see `lib/demo*.ts`, `app/api/demo/`.
+- **Places:** auto-saving place cards with related-character checkboxes, header add button, row menu to archive or trash, and sidebar notes via the shared `NotesList`; see `components/places/`, `actions/places.ts`, `lib/places.ts`.
