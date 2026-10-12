@@ -7,6 +7,8 @@ function fakeTx() {
     project: { create: vi.fn().mockResolvedValue({ id: "p1" }) },
     manuscriptNode: { createMany: vi.fn() },
     sceneNote: { createMany: vi.fn() },
+    plotLine: { createMany: vi.fn() },
+    plotPoint: { createMany: vi.fn() },
     character: { createMany: vi.fn() },
     characterNote: { createMany: vi.fn() },
     place: { create: vi.fn().mockResolvedValue({ id: "pl1" }) },
@@ -67,6 +69,28 @@ describe("seedDemoProject", () => {
     const notes = tx.sceneNote.createMany.mock.calls[0][0].data as { sceneId: string; content: string }[];
     expect(notes.length).toBeGreaterThan(0);
     for (const note of notes) expect(nodes.find((n) => n.id === note.sceneId)?.type).toBe("SCENE");
+  });
+
+  it("seeds plot lines in order, with points on scenes of the project and never two on one cell", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const nodes = tx.manuscriptNode.createMany.mock.calls[0][0].data as { id: string; type: string }[];
+    const lines = tx.plotLine.createMany.mock.calls[0][0].data as { id: string; projectId: string; position: number }[];
+    const points = tx.plotPoint.createMany.mock.calls[0][0].data as { plotLineId: string; sceneId: string; text: string }[];
+
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    expect(lines.map((l) => l.position)).toEqual(lines.map((_, i) => i));
+    for (const line of lines) expect(line.projectId).toBe("p1");
+
+    expect(points.length).toBeGreaterThan(0);
+    for (const point of points) {
+      expect(lines.some((l) => l.id === point.plotLineId)).toBe(true);
+      expect(nodes.find((n) => n.id === point.sceneId)?.type).toBe("SCENE");
+      expect(point.text).toBeTruthy();
+    }
+    const cells = points.map((p) => `${p.plotLineId}:${p.sceneId}`);
+    expect(new Set(cells).size).toBe(cells.length);
+    expect(new Set(points.map((p) => p.sceneId)).size).toBeGreaterThan(2);
   });
 
   it("seeds main and supporting characters with blank fields stored as null, and notes for the ones that have them", async () => {

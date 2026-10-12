@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   applyMove,
   BOOK_DROP_ID,
+  lastChapter,
   planMove,
   resolveActiveScene,
   resolveDrop,
@@ -135,5 +136,22 @@ describe("resolveDrop on the book", () => {
     expect("error" in plan).toBe(false);
     const moved = applyMove(withPart, plan as { updates: { id: string; parentId: string | null; position: number }[] });
     expect(moved.find((n) => n.id === "c3")).toMatchObject({ parentId: null, position: 3 });
+  });
+});
+
+describe("lastChapter", () => {
+  it("is the last chapter at the top level", () => {
+    expect(lastChapter(nodes)?.id).toBe("c2");
+  });
+
+  it("looks inside parts, in reading order", () => {
+    const withParts = [node("c1", "CHAPTER", null, 0), node("p1", "PART", null, 1), node("c2", "CHAPTER", "p1", 0), node("c3", "CHAPTER", "p1", 1)];
+    expect(lastChapter(withParts)?.id).toBe("c3");
+    expect(lastChapter([node("p1", "PART", null, 0), node("c1", "CHAPTER", "p1", 0), node("c2", "CHAPTER", null, 1)])?.id).toBe("c2");
+  });
+
+  it("is null when there is no chapter", () => {
+    expect(lastChapter([])).toBeNull();
+    expect(lastChapter([node("p1", "PART", null, 0)])).toBeNull();
   });
 });

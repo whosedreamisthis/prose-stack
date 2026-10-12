@@ -79,6 +79,19 @@ async function deleteNode(userId: string, projectId: string, id: string): Promis
   });
 }
 
+/** Restores a trashed plot line at the end of the live ones; the points hidden with it come back too. */
+async function restorePlotLine(userId: string, projectId: string, id: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockOwnedProject(tx, userId, projectId))) return false;
+    const count = await tx.plotLine.count({ where: { projectId, trashedAt: null } });
+    const { count: restored } = await tx.plotLine.updateMany({
+      where: { id, projectId, trashedAt: { not: null } },
+      data: { trashedAt: null, position: count },
+    });
+    return restored > 0;
+  });
+}
+
 export async function restoreItem(input: TrashRef): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
@@ -118,7 +131,7 @@ export async function restoreItem(input: TrashRef): Promise<ActionResult> {
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.placeNote.updateMany({ where: { id, placeId: note.placeId }, data: { trashedAt: null } });
       tags = [cacheTags.placeNotes(note.placeId)];
-    } else {
+    } else if (kind === "sceneNote") {
       const note = await prisma.sceneNote.findFirst({
         where: { id, trashedAt: hidden, scene: { ...owner, trashedAt: null } },
         select: { sceneId: true },
@@ -126,6 +139,17 @@ export async function restoreItem(input: TrashRef): Promise<ActionResult> {
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.sceneNote.updateMany({ where: { id, sceneId: note.sceneId }, data: { trashedAt: null } });
       tags = [cacheTags.sceneNotes(note.sceneId)];
+    } else if (kind === "plotLine") {
+      if (!(await restorePlotLine(user.id, projectId, id))) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.plot(projectId)];
+    } else {
+      const point = await prisma.plotPoint.findFirst({
+        where: { id, trashedAt: hidden, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
+        select: { id: true },
+      });
+      if (!point) return { success: false, error: NOT_FOUND };
+      await prisma.plotPoint.updateMany({ where: { id }, data: { trashedAt: null } });
+      tags = [cacheTags.plot(projectId)];
     }
 
     refresh(projectId, [...tags, cacheTags.trash(projectId)]);
@@ -176,7 +200,7 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.placeNote.deleteMany({ where: { id, placeId: note.placeId } });
       tags = [cacheTags.placeNotes(note.placeId)];
-    } else {
+    } else if (kind === "sceneNote") {
       const note = await prisma.sceneNote.findFirst({
         where: { id, trashedAt: hidden, scene: { ...owner, trashedAt: null } },
         select: { sceneId: true },
@@ -184,6 +208,17 @@ export async function deleteItemPermanently(input: TrashRef): Promise<ActionResu
       if (!note) return { success: false, error: NOT_FOUND };
       await prisma.sceneNote.deleteMany({ where: { id, sceneId: note.sceneId } });
       tags = [cacheTags.sceneNotes(note.sceneId)];
+    } else if (kind === "plotLine") {
+      // Its points go with it (they cascade).
+      const { count } = await prisma.plotLine.deleteMany({ where: { id, ...owner, trashedAt: hidden } });
+      if (count === 0) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.plot(projectId)];
+    } else {
+      const { count } = await prisma.plotPoint.deleteMany({
+        where: { id, trashedAt: hidden, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
+      });
+      if (count === 0) return { success: false, error: NOT_FOUND };
+      tags = [cacheTags.plot(projectId)];
     }
 
     refresh(projectId, [...tags, cacheTags.trash(projectId)]);

@@ -119,3 +119,16 @@ export function resolveDrop(nodes: TreeNode[], activeId: string, overId: string)
   const index = childrenOf(nodes, over.parentId).findIndex((n) => n.id === over.id);
   return { parentId: over.parentId, index };
 }
+
+/** The last chapter in reading order, wherever it sits (a part or the book). Null when there is none. */
+export function lastChapter<T extends TreeNode>(nodes: T[]): T | null {
+  let last: T | null = null;
+  const walk = (parentId: string | null) => {
+    for (const node of childrenOf(nodes, parentId)) {
+      if (node.type === "CHAPTER") last = node;
+      else if (node.type === "PART") walk(node.id);
+    }
+  };
+  walk(null);
+  return last;
+}

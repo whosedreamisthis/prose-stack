@@ -21,7 +21,7 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
   cacheLife("days");
   cacheTag(cacheTags.trash(projectId), cacheTags.project(projectId));
   const owner = { projectId, project: { userId } };
-  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes] = await Promise.all([
+  const [nodes, characters, places, characterNotes, placeNotes, sceneNotes, plotLines, plotPoints] = await Promise.all([
     prisma.manuscriptNode.findMany({
       where: { ...owner, trashedAt: { not: null } },
       select: { id: true, parentId: true, type: true, title: true, trashedAt: true },
@@ -40,6 +40,12 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
     prisma.sceneNote.findMany({
       where: { trashedAt: { not: null }, scene: { ...owner, trashedAt: null } },
       select: { id: true, title: true, content: true, trashedAt: true, scene: { select: { title: true } } },
+    }),
+    prisma.plotLine.findMany({ where: { ...owner, trashedAt: { not: null } }, select: { id: true, name: true, trashedAt: true } }),
+    // A point of a trashed line or scene comes back with its line or scene, so only points of live ones are listed on their own.
+    prisma.plotPoint.findMany({
+      where: { trashedAt: { not: null }, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
+      select: { id: true, title: true, text: true, trashedAt: true, plotLine: { select: { name: true } }, scene: { select: { title: true } } },
     }),
   ]);
 
@@ -82,6 +88,14 @@ export async function listTrash(userId: string, projectId: string): Promise<Tras
       title: noteLabel(n),
       detail: `Note on ${n.scene.title}`,
       trashedAt: n.trashedAt!.getTime(),
+    })),
+    ...plotLines.map((l) => ({ kind: "plotLine" as const, id: l.id, title: l.name, detail: "Plot line", trashedAt: l.trashedAt!.getTime() })),
+    ...plotPoints.map((p) => ({
+      kind: "plotPoint" as const,
+      id: p.id,
+      title: noteLabel({ title: p.title, content: p.text }),
+      detail: `Plot point on ${p.scene.title}, ${p.plotLine.name}`,
+      trashedAt: p.trashedAt!.getTime(),
     })),
   ];
   return items.sort((a, b) => b.trashedAt - a.trashedAt);
@@ -190,6 +204,31 @@ export async function getHiddenView(
       title: note.title?.trim() || "Note",
       subtitle: `Note on ${ownerName}`,
       sections: [{ text: note.content }],
+    };
+  }
+
+  if (kind === "plotLine" || kind === "plotPoint") {
+    if (from !== "trash") return null;
+    if (kind === "plotLine") {
+      const line = await prisma.plotLine.findFirst({
+        where: { id, ...owner, trashedAt: { not: null } },
+        select: { name: true, points: { where: { trashedAt: null, scene: { trashedAt: null } }, select: { title: true, text: true, scene: { select: { title: true } } } } },
+      });
+      if (!line) return null;
+      const points: ViewSection[] = line.points.map((p) => ({ heading: p.scene.title, text: [p.title?.trim(), p.text].filter(Boolean).join("\n") }));
+      return { kind, id, title: line.name, subtitle: "Plot line", sections: points };
+    }
+    const point = await prisma.plotPoint.findFirst({
+      where: { id, trashedAt: { not: null }, plotLine: { ...owner, trashedAt: null }, scene: { trashedAt: null } },
+      select: { title: true, text: true, plotLine: { select: { name: true } }, scene: { select: { title: true } } },
+    });
+    if (!point) return null;
+    return {
+      kind,
+      id,
+      title: point.title?.trim() || "Plot point",
+      subtitle: `Plot point on ${point.scene.title}, ${point.plotLine.name}`,
+      sections: [{ text: point.text }],
     };
   }
 

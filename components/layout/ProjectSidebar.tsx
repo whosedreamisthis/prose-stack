@@ -6,10 +6,12 @@ import { ManuscriptTree } from "@/components/manuscript/ManuscriptTree";
 import { AddPlaceButton } from "@/components/places/AddPlaceButton";
 import { HiddenItemsList } from "@/components/trash/HiddenItemsList";
 import { PlaceList } from "@/components/places/PlaceList";
+import { PlotLinesSection } from "@/components/plot/PlotLinesSection";
 import { getCurrentUser } from "@/lib/auth";
 import { listCharacters } from "@/lib/characters";
 import { getManuscript } from "@/lib/manuscript";
 import { listPlaces } from "@/lib/places";
+import { getPlot } from "@/lib/plot";
 import { listArchive, listTrash } from "@/lib/trash";
 import { getProject } from "@/lib/projects";
 
@@ -22,11 +24,12 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const [project, nodes, characters, places, trash, archive] = await Promise.all([
+  const [project, nodes, characters, places, plot, trash, archive] = await Promise.all([
     getProject(user.id, projectId),
     getManuscript(user.id, projectId),
     listCharacters(user.id, projectId),
     listPlaces(user.id, projectId),
+    getPlot(user.id, projectId),
     listTrash(user.id, projectId),
     listArchive(user.id, projectId),
   ]);
@@ -35,6 +38,9 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
   return (
     <div className="flex flex-col gap-3">
       <ManuscriptTree projectId={projectId} projectTitle={project.title} nodes={nodes} />
+      <SidebarSection slug="plot" label="Plots">
+        <PlotLinesSection projectId={projectId} plot={plot} />
+      </SidebarSection>
       <SidebarSection slug="characters" label="Characters">
         <CharacterList projectId={projectId} characters={characters} />
       </SidebarSection>

@@ -60,6 +60,7 @@ model Project {
   dailyWordCounts DailyWordCount[]
   characters      Character[]
   places          Place[]
+  plotLines       PlotLine[]
 
   @@index([userId])
 }
@@ -86,10 +87,11 @@ model ManuscriptNode {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
-  project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent   ManuscriptNode?  @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children ManuscriptNode[] @relation("NodeChildren")
-  notes    SceneNote[]
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent     ManuscriptNode?  @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children   ManuscriptNode[] @relation("NodeChildren")
+  notes      SceneNote[]
+  plotPoints PlotPoint[]
 
   @@index([projectId, parentId, position])
 }
@@ -159,13 +161,13 @@ model Character {
 
 /// Free-form notes shown in the right sidebar; a character can have several.
 model CharacterNote {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   characterId String
   title       String?
   content     String
   trashedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
@@ -201,15 +203,49 @@ model Place {
 
 /// Free-form notes shown in the right sidebar; a place can have several.
 model PlaceNote {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   placeId   String
   title     String?
   content   String
   trashedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
 
   @@index([placeId, createdAt])
+}
+
+/// A plot line: one column of the plot grid. Trashing it hides its points with it; they come back on restore.
+model PlotLine {
+  id        String    @id @default(cuid())
+  projectId String
+  name      String
+  position  Int // order among the project's live lines, 0-based
+  trashedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  points  PlotPoint[]
+
+  @@index([projectId, position])
+}
+
+/// A plot point: the cell where a scene's row meets a plot line, so it always belongs to a scene. A trashed scene hides its points (reads filter on the scene), and deleting the scene deletes them.
+model PlotPoint {
+  id         String    @id @default(cuid())
+  plotLineId String
+  sceneId    String
+  title      String?
+  text       String
+  trashedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  plotLine PlotLine       @relation(fields: [plotLineId], references: [id], onDelete: Cascade)
+  scene    ManuscriptNode @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@unique([plotLineId, sceneId])
+  @@index([sceneId])
 }
