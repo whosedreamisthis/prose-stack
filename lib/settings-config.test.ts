@@ -45,9 +45,9 @@ describe("getChanges (formatting)", () => {
 
 describe("getDirtyTabs", () => {
   it("marks the tab that has edits", () => {
-    expect(getDirtyTabs(saved, { ...saved, title: "New" })).toEqual({ general: true, appearance: false, formatting: false, labels: false });
-    expect(getDirtyTabs(saved, { ...saved, theme: "LIGHT" })).toEqual({ general: false, appearance: true, formatting: false, labels: false });
-    expect(getDirtyTabs(saved, { ...saved, fontSize: 14 })).toEqual({ general: false, appearance: false, formatting: true, labels: false });
+    expect(getDirtyTabs(saved, { ...saved, title: "New" })).toEqual({ general: true, appearance: false, formatting: false, labels: false, proofreading: false });
+    expect(getDirtyTabs(saved, { ...saved, theme: "LIGHT" })).toEqual({ general: false, appearance: true, formatting: false, labels: false, proofreading: false });
+    expect(getDirtyTabs(saved, { ...saved, fontSize: 14 })).toEqual({ general: false, appearance: false, formatting: true, labels: false, proofreading: false });
   });
 });
 

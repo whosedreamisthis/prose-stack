@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import nspell from "nspell";
-import { normalizeWord } from "@/lib/spellcheck";
+import { normalizeWord, rankSuggestions } from "@/lib/spellcheck";
 
 export type SpellStatus = "idle" | "loading" | "ready" | "error";
 
@@ -63,7 +63,7 @@ export function isMisspelled(word: string): boolean {
 }
 
 export function suggestFor(word: string, limit = 5): string[] {
-  return speller ? speller.suggest(normalizeWord(word)).slice(0, limit) : [];
+  return speller ? rankSuggestions(word, speller.suggest(normalizeWord(word))).slice(0, limit) : [];
 }
 
 /** Remembers the word in this browser, so it is never flagged again. */

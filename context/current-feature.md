@@ -1,20 +1,32 @@
-# Current Feature
+# Current Feature: Proofreading
 
-<!-- Feature name and short description -->
+A manual **Proofread** pass for punctuation, style and consistency on one scene or the current selection, built only on free open-source libraries (no AI, no paid service, no API key).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- **Proofread** tool in the editor toolbar and the scene's "…" menu, with a keyboard shortcut; reviews the open scene or the current selection only (never a chapter or the whole book).
+- Results in a panel above the scene (like Find and replace), in reading order: flagged text in context, a short reason, and a replacement where there is one; clicking a suggestion highlights and scrolls to its text.
+- Per suggestion: **Accept** (one undo step, changes only the flagged text), **Dismiss** (for this pass) and **Ignore always** (project ignore list, survives a reload).
+- Switchable categories: punctuation and usage (repeated words, "a/an", contractions), style (filler/weasel words, passive voice, overlong sentences), consistency (a name spelled two ways against the project's characters and places, mixed quote styles).
+- Fiction-aware: dialogue fragments and project character and place names are not flagged.
+- Stale suggestions are marked out of date with **Run again** when the scene changes; "No suggestions" empty state; long scenes processed in chunks with progress and cancel.
+- Settings: a Proofreading tab with the categories to show and the project ignore list (view and remove entries); English only. The settings tab strip on a phone shows one tab with left and right chevrons to cycle through the tabs.
+- Bold and italic buttons in the editor toolbar (the marks and Ctrl/Cmd+B and +I already worked; book view and PDF already render them).
+- `POST /api/proofread` (signed-in owner only, Zod-validated, light per-user rate limit, stricter for demo users); text never leaves the app's own server.
+- `ProofreadIgnore` model (`projectId`, `kind`, `value`, unique together) with a migration via `prisma migrate dev`, not `db push`.
+- A 5,000-word scene completes without timing out; a failure shows an error and leaves the scene untouched.
+- Unit tests for the checkers, the suggestion format, the ignore list and the route.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/features/proofreading-spec.md`. Related: `spell-check-spec.md`, `scene-editor-spec.md`, `scene-editor-tools-spec.md`.
+- Libraries only: the retext family for rules, nspell (already used) for spelling, our own code for consistency checks. Pick exact packages at the start and check their current docs.
+- Open question: which retext packages give the fewest false positives on fiction; try them on the demo project.
+- Out of scope: AI models, hosted or self-hosted LanguageTool, chapters or whole book, languages other than English, a paid tier.
 
 ## Completed Features
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findWords, matchCase, normalizeWord, shouldSkip } from "@/lib/spellcheck";
+import { findWords, matchCase, normalizeWord, rankSuggestions, shouldSkip } from "@/lib/spellcheck";
 
 describe("findWords", () => {
   it("returns each word with its offsets", () => {
@@ -49,5 +49,24 @@ describe("matchCase", () => {
   it("leaves the suggestion alone for lowercase or mixed-case originals", () => {
     expect(matchCase("teh", "the")).toBe("the");
     expect(matchCase("iPhoen", "iPhone")).toBe("iPhone");
+  });
+});
+
+describe("rankSuggestions", () => {
+  const dont = ["Cont", "Dent", "Dint", "Done", "Dong", "Font", "Dolt", "Don", "Don't", "Dona"];
+
+  it("puts the word with its apostrophe restored first, and keeps the rest in order", () => {
+    const ranked = rankSuggestions("Dont", dont);
+    expect(ranked[0]).toBe("Don't");
+    expect(ranked.slice(1)).toEqual(dont.filter((s) => s !== "Don't"));
+  });
+
+  it("recognises it with a curly apostrophe or different case in the input", () => {
+    expect(rankSuggestions("DONT", ["Done", "Don't"])[0]).toBe("Don't");
+    expect(rankSuggestions("didnt", ["didst", "didn't"])[0]).toBe("didn't");
+  });
+
+  it("leaves the order alone when no suggestion only adds an apostrophe", () => {
+    expect(rankSuggestions("teh", ["the", "tech", "ten"])).toEqual(["the", "tech", "ten"]);
   });
 });

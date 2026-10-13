@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { toast } from "sonner";
 import { updateProjectSettings, updateUserTheme } from "@/actions/settings";
 import { AppearanceTab } from "@/components/settings/AppearanceTab";
 import { FormattingTab } from "@/components/settings/FormattingTab";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { LabelsTab } from "@/components/settings/LabelsTab";
+import { ProofreadingTab } from "@/components/settings/ProofreadingTab";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +42,7 @@ const PANELS: Record<SettingsTab, () => ReactNode> = {
   appearance: () => <AppearanceTab />,
   formatting: () => <FormattingTab />,
   labels: () => <LabelsTab />,
+  proofreading: () => <ProofreadingTab />,
 };
 
 /** The project settings modal. Open it with `useSettingsStore().openSettings`; it is mounted once, in the navbar. */
@@ -66,7 +69,7 @@ export function SettingsDialog() {
   const dirtyTabs = saved && draft ? { ...getDirtyTabs(saved, draft), labels: labelsChanged } : null;
   // The Labels tab saves each change on its own, so a Save button there only ever looks broken: it offers Done instead,
   // unless another tab has edits that still need Save or Cancel.
-  const autoSaves = tab === "labels" && !dirty;
+  const autoSaves = (tab === "labels" || tab === "proofreading") && !dirty;
 
   // The theme previews live: the draft's theme is on <html> while the modal is open, and the saved one is put back on cancel.
   const draftTheme = draft?.theme ?? null;
@@ -135,6 +138,12 @@ export function SettingsDialog() {
     });
   }
 
+  /** The chevrons on a phone: the next or previous tab, wrapping round. */
+  function stepTab(by: 1 | -1) {
+    const index = SETTINGS_TABS.findIndex((t) => t.id === tab);
+    setTab(SETTINGS_TABS[(index + by + SETTINGS_TABS.length) % SETTINGS_TABS.length].id);
+  }
+
   function onTabKeyDown(e: KeyboardEvent, index: number) {
     const count = SETTINGS_TABS.length;
     let next: number | null = null;
@@ -162,8 +171,17 @@ export function SettingsDialog() {
             <div
               role="tablist"
               aria-label="Settings"
-              className="grid shrink-0 grid-cols-4 gap-0.5 border-b p-1.5 md:flex md:w-44 md:flex-col md:gap-1 md:border-r md:border-b-0 md:p-2"
+              className="flex shrink-0 items-center gap-0.5 border-b p-1.5 md:w-44 md:flex-col md:items-stretch md:gap-1 md:border-r md:border-b-0 md:p-2"
             >
+              {/* On a phone only the open tab shows, with chevrons to step through the rest. */}
+              <button
+                type="button"
+                aria-label="Previous settings tab"
+                onClick={() => stepTab(-1)}
+                className="grid size-8 shrink-0 place-items-center rounded-lg outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
+              >
+                <ChevronLeftIcon className="size-5" aria-hidden />
+              </button>
               {SETTINGS_TABS.map(({ id, label }, index) => (
                 <button
                   key={id}
@@ -179,8 +197,8 @@ export function SettingsDialog() {
                   onClick={() => setTab(id)}
                   onKeyDown={(e) => onTabKeyDown(e, index)}
                   className={cn(
-                    "flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-xs outline-none md:justify-between md:gap-2 md:px-3 md:text-left md:text-sm transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
-                    tab === id && "bg-muted font-medium",
+                    "flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-sm outline-none max-md:flex-1 md:justify-between md:gap-2 md:px-3 md:text-left transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+                    tab === id ? "bg-muted font-medium" : "max-md:hidden",
                   )}
                 >
                   {label}
@@ -192,6 +210,14 @@ export function SettingsDialog() {
                   )}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-label="Next settings tab"
+                onClick={() => stepTab(1)}
+                className="grid size-8 shrink-0 place-items-center rounded-lg outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
+              >
+                <ChevronRightIcon className="size-5" aria-hidden />
+              </button>
             </div>
 
             <div
@@ -212,6 +238,11 @@ export function SettingsDialog() {
 
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
             <div className="flex min-w-0 items-center">
+              {tab === "proofreading" && (
+                <p className="text-xs text-muted-foreground sm:text-sm">
+                  {autoSaves ? "The ignore list saves automatically." : "The ignore list saves automatically. Save applies to your other changes."}
+                </p>
+              )}
               {tab === "labels" && (
                 <p className="text-xs text-muted-foreground sm:text-sm">
                   {autoSaves ? "Labels save automatically." : "Labels save automatically. Save applies to your other changes."}
