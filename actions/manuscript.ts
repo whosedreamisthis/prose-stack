@@ -18,7 +18,7 @@ import {
   type MoveNodeInput,
 } from "@/lib/manuscript-config";
 import { todayUtc } from "@/lib/manuscript";
-import { countDocWords, type DocNode } from "@/lib/manuscript-text";
+import { countDocWords, plainTextOf, type DocNode } from "@/lib/manuscript-text";
 import { planMove, subtreeIds } from "@/lib/manuscript-tree";
 import type { ActionResult } from "@/types/actions";
 
@@ -205,7 +205,7 @@ export async function saveScene(input: {
       });
       const saved = await tx.manuscriptNode.update({
         where: { id: nodeId },
-        data: { content: content as Prisma.InputJsonValue, wordCount },
+        data: { content: content as Prisma.InputJsonValue, plainText: plainTextOf(content), wordCount },
         select: { updatedAt: true },
       });
       await tx.project.update({ where: { id: projectId }, data: { updatedAt: new Date() } });

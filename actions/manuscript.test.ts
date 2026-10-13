@@ -185,7 +185,7 @@ describe("saveScene", () => {
 
     expect(result).toEqual({ success: true, data: { updatedAt: 5000 } });
     expect(prismaMock.manuscriptNode.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "s1" }, data: { content, wordCount: 4 } }),
+      expect.objectContaining({ where: { id: "s1" }, data: { content, plainText: "Once upon a time...", wordCount: 4 } }),
     );
     expect(prismaMock.dailyWordCount.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ create: expect.objectContaining({ projectId: "p1", startWords: 120 }), update: {} }),

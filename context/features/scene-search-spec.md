@@ -19,7 +19,8 @@ A search box at the top of the manuscript's left sidebar that finds the scenes c
 
 ### What it matches
 - Scene **title**, **summary**, and **body text**. Matching is case-insensitive and ignores accents.
-- Several words mean **all of them** must appear in the scene, in any order.
+- The scene's **label name** (see [settings-labels-spec.md](settings-labels-spec.md)). There is no separate label filter: the same search box matches a label the same way it matches a word, so typing `Revise` finds scenes whose text contains "revise" and scenes labelled "Revise" (the matching rules below apply to the label name too, so `to do` finds a label called "To do"). A label is read from the `Label` table when the search runs, not stored in the search vector, so renaming or recoloring a label, or relabelling a scene, changes results at once. Chapter and part labels are not searched, only the scene's own.
+- Several words mean **all of them** must appear in the scene, in any order. Each word may match in the text or in the label, so `revise storm` finds a scene labelled "Revise" whose body mentions "storm".
 - A phrase in double quotes means those words next to each other, in order.
 - **Whole words only**: `light` finds "light" and "Light", not "lighthouse". There is no stemming, so "walk" does not find "walking" (deliberate: names and places, the usual searches in a novel, match exactly and without false hits like "art" in "party"). A trailing `*` opts that one word into prefix matching (`light*` finds "lighthouse").
 - Only scenes are matched. Chapter and part titles are not searched, because a match would return a whole chapter and the tree already finds those by name; each result still shows its chapter and part as context.
@@ -29,7 +30,8 @@ A search box at the top of the manuscript's left sidebar that finds the scenes c
 ### Results
 - Replaces the tree while the box is not empty. Shows a count ("12 scenes").
 - Each result shows the scene title, where it sits (for example "Part 1 › Chapter 3", since the tree is hidden), and a snippet of about 120 characters around the first match with the matched words highlighted.
-- Ordered by relevance: title matches first, then summary, then body; ties by tree order.
+- A scene's label shows on its result as the same colored chip used in the outline, with matched words highlighted when the label is what matched. A scene that matched only through its label has no text snippet; it shows its summary or the start of its text instead.
+- Ordered by relevance: title matches first, then label, then summary, then body; ties by tree order.
 - At most 50 results; if there are more, say so ("Showing 50 of 132. Refine your search.").
 - Empty state: "No scenes match “…”" with a hint to try fewer words.
 - Clicking a result (or pressing Enter on it) opens the scene and keeps the search and results visible, so you can step through matches. Arrow keys move through results.
@@ -66,6 +68,7 @@ No new environment variables. Full-text search and `unaccent` are both available
 
 ## Acceptance criteria
 - Typing two or more characters shows matching scenes within about half a second on a project with several hundred scenes.
+- A scene is found by a word in its label name as well, with the same search box; renaming the label changes what finds it immediately.
 - A scene is found by a word in its title, its summary, or its body, and a scene without the word is not shown.
 - Multiple words require all of them; a quoted phrase requires the words adjacent and in order.
 - A word matches only as a whole word (`light` does not find "lighthouse"); `light*` does.

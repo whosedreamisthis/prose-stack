@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/db";
 import { SEED_SCENE_TEXT } from "@/lib/manuscript-config";
-import { countDocWords, docFromText, emptyDoc, type DocNode } from "@/lib/manuscript-text";
+import { countDocWords, docFromText, emptyDoc, plainTextOf, type DocNode } from "@/lib/manuscript-text";
 import type { BookNode, ManuscriptNodeSummary, SceneDetail, WordStats } from "@/types/manuscript";
 
 const summarySelect = { id: true, parentId: true, type: true, title: true, position: true, wordCount: true, labelId: true } as const;

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { STARTER_FOLDERS } from "@/lib/research-config";
-import { countDocWords, type DocNode } from "@/lib/manuscript-text";
+import { countDocWords, plainTextOf, type DocNode } from "@/lib/manuscript-text";
 
 type NodeType = "PART" | "CHAPTER" | "SCENE";
 
@@ -363,6 +363,7 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
         title: node.title,
         position: node.position,
         content: content as Prisma.InputJsonValue,
+        plainText: plainTextOf(content),
         wordCount: countDocWords(content),
         labelId: labelId(node.label),
       };

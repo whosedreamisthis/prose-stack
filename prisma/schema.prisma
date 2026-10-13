@@ -77,19 +77,21 @@ enum ManuscriptNodeType {
 
 /// The manuscript tree. The project is the implicit book root; parentId is null for top-level parts and chapters.
 model ManuscriptNode {
-  id        String             @id @default(cuid())
-  projectId String
-  parentId  String?
-  type      ManuscriptNodeType
-  title     String
-  position  Int // order among siblings, 0-based
-  content   Json? // scenes only: Tiptap document
-  summary   String? // scenes only
-  wordCount Int                @default(0) // scenes only
-  labelId   String?
-  trashedAt DateTime? // set on a trashed node and all of its descendants together
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id           String                   @id @default(cuid())
+  projectId    String
+  parentId     String?
+  type         ManuscriptNodeType
+  title        String
+  position     Int // order among siblings, 0-based
+  content      Json? // scenes only: Tiptap document
+  summary      String? // scenes only
+  plainText    String? // scenes only: the text of `content`, kept in step with it, for search
+  searchVector Unsupported("tsvector")? // generated in SQL from title, summary and plainText (see add_scene_search)
+  wordCount    Int                      @default(0) // scenes only
+  labelId      String?
+  trashedAt    DateTime? // set on a trashed node and all of its descendants together
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent     ManuscriptNode?  @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
@@ -100,6 +102,7 @@ model ManuscriptNode {
   research   ResearchItem[]
 
   @@index([projectId, parentId, position])
+  @@index([searchVector], type: Gin)
 }
 
 /// Free-form notes shown in the right sidebar; a scene can have several.
