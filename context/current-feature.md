@@ -1,20 +1,27 @@
-# Current Feature
+# Current Feature: Spell Check
 
-<!-- Feature name and short description -->
+Spell checking in the scene editor, toggled from the top navbar, using the browser's native spellcheck. Spec: [spell-check-spec.md](features/spell-check-spec.md).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Navbar toggle (accessible icon button with `aria-pressed`), shown only on pages with the scene editor.
+- `nspell` + `dictionary-en` underline misspelled words through a Tiptap decoration extension; native spellcheck is the fallback while the dictionary loads or if it fails.
+- Hovering an underlined word opens a popover with replacement suggestions, Add to dictionary and Ignore; Ctrl/Cmd+. opens it from the keyboard.
+- Toggle works at runtime with no remount, so content, selection and cursor are kept.
+- Navbar button states are easy to tell apart: tinted when on, grayed out when off.
+- Setting persists per user in `localStorage`; default is on for new users.
+- Read the stored value after mount to avoid a hydration mismatch; wrap `localStorage` access in try/catch.
+- Applies only to the scene editor (including embedded chapter, part and full manuscript views); works for the demo user.
+- Keyboard accessible and reflects the current state.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Out of scope: grammar checking, other languages, per-project or server-synced custom words, auto-adding character/place names.
+- Code: `lib/spellcheck.ts`, `lib/spell-engine.ts`, `lib/spellcheck-extension.ts`, `components/manuscript/SpellSuggestPopover.tsx`; dictionary files in `public/dictionaries/en/`.
 
 ## Completed Features
 

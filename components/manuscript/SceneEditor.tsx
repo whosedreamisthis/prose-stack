@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { FindPanel } from "@/components/manuscript/FindPanel";
+import { SpellSuggestPopover } from "@/components/manuscript/SpellSuggestPopover";
 import { ThesaurusPopover } from "@/components/manuscript/ThesaurusPopover";
 import { useSceneAutosave } from "@/hooks/useSceneAutosave";
 import { consumeEditorFocusRequest } from "@/lib/editor-focus";
 import { FORMATTED_TEXT, formattingStyle } from "@/lib/formatting";
 import { readLocalCopy } from "@/lib/local-copy";
+import { useSpellStatus } from "@/lib/spell-engine";
 import { chooseInitialContent } from "@/lib/manuscript-sync";
 import { PROSE_EXTENSIONS } from "@/components/manuscript/prose-extensions";
 import { countDocWords, type DocNode } from "@/lib/manuscript-text";
@@ -119,15 +121,24 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
     };
   }, [editor, embedded, setEditor, setLiveWords]);
 
+  // Our own underlines and suggestions take over once the dictionary is in; until then, or if it fails, the browser's spell check runs.
+  const spellStatus = useSpellStatus();
+  const ownSpellcheck = spellcheck && spellStatus === "ready";
+  useEffect(() => {
+    if (!editor) return;
+    editor.commands.setSpellcheck(spellcheck);
+  }, [editor, spellcheck]);
+
   const showPanels = !embedded || activeEditor === editor;
 
   return (
     <>
       {showPanels && findOpen && editor && <FindPanel editor={editor} />}
       {showPanels && thesaurusOpen && editor && <ThesaurusPopover editor={editor} />}
+      {ownSpellcheck && editor && <SpellSuggestPopover editor={editor} />}
       <div
-        // Spell check is inherited by the editable area below.
-        spellCheck={spellcheck}
+        // The browser's spell check is inherited by the editable area below; it steps aside for ours.
+        spellCheck={spellcheck && !ownSpellcheck}
         style={formattingStyle(shown)}
         className={`${FORMATTED_TEXT} mx-auto w-full max-w-2xl rounded-md px-3 ${embedded ? "border border-transparent focus-within:border-ring/50 [&_.ProseMirror]:min-h-24" : "border border-foreground/25 bg-card/30 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50 [&_.ProseMirror]:min-h-[60vh]"} [&_.ProseMirror]:px-1 [&_.ProseMirror]:py-2 [&_.ProseMirror]:outline-none [&_.ProseMirror_p]:mb-(--editor-gap)`}
       >
