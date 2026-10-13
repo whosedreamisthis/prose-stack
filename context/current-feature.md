@@ -1,20 +1,25 @@
-# Current Feature
+# Current Feature: Character Name Generator
 
-<!-- Feature name and short description -->
+A **Generate name** button on the character sketch that fills the name field with a random name via `@faker-js/faker`.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
-
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- **Generate name** button next to the name field in the character sketch.
+- Each click generates a new random full name (`faker.person.fullName()`, default English) and puts it in the name field.
+- Runs client-side; faker is loaded lazily via dynamic import on first click so it doesn't bloat the main bundle.
+- No rate limit or external dependency (no AI API), so it works for demo users.
+- Clicking the button fills the name field with a new name each time.
+- A unit test covers the helper (faker seeded for determinism).
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/features/name-generator-spec.md`. Related: `characters-spec.md`.
+- No data changes; the name is saved through the normal character auto-save.
+- Possible later additions (out of scope): female/male pick, other languages/cultures, fantasy or genre/era-specific names via an AI model.
 
 ## Completed Features
 
