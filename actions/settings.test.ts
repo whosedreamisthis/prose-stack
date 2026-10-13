@@ -10,10 +10,35 @@ import { updateProjectSettings, updateUserTheme } from "@/actions/settings";
 beforeEach(() => {
   vi.clearAllMocks();
   getCurrentUserMock.mockResolvedValue({ id: "user-1" });
+  // Run the transaction callback against the mocked client, like Prisma's interactive transactions do.
+  prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => unknown) => fn(prismaMock));
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 describe("updateProjectSettings", () => {
+  it("changes the story structure and drops progress on stages the new one lacks", async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ updatedAt: new Date() });
+    prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
+    expect((await updateProjectSettings("p1", { storyTemplateId: "romance" })).success).toBe(true);
+    expect(prismaMock.project.updateMany.mock.calls[0][0].data).toEqual(expect.objectContaining({ storyTemplateId: "romance" }));
+    const where = prismaMock.beatProgress.deleteMany.mock.calls[0][0].where;
+    expect(where.projectId).toBe("p1");
+    expect(where.beatKey.notIn).toEqual(["meet", "barrier", "black-moment", "resolution"]);
+    expect(updateTag).toHaveBeenCalledWith("structure:p1");
+  });
+
+  it("clears the structure and every beat's progress", async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ updatedAt: new Date() });
+    prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
+    expect((await updateProjectSettings("p1", { storyTemplateId: null })).success).toBe(true);
+    expect(prismaMock.beatProgress.deleteMany.mock.calls[0][0].where.beatKey.notIn).toEqual([]);
+  });
+
+  it("rejects an unknown structure", async () => {
+    expect((await updateProjectSettings("p1", { storyTemplateId: "nope" })).success).toBe(false);
+    expect(prismaMock.project.updateMany).not.toHaveBeenCalled();
+  });
+
   it("rejects signed-out callers, a bad project id and an invalid change", async () => {
     getCurrentUserMock.mockResolvedValue(null);
     expect((await updateProjectSettings("p1", { title: "A" })).success).toBe(false);

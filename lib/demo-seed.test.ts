@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import "@/test/mock-prisma";
 import { seedDemoProject } from "@/lib/demo-seed";
 import { STARTER_FOLDERS } from "@/lib/research-config";
+import { beatKeysOf, getStoryTemplate } from "@/lib/story-templates";
 
 function fakeTx() {
   return {
@@ -17,6 +18,7 @@ function fakeTx() {
     place: { create: vi.fn().mockResolvedValue({ id: "pl1" }) },
     researchFolder: { createMany: vi.fn() },
     researchItem: { createMany: vi.fn() },
+    beatProgress: { create: vi.fn() },
   };
 }
 
@@ -64,6 +66,30 @@ describe("seedDemoProject", () => {
       } else {
         expect(node.content).toBeUndefined();
       }
+    }
+  });
+
+  it("gives the project a story structure with a few valid beats covered and linked to its scenes", async () => {
+    const tx = fakeTx();
+    await seedDemoProject(tx as never, "u1");
+    const projectData = tx.project.create.mock.calls[0][0].data as { storyTemplateId: string };
+    const template = getStoryTemplate(projectData.storyTemplateId);
+    expect(template).not.toBeNull();
+
+    const sceneIds = new Set(
+      (tx.manuscriptNode.createMany.mock.calls[0][0].data as { id: string; type: string }[]).filter((n) => n.type === "SCENE").map((n) => n.id),
+    );
+    const rows = tx.beatProgress.create.mock.calls.map(
+      (call) => call[0].data as { projectId: string; beatKey: string; covered: boolean; scenes: { connect: { id: string }[] } },
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.some((r) => r.covered)).toBe(true);
+    expect(new Set(rows.map((r) => r.beatKey)).size).toBe(rows.length);
+    for (const row of rows) {
+      expect(row.projectId).toBe("p1");
+      expect(beatKeysOf(projectData.storyTemplateId).has(row.beatKey)).toBe(true);
+      expect(row.scenes.connect.length).toBeGreaterThan(0);
+      for (const { id } of row.scenes.connect) expect(sceneIds.has(id)).toBe(true);
     }
   });
 

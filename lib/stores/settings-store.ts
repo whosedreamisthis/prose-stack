@@ -13,6 +13,10 @@ interface SettingsStore {
   /** Opens the modal on the first tab with the draft as a fresh copy of the saved values. */
   openSettings: (projectId: string, saved: SettingsValues) => void;
   closeSettings: () => void;
+  /** Set by a control outside the navbar that wants the modal open; the navbar, which knows the saved values, opens it and clears this. */
+  openRequested: boolean;
+  requestOpen: () => void;
+  clearOpenRequest: () => void;
   markLabelsChanged: () => void;
   setTab: (tab: SettingsTab) => void;
   updateDraft: (patch: Partial<SettingsValues>) => void;
@@ -31,6 +35,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   labelsChanged: false,
   openSettings: (projectId, saved) => set({ open: true, projectId, tab: "general", saved, draft: { ...saved }, labelsChanged: false }),
   closeSettings: () => set({ open: false }),
+  openRequested: false,
+  requestOpen: () => set({ openRequested: true }),
+  clearOpenRequest: () => set({ openRequested: false }),
   markLabelsChanged: () => set({ labelsChanged: true }),
   setTab: (tab) => set({ tab }),
   updateDraft: (patch) => set((s) => (s.draft ? { draft: { ...s.draft, ...patch } } : s)),

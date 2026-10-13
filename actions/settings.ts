@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { cacheTags } from "@/lib/cache-tags";
 import { getCurrentUser } from "@/lib/auth";
 import { projectIdSchema } from "@/lib/project-config";
+import { pruneBeatProgress } from "@/lib/story";
 import { updateProjectSettingsSchema, type UpdateProjectSettingsInput } from "@/lib/settings-config";
 import { themeSchema, type ThemeChoice } from "@/lib/theme-config";
 import type { ActionResult } from "@/types/actions";
@@ -24,7 +25,7 @@ export async function updateProjectSettings(projectId: string, input: UpdateProj
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid settings." };
     }
-    const { title, subtitle, author, coverColor, fontFamily, fontSize, lineSpacing } = parsed.data;
+    const { title, subtitle, author, coverColor, storyTemplateId, fontFamily, fontSize, lineSpacing } = parsed.data;
 
     // Formatting is display only, so a formatting-only change keeps the project's "edited" date as it was.
     const keepEditedDate = title === undefined && subtitle === undefined && author === undefined && coverColor === undefined;
@@ -33,20 +34,27 @@ export async function updateProjectSettings(projectId: string, input: UpdateProj
       : null;
     if (keepEditedDate && !previous) return { success: false, error: NOT_FOUND };
 
-    const { count } = await prisma.project.updateMany({
-      where: { id: projectId, userId: user.id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(subtitle !== undefined && { subtitle: subtitle || null }),
-        ...(author !== undefined && { author }),
-        ...(coverColor !== undefined && { coverColor }),
-        ...(fontFamily !== undefined && { fontFamily }),
-        ...(fontSize !== undefined && { fontSize }),
-        ...(lineSpacing !== undefined && { lineSpacing }),
-        ...(previous && { updatedAt: previous.updatedAt }),
-      },
+    // Changing the template drops the progress of beats the new one lacks, in the same transaction as the change.
+    const count = await prisma.$transaction(async (tx) => {
+      const { count } = await tx.project.updateMany({
+        where: { id: projectId, userId: user.id },
+        data: {
+          ...(title !== undefined && { title }),
+          ...(subtitle !== undefined && { subtitle: subtitle || null }),
+          ...(author !== undefined && { author }),
+          ...(coverColor !== undefined && { coverColor }),
+          ...(storyTemplateId !== undefined && { storyTemplateId }),
+          ...(fontFamily !== undefined && { fontFamily }),
+          ...(fontSize !== undefined && { fontSize }),
+          ...(lineSpacing !== undefined && { lineSpacing }),
+          ...(previous && { updatedAt: previous.updatedAt }),
+        },
+      });
+      if (count > 0 && storyTemplateId !== undefined) await pruneBeatProgress(tx, projectId, storyTemplateId);
+      return count;
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
+    if (storyTemplateId !== undefined) updateTag(cacheTags.structure(projectId));
 
     // Every cached read of the project carries this tag, so this drops its characters, outline and scenes too.
     updateTag(cacheTags.project(projectId));

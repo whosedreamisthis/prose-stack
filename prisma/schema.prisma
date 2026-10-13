@@ -51,6 +51,8 @@ model Project {
   fontSize    Int         @default(12) // 10–18
   lineSpacing LineSpacing @default(DOUBLE)
 
+  storyTemplateId String? // a built-in story structure from lib/story-templates.ts; null = none
+
   lastOpenedAt DateTime? // drives where sign-in lands
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -65,6 +67,7 @@ model Project {
   labels          Label[]
   researchFolders ResearchFolder[]
   researchItems   ResearchItem[]
+  beatProgress    BeatProgress[]
 
   @@index([userId])
 }
@@ -100,6 +103,7 @@ model ManuscriptNode {
   notes      SceneNote[]
   plotPoints PlotPoint[]
   research   ResearchItem[]
+  beats      BeatProgress[]   @relation("BeatScenes")
 
   @@index([projectId, parentId, position])
   @@index([searchVector], type: Gin)
@@ -351,4 +355,20 @@ model ResearchItem {
   scene     ManuscriptNode? @relation(fields: [sceneId], references: [id], onDelete: SetNull)
 
   @@index([projectId, folderId, position])
+}
+
+/// Progress through the project's story structure: one row per beat the writer has touched. A beat can be linked to several scenes; deleting a scene drops its links, trashing it keeps them.
+model BeatProgress {
+  id        String   @id @default(cuid())
+  projectId String
+  beatKey   String // a beat key of the project's template
+  covered   Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scenes  ManuscriptNode[] @relation("BeatScenes")
+
+  @@unique([projectId, beatKey])
 }

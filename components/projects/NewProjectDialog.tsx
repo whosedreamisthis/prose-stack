@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createProject } from "@/actions/projects";
 import { BookCover } from "@/components/projects/BookCover";
 import { CoverColorPicker } from "@/components/projects/CoverColorPicker";
+import { StoryStructureSelect } from "@/components/structure/StoryStructureSelect";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ const EMPTY_FORM: FormState = {
   author: "",
   coverDesign: DEFAULT_COVER_DESIGN,
   coverColor: DEFAULT_COVER_COLOR,
+  storyTemplateId: null,
 };
 
 export function NewProjectDialog() {
@@ -119,6 +121,10 @@ export function NewProjectDialog() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="project-author">Author</Label>
               <Input id="project-author" value={form.author} maxLength={80} onChange={(e) => update("author", e.target.value)} required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="project-structure">Story structure (optional)</Label>
+              <StoryStructureSelect id="project-structure" value={form.storyTemplateId} onChange={(id) => update("storyTemplateId", id)} />
             </div>
             {error && (
               <p role="alert" className="text-sm text-destructive">

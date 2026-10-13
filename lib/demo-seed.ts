@@ -29,6 +29,7 @@ const DEMO_PROJECT = {
   author: "Demo Writer",
   coverDesign: "classic",
   coverColor: "#1e3a5f",
+  storyTemplateId: "three-act",
 } as const;
 
 function docFromParagraphs(paragraphs: string[]): DocNode {
@@ -275,6 +276,14 @@ const BOOK_NOTES: readonly (readonly [string, string])[] = [
   ["Tone", "Wry and atmospheric. A ghost story that is mostly about work."],
 ];
 
+/** Progress through the demo's Three-Act structure as [beat key, covered, scene indexes]; scenes index the demo scenes in manuscript order. */
+const BEAT_PROGRESS: readonly (readonly [beatKey: string, covered: boolean, scenes: readonly number[]])[] = [
+  ["setup", true, [0]],
+  ["inciting-incident", true, [1]],
+  ["first-plot-point", true, [2, 3]],
+  ["rising-action", false, [3]],
+];
+
 /** The demo's research: worldbuilding starter folders with a few notes and a link, two of them linked to the story. */
 async function seedResearch(tx: Prisma.TransactionClient, projectId: string, links: { characterId?: string; placeId?: string }) {
   const folders = STARTER_FOLDERS.map((name, position) => ({ id: id(), projectId, parentId: null, name, position }));
@@ -397,6 +406,13 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
       labelId: labelId(label),
     })),
   });
+
+  // Few rows, and each connects to scenes, which a bulk insert can't do, so these are created one by one.
+  for (const [beatKey, covered, sceneIndexes] of BEAT_PROGRESS) {
+    await tx.beatProgress.create({
+      data: { projectId: project.id, beatKey, covered, scenes: { connect: sceneIndexes.map((i) => ({ id: scenes[i].id })) } },
+    });
+  }
 
   const characters = CHARACTERS.map((c) => ({ ...c, id: id() }));
   // Blank sketch fields are stored as null, like the app does for a field the writer leaves empty.

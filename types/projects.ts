@@ -12,5 +12,7 @@ export interface ProjectSummary {
   fontFamily: string;
   fontSize: number;
   lineSpacing: LineSpacing;
+  /** A built-in story structure id from lib/story-templates.ts, or null for none. */
+  storyTemplateId: string | null;
   updatedAt: Date;
 }

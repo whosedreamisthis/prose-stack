@@ -28,6 +28,8 @@ import {
   updateProjectSettingsSchema,
   type SettingsTab,
 } from "@/lib/settings-config";
+import { discardWarning } from "@/lib/story-config";
+import { lostBeatKeys } from "@/lib/story-templates";
 import { useFormattingStore } from "@/lib/stores/formatting-store";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import { applyTheme, persistThemeCookie } from "@/lib/theme-config";
@@ -53,7 +55,7 @@ export function SettingsDialog() {
   const markSaved = useSettingsStore((s) => s.markSaved);
   const resetDraftTab = useSettingsStore((s) => s.resetDraftTab);
 
-  const [confirm, setConfirm] = useState<"discard" | "reset" | null>(null);
+  const [confirm, setConfirm] = useState<"discard" | "reset" | "structure" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -92,8 +94,16 @@ export function SettingsDialog() {
     else discard();
   }
 
-  function save() {
+  // Switching structure drops the progress of stages the new one lacks, so the writer confirms first.
+  const lostStages =
+    saved && changes?.project.storyTemplateId !== undefined ? lostBeatKeys(saved.storyTemplateId, changes.project.storyTemplateId).length : 0;
+
+  function save(confirmed = false) {
     if (!changes || !dirty || !projectId) return;
+    if (lostStages > 0 && !confirmed) {
+      setConfirm("structure");
+      return;
+    }
     const hasProjectChanges = Object.keys(changes.project).length > 0;
     if (hasProjectChanges) {
       const parsed = updateProjectSettingsSchema.safeParse(changes.project);
@@ -222,7 +232,7 @@ export function SettingsDialog() {
                 <Button type="button" variant="outline" onClick={requestClose} disabled={pending}>
                   Cancel
                 </Button>
-                <Button type="button" onClick={save} disabled={!dirty || pending}>
+                <Button type="button" onClick={() => save()} disabled={!dirty || pending}>
                   {pending ? "Saving…" : "Save"}
                 </Button>
               </div>
@@ -241,6 +251,27 @@ export function SettingsDialog() {
             <AlertDialogCancel>Keep editing</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={discard}>
               Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirm === "structure"} onOpenChange={(next) => !next && setConfirm(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change story structure?</AlertDialogTitle>
+            <AlertDialogDescription>{discardWarning(lostStages)}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setConfirm(null);
+                save(true);
+              }}
+            >
+              Change structure
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

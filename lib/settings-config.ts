@@ -7,6 +7,7 @@ import {
   updateProjectSchema,
   type Formatting,
 } from "@/lib/project-config";
+import { storyTemplateIdSchema } from "@/lib/story-config";
 import type { ThemeChoice } from "@/lib/theme-config";
 
 export const SETTINGS_TABS = [
@@ -23,6 +24,8 @@ export interface SettingsValues extends Formatting {
   subtitle: string;
   author: string;
   coverColor: string;
+  /** A built-in story structure id, or null for none. */
+  storyTemplateId: string | null;
   theme: ThemeChoice | null;
 }
 
@@ -35,6 +38,7 @@ export const updateProjectSettingsSchema = z
     subtitle: z.string().trim().max(160, "Subtitle must be 160 characters or fewer").optional(),
     author: fields.author.optional(),
     coverColor: fields.coverColor.optional(),
+    storyTemplateId: storyTemplateIdSchema.optional(),
     fontFamily: fontNameSchema.optional(),
     fontSize: fontSizeSchema.optional(),
     lineSpacing: lineSpacingSchema.optional(),
@@ -59,6 +63,7 @@ export function getChanges(saved: SettingsValues, draft: SettingsValues): Settin
   for (const key of GENERAL_KEYS) {
     if (draft[key].trim() !== saved[key].trim()) project[key] = draft[key];
   }
+  if (draft.storyTemplateId !== saved.storyTemplateId) project.storyTemplateId = draft.storyTemplateId;
   if (draft.fontFamily !== saved.fontFamily) project.fontFamily = draft.fontFamily;
   if (draft.fontSize !== saved.fontSize) project.fontSize = draft.fontSize;
   if (draft.lineSpacing !== saved.lineSpacing) project.lineSpacing = draft.lineSpacing;
@@ -73,7 +78,7 @@ export function hasChanges({ project, theme }: SettingsChanges) {
 export function getDirtyTabs(saved: SettingsValues, draft: SettingsValues): Record<SettingsTab, boolean> {
   const { project, theme } = getChanges(saved, draft);
   return {
-    general: GENERAL_KEYS.some((key) => key in project),
+    general: GENERAL_KEYS.some((key) => key in project) || "storyTemplateId" in project,
     appearance: theme !== undefined,
     formatting: FORMATTING_KEYS.some((key) => key in project),
     // Labels save on their own as they change, so they are never unsaved.
