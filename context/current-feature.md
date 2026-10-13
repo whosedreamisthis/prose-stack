@@ -1,29 +1,20 @@
-# Current Feature: Story Templates
+# Current Feature
 
-Story structure templates (Hero's Journey, Eight-Sequence, Three-Act, Save the Cat, Romance, plus Fantasy/Sci-Fi genre notes) offered as a reference resource in the left sidebar. Choosing a template never creates chapters or scenes. Spec: `context/features/story-templates-spec.md`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- New-project dialog: optional "Story structure" select (None by default), stored on the project; manuscript starts empty either way
-- General settings tab: "Story structure" select to choose, change or remove the template any time; saves with General settings; switching shows a progress-discard warning
-- Structure section in the left sidebar (alongside scene tree and search): template stages in order with short description and writing prompts (read-only); with no template, a "Choose a story structure" prompt that opens the General settings tab
-- Each beat can be marked covered (checkbox) and optionally linked to one or more scenes (no badge in the outline: no room)
-- Built-in static templates in `lib/story-templates.ts`: Three-Act, Hero's Journey (12), Eight-Sequence, Save the Cat (15), Romance (meet, barrier, black moment, resolution), plus Fantasy and Sci-Fi genre notes (worldbuilding checklists)
-- `Project.storyTemplateId String?`; `BeatProgress` model (`projectId`, `beatKey`, `covered`, `notes`) unique on (`projectId`, `beatKey`), many-to-many to `ManuscriptNode` scenes
-- Server actions (Zod validated): set/clear template, toggle beat covered, link/unlink scene
-- Seed the demo user's project with one template and a few beats covered/linked
-- Acceptance: new project with template leaves tree empty; switching keeps progress only for beat keys that still exist (with warning); links persist and are dropped on scene deletion (trashed scenes keep the link); scoped by `userId`/`projectId`; works on mobile and dark theme
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Design decision: do NOT stamp template chapters/scenes into the manuscript; the template is a guide beside the manuscript and beats are loosely linked to scenes after the fact
-- No new page and no DB table for templates (static data in code)
-- Out of scope for v1: custom user-authored templates, auto-assigning beats, word-count targets per beat
-- Related: `plot-spec.md`, `research-spec.md`; project convention that new user-data features also seed the demo user
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -54,3 +45,4 @@ In Progress
 - **Research Uploads:** upload images and files (JPEG/PNG/WebP/GIF, PDF/TXT/DOCX) into Research via UploadThing, with caps, progress rows, drag and drop; see `app/api/uploadthing/`, `lib/research-uploads.ts`.
 - **Spell Check:** navbar toggle, nspell underlines and a hover popover with replacements, Add to dictionary and Ignore; see `lib/spell-engine.ts`, `lib/spellcheck-extension.ts`, `SpellSuggestPopover.tsx`.
 - **Scene Search:** search box above the outline finds scenes by title, summary, text or label, results under the Manuscript row; see `actions/search.ts`, `lib/scene-search.ts`, `SceneSearch.tsx`.
+- **Story Templates:** Structure sidebar section with built-in story templates, covered beats and scene links, a select in new-project and General settings, demo seed; see `lib/story-templates.ts`, `actions/story.ts`, `components/structure/`.
