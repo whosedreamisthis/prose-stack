@@ -27,6 +27,11 @@ export function countDocWords(doc: DocNode | null | undefined) {
   return countWords(extractText(doc));
 }
 
+/** The scene text kept beside `content` for search: the document's text with blank lines trimmed away. */
+export function plainTextOf(doc: DocNode | null | undefined) {
+  return extractText(doc).replace(/\n+/g, "\n").trim();
+}
+
 export function emptyDoc(): DocNode {
   return { type: "doc", content: [{ type: "paragraph" }] };
 }

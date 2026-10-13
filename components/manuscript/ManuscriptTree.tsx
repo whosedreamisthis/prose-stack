@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
+import { useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BookmarkIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { createNode, renameNode, trashNode } from "@/actions/manuscript";
 import { setNodeLabel } from "@/actions/labels";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { AddItem, ExportItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
+import { SceneSearch, SceneSearchResults, useSearching } from "@/components/manuscript/SceneSearch";
 import { TreeRow } from "@/components/manuscript/TreeRow";
 import { handleTreeKeyDown } from "@/components/manuscript/tree-keyboard";
 import { NODE_ICON, ROOT_KEY, iconClass, treeRowClass } from "@/components/manuscript/tree-config";
@@ -108,7 +109,6 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
   const openNodeId = pathname.match(new RegExp(`^/projects/${projectId}/manuscript/(?:chapter|part)/([^/]+)`))?.[1];
   const treeRef = useRef<HTMLUListElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterLabelId, setFilterLabelId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<ManuscriptNodeSummary | null>(null);
   const [, startTransition] = useTransition();
   /** Rows added but not yet confirmed by the server, each resolving to whether the server created it. */
@@ -134,6 +134,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
   const setDrawerOpen = useLayoutStore((s) => s.setDrawerOpen);
   const setPending = usePendingNavStore((s) => s.setPending);
   const rootCollapsed = !!collapsed[ROOT_KEY];
+  const searching = useSearching();
 
   const sceneParam = searchParams.get("scene");
   // The URL only changes once the new scene has rendered on the server, which can take a moment. A clicked scene is
@@ -281,23 +282,10 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
     );
   }
 
-  /** With a label filter: the rows carrying that label and every row above them. Without one, every row. */
-  const visibleIds = useMemo(() => {
-    if (!filterLabelId) return null;
-    const ids = new Set<string>();
-    const byId = new Map(nodes.map((n) => [n.id, n]));
-    for (const n of nodes) {
-      if (n.labelId !== filterLabelId) continue;
-      for (let up: ManuscriptNodeSummary | undefined = n; up && !ids.has(up.id); up = up.parentId ? byId.get(up.parentId) : undefined) ids.add(up.id);
-    }
-    return ids;
-  }, [nodes, filterLabelId]);
-
   function renderRows(parentId: string | null): ReactNode {
-    return childrenOf(nodes, parentId).filter((n) => !visibleIds || visibleIds.has(n.id)).map((node) => {
+    return childrenOf(nodes, parentId).map((node) => {
       const isScene = node.type === "SCENE";
-      // A filtered outline opens up so the matching rows are all in view.
-      const isCollapsed = !filterLabelId && !!collapsed[node.id];
+      const isCollapsed = !!collapsed[node.id];
       return (
         <TreeRow
           key={node.id}
@@ -334,6 +322,7 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
 
   return (
     <nav aria-label="Manuscript outline" className="flex flex-col gap-2">
+      <SceneSearch projectId={projectId} onManuscriptPage={pathname.startsWith(`/projects/${projectId}/manuscript`)} />
       <DndContext {...dnd.contextProps}>
         <SortableContext items={dnd.items} strategy={noShift}>
           <ul
@@ -345,7 +334,8 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
           >
             <BookRow
               title={ROOT_LABEL}
-              collapsed={rootCollapsed}
+              // The book row stays while searching, opened so the results show under it.
+              collapsed={rootCollapsed && !searching}
               dropActive={dnd.isDropTarget(ROOT_KEY)}
               onToggle={() => toggle(ROOT_KEY)}
               onOpen={() => {
@@ -359,28 +349,6 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
                   <AddItem label="Add part" onClick={() => addNode(null, "PART")} />
                   <AddItem label="Add chapter" onClick={() => addNode(null, "CHAPTER")} />
                   <ExportItem type="book" id={projectId} projectId={projectId} name={projectTitle} />
-                  {labels.length > 0 && (
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <BookmarkIcon /> Show only label
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="w-48">
-                        {labels.map((label) => (
-                          <DropdownMenuItem key={label.id} onClick={() => setFilterLabelId(label.id)}>
-                            <span aria-hidden className="size-3 shrink-0 rounded-full" style={{ backgroundColor: label.color }} />
-                            <span className="truncate">{label.name}</span>
-                            {filterLabelId === label.id && <CheckIcon className="ml-auto" aria-label="Showing only this label" />}
-                          </DropdownMenuItem>
-                        ))}
-                        {filterLabelId && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setFilterLabelId(null)}>Show all</DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={expandAll}>
                     <ChevronsUpDownIcon /> Expand all
@@ -391,7 +359,22 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
                 </RowMenu>
               }
             >
-              {renderRows(null)}
+              {searching ? (
+                <SceneSearchResults
+                  nodes={nodes}
+                  labels={labels}
+                  activeId={activeId}
+                  hrefFor={(sceneId) => `/projects/${projectId}/manuscript?scene=${sceneId}`}
+                  onOpenResult={(sceneId) => {
+                    setClicked({ id: sceneId, from: sceneParam });
+                    if (!onManuscriptPage) setPending("section", "manuscript");
+                    if (sceneId !== activeId || !onManuscriptPage) setPending("scene", sceneId);
+                    setDrawerOpen(false);
+                  }}
+                />
+              ) : (
+                renderRows(null)
+              )}
             </BookRow>
           </ul>
         </SortableContext>

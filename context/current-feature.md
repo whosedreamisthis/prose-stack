@@ -1,20 +1,32 @@
-# Current Feature
+# Current Feature: Scene Search
 
-<!-- Feature name and short description -->
+Search scenes by word or label from the manuscript left sidebar.
 
 ## Status
 
 <!-- Not Started | In Progress | Complete -->
 
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Search box at the top of the manuscript left sidebar (`@left/manuscript` slot only), debounced ~250 ms, min 2 characters, search icon, clear button, label "Search scenes", Escape clears; works in the mobile drawer
+- Ctrl+Shift+F / Cmd+Shift+F focuses the box on the manuscript page (also from the editor) and selects existing text; Ctrl+F and Ctrl+K untouched
+- Matches scene title, summary, body text and the scene's label name from the same box; case- and accent-insensitive; all words must match (each in text or label); quoted phrase = adjacent in order; whole words only, trailing * for prefix
+- Scenes only, current project only, never trashed or archived scenes, never another user's data
+- Results replace the tree: count, title, "Part › Chapter" context, ~120 char snippet with highlights, label chip, relevance order (title, label, summary, body, then tree order), max 50 with "Showing 50 of N"
+- Click or Enter opens the scene and keeps results visible; arrow keys move; matched words highlighted in the editor until cleared; previous results dimmed while loading, out-of-order responses ignored
+- Query and results live in the Zustand store for the session (not persisted); tree returns unchanged when cleared
+- Server Action `searchScenes(projectId, query)`, Zod-validated (trimmed, 2-100 chars), sanitized tokens into a parameterized `$queryRaw` Postgres full-text query
+- Migration `add_scene_search`: `ManuscriptNode.plainText`, generated `searchVector` tsvector (title A, summary B, plainText C, simple config) with GIN index, `unaccent` plus IMMUTABLE wrapper, backfill existing scenes; plainText written in the same save as content and wordCount
+- Unit tests (mocked Prisma): query sanitizing, validation, user scoping, result mapping
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: context/features/scene-search-spec.md (includes label matching). Label names are read from the Label table at query time, not stored in the vector.
+- Open questions in the spec: archived scenes behind a toggle?; scroll editor to first match?
+- Demo seed: scenes need plainText so seeded demo scenes are searchable.
+- Verify the SQL once against a real Neon branch.
 
 ## Completed Features
 
