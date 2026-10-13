@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { NodeDetailsPanel } from "@/components/manuscript/NodeDetailsPanel";
 import { ProjectNotes } from "@/components/manuscript/ProjectNotes";
-import { SceneNotes } from "@/components/manuscript/SceneNotesPanel";
+import { NotesTab } from "@/components/manuscript/NotesTab";
 import { getCurrentUser } from "@/lib/auth";
-import { getManuscript } from "@/lib/manuscript";
+import { getManuscript, getNodeSummary } from "@/lib/manuscript";
 import { childrenOf, sceneOrder } from "@/lib/manuscript-tree";
 import { listLabels } from "@/lib/labels";
 import { getPlot } from "@/lib/plot";
@@ -42,9 +42,10 @@ export async function NodeDetailsLoader({ params, type }: NodeDetailsLoaderProps
     }
   };
   walk(nodeId ?? null);
-  const [ownNotes, items] = await Promise.all([
+  const [ownNotes, items, summary] = await Promise.all([
     type === "BOOK" ? listProjectNotes(user.id, projectId) : listSceneNotes(user.id, projectId, nodeId!),
     Promise.all(inside.map(async (item) => ({ ...item, notes: await listSceneNotes(user.id, projectId, item.id) }))),
+    type === "BOOK" ? "" : getNodeSummary(user.id, projectId, nodeId!),
   ]);
 
   return (
@@ -57,9 +58,11 @@ export async function NodeDetailsLoader({ params, type }: NodeDetailsLoaderProps
         type === "BOOK" ? (
           <ProjectNotes projectId={projectId} notes={ownNotes} />
         ) : (
-          <SceneNotes projectId={projectId} sceneId={nodeId!} notes={ownNotes} />
+          <NotesTab projectId={projectId} sceneId={nodeId!} notes={ownNotes} />
         )
       }
+      nodeId={type === "BOOK" ? undefined : nodeId}
+      summary={summary}
       items={items}
       plot={plot}
       labels={labels}

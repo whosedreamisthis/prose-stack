@@ -12,6 +12,8 @@ interface SeedNode {
   title: string;
   position: number;
   paragraphs?: string[];
+  /** A short summary shown in the Summary tab. */
+  summary?: string;
   /** The name of the demo label on it, if any. */
   label?: DemoLabel;
 }
@@ -54,6 +56,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "PART",
       title: "Part One: The Storm",
       position: 0,
+      summary: "Mara arrives at the lighthouse, learns it is not empty, and decides to stay.",
       label: "Draft",
     },
     {
@@ -69,6 +72,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "CHAPTER",
       title: "Chapter 1",
       position: 0,
+      summary: "Mara crosses to the island and finds the key and the warning note.",
       label: "Final",
     },
     {
@@ -91,6 +95,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "SCENE",
       title: "The last ferry",
       position: 0,
+      summary: "Mara steps off the last ferry of the season and first sees the lighthouse.",
       label: "Final",
       paragraphs: [
         "The last ferry of the season pulled away from the pier, and Mara Quill stood on the slick boards with one suitcase and a letter she had read so often the folds had gone soft.",
@@ -103,6 +108,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "SCENE",
       title: "A key left under the lamp",
       position: 1,
+      summary: "Inside the tower she finds a key and a note telling her to keep the light on.",
       label: "Revise",
       paragraphs: [
         "Inside, everything smelled of salt and cold iron. Someone had left a key on the lowest step, tied with blue string, and beside it a note in a hand she almost recognised: Don't let the light go out.",
@@ -126,6 +132,7 @@ function manuscriptNodes(): SeedNode[] {
       type: "SCENE",
       title: "The first night",
       position: 1,
+      summary: "A restless first night: the lens turns by itself.",
       label: "Draft",
       paragraphs: [
         "At midnight the wind found the one loose shutter and played it like a drum. Mara climbed the spiral stair with a lantern, counting steps to keep her mind quiet. One hundred and twelve.",
@@ -361,6 +368,7 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
           type: node.type,
           title: node.title,
           position: node.position,
+          summary: node.summary,
           labelId: labelId(node.label),
         };
       const content = docFromParagraphs(node.paragraphs ?? []);
@@ -371,6 +379,7 @@ export async function seedDemoProject(tx: Prisma.TransactionClient, userId: stri
         type: node.type,
         title: node.title,
         position: node.position,
+        summary: node.summary,
         content: content as Prisma.InputJsonValue,
         plainText: plainTextOf(content),
         wordCount: countDocWords(content),

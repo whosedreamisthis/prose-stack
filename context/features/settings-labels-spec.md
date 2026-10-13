@@ -1,6 +1,6 @@
 # Settings: Labels — Feature Spec
 
-Source: [project-overview.md](../project-overview.md) §3 Projects & Settings, §6 Data Model. Part of the settings modal: [settings-spec.md](settings-spec.md) (the **Labels** tab). Related: [plot-spec.md](plot-spec.md), [scene-sidebar-spec.md](scene-sidebar-spec.md).
+Source: [project-overview.md](../project-overview.md) §3 Projects & Settings, §6 Data Model. Part of the settings modal: [settings-spec.md](settings-spec.md) (the **Labels** tab). Related: [plot-spec.md](plot-spec.md).
 
 ## Summary
 

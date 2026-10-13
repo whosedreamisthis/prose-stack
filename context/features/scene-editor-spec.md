@@ -59,7 +59,7 @@ The Tiptap editor for the open scene, with debounced autosave and the stats foot
 
 ## Out of scope
 
-Toolbar tools (next spec), scene sidebar (see [scene-sidebar-spec.md](scene-sidebar-spec.md)), read-aloud, search, book view, spell check beyond the native toggle.
+Toolbar tools (next spec), scene sidebar, read-aloud, search, book view, spell check beyond the native toggle.
 
 ## Decisions
 

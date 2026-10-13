@@ -226,7 +226,8 @@ export async function saveScene(input: {
   }
 }
 
-export async function saveSceneSummary(input: { projectId: string; nodeId: string; summary: string }): Promise<ActionResult> {
+/** Saves the summary of a scene, chapter or part. A blank summary is stored as null. */
+export async function saveNodeSummary(input: { projectId: string; nodeId: string; summary: string }): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: NOT_SIGNED_IN };
@@ -235,14 +236,14 @@ export async function saveSceneSummary(input: { projectId: string; nodeId: strin
     const { projectId, nodeId, summary } = parsed.data;
 
     const { count } = await prisma.manuscriptNode.updateMany({
-      where: { id: nodeId, projectId, type: "SCENE", trashedAt: null, project: { userId: user.id } },
+      where: { id: nodeId, projectId, type: { in: ["SCENE", "CHAPTER", "PART"] }, trashedAt: null, project: { userId: user.id } },
       data: { summary: summary.trim() || null },
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
     updateTag(cacheTags.scene(nodeId));
     return { success: true, data: undefined };
   } catch (error) {
-    console.error("saveSceneSummary failed:", error);
+    console.error("saveNodeSummary failed:", error);
     return { success: false, error: "Could not save the summary. Please try again." };
   }
 }

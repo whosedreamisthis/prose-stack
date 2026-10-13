@@ -3,10 +3,11 @@
 import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Tab = "notes" | "plots";
+type Tab = "notes" | "plots" | "summary";
 const TABS: { id: Tab; label: string }[] = [
   { id: "notes", label: "Notes" },
   { id: "plots", label: "Plots" },
+  { id: "summary", label: "Summary" },
 ];
 
 interface DetailTabsProps {
@@ -14,17 +15,20 @@ interface DetailTabsProps {
   label: string;
   notes: ReactNode;
   plots: ReactNode;
+  /** Left out where there is nothing to summarise (the whole book), which hides the tab. */
+  summary?: ReactNode;
 }
 
-/** The Notes and Plots tabs of a right sidebar. Remount it to start on Notes again. */
-export function DetailTabs({ label, notes, plots }: DetailTabsProps) {
+/** The Notes, Plots and Summary tabs of a right sidebar. Remount it to start on Notes again. */
+export function DetailTabs({ label, notes, plots, summary }: DetailTabsProps) {
   const baseId = useId();
   const [tab, setTab] = useState<Tab>("notes");
+  const tabs = TABS.filter((t) => t.id !== "summary" || summary !== undefined);
 
   return (
     <>
       <div role="tablist" aria-label={label} className="flex gap-1 border-b">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -43,7 +47,7 @@ export function DetailTabs({ label, notes, plots }: DetailTabsProps) {
         ))}
       </div>
       <div role="tabpanel" id={`${baseId}-panel-${tab}`} aria-labelledby={`${baseId}-tab-${tab}`}>
-        {tab === "notes" ? notes : plots}
+        {tab === "notes" ? notes : tab === "plots" ? plots : summary}
       </div>
     </>
   );

@@ -87,7 +87,7 @@ model ManuscriptNode {
   title        String
   position     Int // order among siblings, 0-based
   content      Json? // scenes only: Tiptap document
-  summary      String? // scenes only
+  summary      String? // scenes, chapters and parts
   plainText    String? // scenes only: the text of `content`, kept in step with it, for search
   searchVector Unsupported("tsvector")? // generated in SQL from title, summary and plainText (see add_scene_search)
   wordCount    Int                      @default(0) // scenes only

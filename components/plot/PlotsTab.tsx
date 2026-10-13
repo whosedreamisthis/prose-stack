@@ -35,7 +35,7 @@ export function PlotGridLink({ projectId }: { projectId: string }) {
   );
 }
 
-interface ScenePlotsPanelProps {
+interface PlotsTabProps {
   projectId: string;
   sceneId: string;
   plot: PlotData;
@@ -50,7 +50,7 @@ interface ScenePlotsPanelProps {
  * The Plots tab of a scene's right sidebar: the scene's plot points (at most one per plot line) as compact cards, built
  * like the notes list. A card, or the dashed add card, opens the plot point dialog.
  */
-export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, labels: serverLabels, showGridLink = true }: ScenePlotsPanelProps) {
+export function PlotsTab({ projectId, sceneId, plot, scenes, labels: serverLabels, showGridLink = true }: PlotsTabProps) {
   const { lines, points } = usePlotData(plot);
   const labels = useLabelData(serverLabels);
   const actions = usePlotActions(projectId);
@@ -62,7 +62,7 @@ export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, labels: serv
   const freeLine = lines.find((line) => !here.some((p) => p.plotLineId === line.id));
 
   return (
-    <div className="flex flex-col gap-2 pt-3">
+    <div className="-mt-2 flex flex-col gap-2">
       {showGridLink && <PlotGridLink projectId={projectId} />}
       <ul className="flex flex-col gap-2">
         {here.map((point) => (

@@ -20,12 +20,8 @@ describe("generateName", () => {
   it("uses a different name pool per gender", async () => {
     const { faker } = await import("@faker-js/faker");
     faker.seed(7);
-    const female = new Set(
-      Array.from({ length: 30 }, () => faker.person.firstName("female")),
-    );
-    const male = new Set(
-      Array.from({ length: 30 }, () => faker.person.firstName("male")),
-    );
+    const female = new Set(Array.from({ length: 30 }, () => faker.person.firstName("female")));
+    const male = new Set(Array.from({ length: 30 }, () => faker.person.firstName("male")));
     for (let i = 0; i < 30; i++) {
       const first = (await generateName("female", i)).split(" ")[0];
       expect(female.has(first) || !male.has(first)).toBe(true);
@@ -35,17 +31,11 @@ describe("generateName", () => {
 
 describe("generateName identities", () => {
   it("gives a genderless character a single name", async () => {
-    expect(
-      (await generateName("genderless", 3)).trim().split(/\s+/),
-    ).toHaveLength(1);
+    expect((await generateName("genderless", 3)).trim().split(/\s+/)).toHaveLength(1);
   });
 
   it("uses the matching pool for trans women and men", async () => {
-    expect(await generateName("trans-woman", 5)).toBe(
-      await generateName("female", 5),
-    );
-    expect(await generateName("trans-man", 5)).toBe(
-      await generateName("male", 5),
-    );
+    expect(await generateName("trans-woman", 5)).toBe(await generateName("female", 5));
+    expect(await generateName("trans-man", 5)).toBe(await generateName("male", 5));
   });
 });
