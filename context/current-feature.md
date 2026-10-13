@@ -1,28 +1,20 @@
-# Current Feature: Summary Tab (Scenes, Chapters, Parts)
+# Current Feature
 
-A **Summary** tab in the right sidebar with an autosaving text area, for the open scene, chapter and part.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- New **Summary** tab in the scene sidebar next to Notes and Plots (`SceneDetailsPanel`, via `DetailTabs`).
-- A Summary tab in the chapter and part details sidebar (`NodeDetailsPanel` / `NodeDetailsLoader`) for their own summary.
-- One labelled text area per tab; autosaves on blur with a "Saving…" status, no save button.
-- Switching node swaps the text without a full reload; character counter near the 2000 limit; empty text clears the summary (`null`).
-- Extend `saveSceneSummary` (rename e.g. `saveNodeSummary`) to accept chapters and parts; chapter and part reads return `summary`.
-- Saving expires the node's cached read and the scene-search index; Scene Search still finds scenes by summary.
-- Zod validation, queries scoped by `userId` and `projectId`, trashed nodes rejected.
-- Demo seed gives example summaries to a few scenes, a chapter and a part.
-- Unit tests cover the extended action (scene, chapter, part, wrong project, trashed).
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/features/scene-summary-spec.md`. Related: `plot-spec.md`, `scene-search-spec.md`.
-- No new data: `ManuscriptNode.summary` and its 2000-character Zod limit already exist; update the "scenes only" comment in `schema.prisma`.
-- Out of scope: whole-book view, showing summaries on the left outline rows (no tooltip).
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -55,3 +47,4 @@ In Progress
 - **Scene Search:** search box above the outline finds scenes by title, summary, text or label, results under the Manuscript row; see `actions/search.ts`, `lib/scene-search.ts`, `SceneSearch.tsx`.
 - **Story Templates:** Structure sidebar section with built-in story templates, covered beats and scene links, a select in new-project and General settings, demo seed; see `lib/story-templates.ts`, `actions/story.ts`, `components/structure/`.
 - **Character Name Generator:** Generate name button with gender select on the character sketch, names from lazily loaded faker; see `lib/name-generator.ts`, `CharacterSketch.tsx`.
+- **Summary Tab:** Summary tab with an autosaving text area for scenes, chapters and parts in the right sidebar; see `components/manuscript/SummaryTab.tsx`, `saveNodeSummary`.
