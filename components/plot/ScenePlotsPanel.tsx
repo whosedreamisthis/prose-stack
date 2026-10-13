@@ -70,11 +70,11 @@ export function ScenePlotsPanel({ projectId, sceneId, plot, scenes, labels: serv
             <button
               type="button"
               onClick={() => editor.openPoint(point.id)}
-              className="flex max-h-40 min-h-16 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-3 pr-9 text-left text-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="flex min-h-16 w-full flex-col gap-1 overflow-hidden rounded-lg border bg-card p-3 pr-9 text-left text-sm outline-none transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <span className="truncate text-xs font-medium text-primary">{lineName(point.plotLineId)}</span>
               {point.title && <span className="truncate font-semibold">{point.title}</span>}
-              {point.text && <span className="line-clamp-4 wrap-break-word whitespace-pre-wrap text-foreground/80">{point.text}</span>}
+              {point.text && <span className="line-clamp-3 wrap-break-word whitespace-pre-wrap text-foreground/80">{point.text}</span>}
               {labels.find((l) => l.id === point.labelId) && (
                 <LabelChip label={labels.find((l) => l.id === point.labelId)!} className="mt-auto self-start" />
               )}
