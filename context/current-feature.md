@@ -1,32 +1,20 @@
-# Current Feature: Scene Search
+# Current Feature
 
-Search scenes by word or label from the manuscript left sidebar.
+<!-- Feature name and short description -->
 
 ## Status
 
 <!-- Not Started | In Progress | Complete -->
 
-In Progress
+Completed
 
 ## Goals
 
-- Search box at the top of the manuscript left sidebar (`@left/manuscript` slot only), debounced ~250 ms, min 2 characters, search icon, clear button, label "Search scenes", Escape clears; works in the mobile drawer
-- Ctrl+Shift+F / Cmd+Shift+F focuses the box on the manuscript page (also from the editor) and selects existing text; Ctrl+F and Ctrl+K untouched
-- Matches scene title, summary, body text and the scene's label name from the same box; case- and accent-insensitive; all words must match (each in text or label); quoted phrase = adjacent in order; whole words only, trailing * for prefix
-- Scenes only, current project only, never trashed or archived scenes, never another user's data
-- Results replace the tree: count, title, "Part › Chapter" context, ~120 char snippet with highlights, label chip, relevance order (title, label, summary, body, then tree order), max 50 with "Showing 50 of N"
-- Click or Enter opens the scene and keeps results visible; arrow keys move; matched words highlighted in the editor until cleared; previous results dimmed while loading, out-of-order responses ignored
-- Query and results live in the Zustand store for the session (not persisted); tree returns unchanged when cleared
-- Server Action `searchScenes(projectId, query)`, Zod-validated (trimmed, 2-100 chars), sanitized tokens into a parameterized `$queryRaw` Postgres full-text query
-- Migration `add_scene_search`: `ManuscriptNode.plainText`, generated `searchVector` tsvector (title A, summary B, plainText C, simple config) with GIN index, `unaccent` plus IMMUTABLE wrapper, backfill existing scenes; plainText written in the same save as content and wordCount
-- Unit tests (mocked Prisma): query sanitizing, validation, user scoping, result mapping
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: context/features/scene-search-spec.md (includes label matching). Label names are read from the Label table at query time, not stored in the vector.
-- Open questions in the spec: archived scenes behind a toggle?; scroll editor to first match?
-- Demo seed: scenes need plainText so seeded demo scenes are searchable.
-- Verify the SQL once against a real Neon branch.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -56,3 +44,4 @@ In Progress
 - **Research:** Research section under Places with nested folders, notes and links, drag and drop, story links, trash/archive, Utilities section, Empty trash; see `components/research/`, `actions/research.ts`, `lib/research*.ts`.
 - **Research Uploads:** upload images and files (JPEG/PNG/WebP/GIF, PDF/TXT/DOCX) into Research via UploadThing, with caps, progress rows, drag and drop; see `app/api/uploadthing/`, `lib/research-uploads.ts`.
 - **Spell Check:** navbar toggle, nspell underlines and a hover popover with replacements, Add to dictionary and Ignore; see `lib/spell-engine.ts`, `lib/spellcheck-extension.ts`, `SpellSuggestPopover.tsx`.
+- **Scene Search:** search box above the outline finds scenes by title, summary, text or label, results under the Manuscript row; see `actions/search.ts`, `lib/scene-search.ts`, `SceneSearch.tsx`.
