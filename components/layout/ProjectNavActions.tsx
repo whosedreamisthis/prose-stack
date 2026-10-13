@@ -2,7 +2,7 @@
 
 import { BookOpenIcon, MenuIcon, SettingsIcon, SpellCheckIcon, type LucideIcon } from "lucide-react";
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { Hint } from "@/components/layout/Hint";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { Button } from "@/components/ui/button";
@@ -26,12 +26,15 @@ interface Action {
   onSelect?: () => void;
   /** Set for toggles: whether the feature is on right now. */
   pressed?: boolean;
+  /** Set for links: the page this action opens is the one being viewed (shown highlighted, no on/off wording). */
+  current?: boolean;
 }
 
 /** Project-only navbar actions; renders nothing outside /projects/[projectId]. Collapses into a menu on small screens. */
 export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsProps) {
   const { projectId } = useParams<{ projectId?: string }>();
   const router = useRouter();
+  const pathname = usePathname();
   const openSettings = useSettingsStore((s) => s.openSettings);
   const spellcheck = useEditorStore((s) => s.spellcheck);
   const toggleSpellcheck = useEditorStore((s) => s.toggleSpellcheck);
@@ -66,7 +69,9 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
   // Exports live in the outline's row menus.
   const actions: Action[] = [
     { label: "Spell check", icon: SpellCheckIcon, onSelect: toggleSpellcheck, pressed: spellcheck },
-    { label: "Book view", icon: BookOpenIcon, onSelect: () => router.push(`/projects/${projectId}/manuscript/book`) },
+    { label: "Book view", icon: BookOpenIcon, onSelect: () => router.push(`/projects/${projectId}/manuscript/book`),
+      current: pathname.endsWith("/manuscript/book"),
+    },
     {
       label: "Settings",
       icon: SettingsIcon,
@@ -88,7 +93,7 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
   return (
     <>
       <div className="hidden items-center gap-1 md:flex">
-        {actions.map(({ label, icon: Icon, onSelect, pressed }) => (
+        {actions.map(({ label, icon: Icon, onSelect, pressed, current }) => (
           <Hint
             key={label}
             label={onSelect ? (pressed === undefined ? label : `${label} ${pressed ? "on" : "off"}`) : `${label} (coming soon)`}
@@ -100,10 +105,14 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
               disabled={!onSelect}
               aria-label={label}
               aria-pressed={pressed}
+              aria-current={current ? "page" : undefined}
               onClick={onSelect}
-              className={`disabled:opacity-70 ${pressed === true ? "bg-primary/15! text-primary!" : ""} ${pressed === false ? "text-muted-foreground! opacity-50" : ""}`}
+              className={`disabled:opacity-70 ${pressed === true || current ? "bg-primary! text-primary-foreground! hover:bg-primary/90!" : ""} ${pressed === false ? "text-foreground/70! dark:text-zinc-200!" : ""}`}
             >
-              <Icon className="size-5" />
+              <Icon
+                strokeWidth={pressed === undefined ? 2 : 2.5}
+                className={`size-5 ${pressed === true || current ? "text-primary-foreground" : pressed === false ? "text-foreground/80 dark:text-zinc-200" : ""}`}
+              />
               <span className="hidden lg:inline">{label}</span>
             </Button>
           </Hint>
@@ -115,9 +124,9 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
             <MenuIcon className="size-5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {actions.map(({ label, icon: Icon, onSelect, pressed }) => (
+            {actions.map(({ label, icon: Icon, onSelect, pressed, current }) => (
               <DropdownMenuItem key={label} disabled={!onSelect} onClick={onSelect}>
-                <Icon className={pressed === false ? "opacity-50" : ""} /> {pressed === undefined ? label : `${label} ${pressed ? "on" : "off"}`}
+                <Icon className={pressed === false ? "opacity-50" : current ? "text-primary" : ""} /> {pressed === undefined ? label : `${label} ${pressed ? "on" : "off"}`}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
