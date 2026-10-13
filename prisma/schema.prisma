@@ -57,17 +57,18 @@ model Project {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nodes           ManuscriptNode[]
-  dailyWordCounts DailyWordCount[]
-  characters      Character[]
-  places          Place[]
-  plotLines       PlotLine[]
-  notes           ProjectNote[]
-  labels          Label[]
-  researchFolders ResearchFolder[]
-  researchItems   ResearchItem[]
-  beatProgress    BeatProgress[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes            ManuscriptNode[]
+  dailyWordCounts  DailyWordCount[]
+  characters       Character[]
+  places           Place[]
+  plotLines        PlotLine[]
+  notes            ProjectNote[]
+  labels           Label[]
+  researchFolders  ResearchFolder[]
+  researchItems    ResearchItem[]
+  beatProgress     BeatProgress[]
+  proofreadIgnores ProofreadIgnore[]
 
   @@index([userId])
 }
@@ -296,6 +297,24 @@ model Label {
   plotPoints PlotPoint[]
 
   @@unique([projectId, nameKey])
+}
+
+enum ProofreadIgnoreKind {
+  WORD // a word or name the writer never wants flagged
+  RULE // a whole rule, such as passive voice
+}
+
+/// Something the writer told Proofread to ignore for good in one project. No suggestions are stored, only this list.
+model ProofreadIgnore {
+  id        String              @id @default(cuid())
+  projectId String
+  kind      ProofreadIgnoreKind
+  value     String // a lower-cased word, or a rule id
+  createdAt DateTime            @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, kind, value])
 }
 
 enum ResearchType {

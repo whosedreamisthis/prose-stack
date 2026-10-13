@@ -4,9 +4,12 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { FindPanel } from "@/components/manuscript/FindPanel";
+import { ProofreadPanel } from "@/components/manuscript/ProofreadPanel";
 import { SpellSuggestPopover } from "@/components/manuscript/SpellSuggestPopover";
 import { ThesaurusPopover } from "@/components/manuscript/ThesaurusPopover";
 import { useSceneAutosave } from "@/hooks/useSceneAutosave";
+import { clearProofread, startProofread } from "@/lib/proofread/session";
+import { useProofreadStore } from "@/lib/stores/proofread-store";
 import { consumeEditorFocusRequest } from "@/lib/editor-focus";
 import { FORMATTED_TEXT, formattingStyle } from "@/lib/formatting";
 import { readLocalCopy } from "@/lib/local-copy";
@@ -54,6 +57,7 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
   const setLiveWords = useEditorStore((s) => s.setLiveWords);
   const findOpen = useEditorStore((s) => s.findOpen);
   const thesaurusOpen = useEditorStore((s) => s.thesaurusOpen);
+  const runProofreadHere = useProofreadStore((s) => s.runOnOpen === scene.id);
 
   const editor = useEditor({
     extensions: PROSE_EXTENSIONS,
@@ -67,6 +71,13 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
       },
       // Find and the thesaurus have their own panels, and their shortcuts replace the browser's find.
       handleKeyDown: (_view, event) => {
+        // Proofread: Ctrl/Cmd+Alt+P (matched by key position, since Option changes the letter on a Mac).
+        if ((event.ctrlKey || event.metaKey) && event.altKey && event.code === "KeyP") {
+          const open = useEditorStore.getState().editor;
+          if (open) void startProofread(open, projectId);
+          event.preventDefault();
+          return true;
+        }
         if (!(event.ctrlKey || event.metaKey) || event.altKey) return false;
         const key = event.key.toLowerCase();
         const { setFindOpen, setThesaurusOpen } = useEditorStore.getState();
@@ -93,9 +104,13 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
     onSaved: useCallback(() => startTransition(() => router.refresh()), [router]),
   });
 
+  // The panel shows in the scene being proofread: the open scene, or one scene of a chapter, part or book page.
+  const proofreadHere = useProofreadStore((s) => s.owner !== null && s.owner === editor);
+
   // Saved font size and spell check load after mount so the first render matches the server.
   useEffect(() => {
     void useEditorStore.persist.rehydrate();
+    void useProofreadStore.persist.rehydrate();
   }, []);
 
   // The toolbar is in another route slot, so it reads the saved formatting from the store.
@@ -116,6 +131,7 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
       if (embedded && useEditorStore.getState().editor !== editor) return;
       setEditor(null);
       setLiveWords(null);
+      if (useProofreadStore.getState().owner === editor) clearProofread(editor);
       useEditorStore.getState().setFindOpen(false);
       useEditorStore.getState().setThesaurusOpen(false);
     };
@@ -129,11 +145,19 @@ export function SceneEditor({ projectId, formatting, scene, embedded = false }: 
     editor.commands.setSpellcheck(spellcheck);
   }, [editor, spellcheck]);
 
+  // The outline's menu asks for a proofread of a scene that may not be open yet; run it once its editor is.
+  useEffect(() => {
+    if (!editor || embedded || !runProofreadHere) return;
+    useProofreadStore.getState().setRunOnOpen(null);
+    void startProofread(editor, projectId);
+  }, [editor, embedded, runProofreadHere, projectId]);
+
   const showPanels = !embedded || activeEditor === editor;
 
   return (
     <>
       {showPanels && findOpen && editor && <FindPanel editor={editor} />}
+      {proofreadHere && editor && <ProofreadPanel editor={editor} projectId={projectId} scrollTo={embedded ? "panel" : "top"} />}
       {showPanels && thesaurusOpen && editor && <ThesaurusPopover editor={editor} />}
       {ownSpellcheck && editor && <SpellSuggestPopover editor={editor} />}
       <div

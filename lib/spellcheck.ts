@@ -25,6 +25,16 @@ export function normalizeWord(word: string): string {
   return word.replace(/’/g, "'");
 }
 
+/**
+ * Puts the suggestions that only add the missing apostrophe first ("Dont" -> "Don't"), because a writer who left one out
+ * almost always means that word, while the dictionary lists it among a dozen similar-looking ones.
+ */
+export function rankSuggestions(word: string, suggestions: string[]): string[] {
+  const plain = normalizeWord(word).toLowerCase();
+  const restored = (s: string) => s.includes("'") && s.replace(/'/g, "").toLowerCase() === plain;
+  return [...suggestions.filter(restored), ...suggestions.filter((s) => !restored(s))];
+}
+
 /** Gives a suggestion the capital letter of the word it replaces: "teh" -> "the", "Teh" -> "The". */
 export function matchCase(original: string, suggestion: string): string {
   const first = original.charAt(0);

@@ -4,12 +4,14 @@ import { useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { updateProjectSettings } from "@/actions/settings";
 import { useEditorState } from "@tiptap/react";
-import { BookAIcon, CheckIcon, HeadphonesIcon, PauseIcon, PlayIcon, RedoIcon, SearchIcon, SquareIcon, TypeIcon, UndoIcon, type LucideIcon } from "lucide-react";
+import { BoldIcon, BookAIcon, CheckIcon, ClipboardCheckIcon, HeadphonesIcon, ItalicIcon, PauseIcon, PlayIcon, RedoIcon, SearchIcon, SquareIcon, TypeIcon, UndoIcon, type LucideIcon } from "lucide-react";
 import { Hint } from "@/components/layout/Hint";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useModKey } from "@/hooks/useModKey";
 import { useReadAloud } from "@/hooks/useReadAloud";
+import { startProofread } from "@/lib/proofread/session";
+import { useProofreadStore } from "@/lib/stores/proofread-store";
 import { TOOLBAR_FONT_SIZES, DEFAULT_FORMATTING } from "@/lib/project-config";
 import { useEditorStore } from "@/lib/stores/editor-store";
 import { useFormattingStore } from "@/lib/stores/formatting-store";
@@ -60,13 +62,19 @@ export function EditorToolbar() {
   const fontSize = useFormattingStore((s) => s.preview?.fontSize ?? s.saved?.fontSize ?? DEFAULT_FORMATTING.fontSize);
   const setPreview = useFormattingStore((s) => s.setPreview);
   const speech = useReadAloud();
+  const proofreadRunning = useProofreadStore((s) => s.status === "running");
   const [stop, setStop] = useState(0);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
 
-  const { canUndo, canRedo } = useEditorState({
+  const { canUndo, canRedo, bold, italic } = useEditorState({
     editor,
-    selector: ({ editor }) => ({ canUndo: !!editor?.can().undo(), canRedo: !!editor?.can().redo() }),
-  }) ?? { canUndo: false, canRedo: false };
+    selector: ({ editor }) => ({
+      canUndo: !!editor?.can().undo(),
+      canRedo: !!editor?.can().redo(),
+      bold: !!editor?.isActive("bold"),
+      italic: !!editor?.isActive("italic"),
+    }),
+  }) ?? { canUndo: false, canRedo: false, bold: false, italic: false };
   const hasEditor = !!editor;
 
   // The size is a project setting (the same one as in Settings), so a pick is saved at once. It shows straight away and
@@ -115,13 +123,15 @@ export function EditorToolbar() {
     >
       <ToolButton label="Undo" shortcut={`${mod}+Z`} icon={UndoIcon} enabled={hasEditor && canUndo} tabStop={tab(0)} onClick={() => editor?.chain().focus().undo().run()} />
       <ToolButton label="Redo" shortcut={`${mod}+Shift+Z`} icon={RedoIcon} enabled={hasEditor && canRedo} tabStop={tab(1)} onClick={() => editor?.chain().focus().redo().run()} />
+      <ToolButton label="Bold" shortcut={`${mod}+B`} icon={BoldIcon} enabled={hasEditor} pressed={bold} tabStop={tab(2)} onClick={() => editor?.chain().focus().toggleBold().run()} />
+      <ToolButton label="Italic" shortcut={`${mod}+I`} icon={ItalicIcon} enabled={hasEditor} pressed={italic} tabStop={tab(3)} onClick={() => editor?.chain().focus().toggleItalic().run()} />
       <ToolButton
         label="Find and replace"
         shortcut={`${mod}+F`}
         icon={SearchIcon}
         enabled={hasEditor}
         pressed={findOpen}
-        tabStop={tab(2)}
+        tabStop={tab(4)}
         onClick={() => setFindOpen(!findOpen)}
       />
 
@@ -130,7 +140,7 @@ export function EditorToolbar() {
           <DropdownMenuTrigger
             render={<Button variant="ghost" size="icon" />}
             data-tool
-            tabIndex={tab(3) ? 0 : -1}
+            tabIndex={tab(5) ? 0 : -1}
             aria-label="Font size"
             aria-disabled={!hasEditor}
             className={toolClass}
@@ -153,18 +163,31 @@ export function EditorToolbar() {
         shortcut={`${mod}+Shift+T`}
         icon={BookAIcon}
         enabled={hasEditor}
-        tabStop={tab(4)}
+        tabStop={tab(6)}
         onClick={() => setThesaurusOpen(true)}
+      />
+      <ToolButton
+        label="Proofread"
+        shortcut={`${mod}+Alt+P`}
+        icon={ClipboardCheckIcon}
+        enabled={!proofreadRunning}
+        pressed={proofreadRunning}
+        tabStop={tab(7)}
+        onClick={() => {
+          // On a chapter, part or book page the check applies to one scene: the one the writer last clicked in.
+          if (!editor || !projectId) toast.message("Click in the scene you want to proofread, then try again.");
+          else void startProofread(editor, projectId);
+        }}
       />
       <ToolButton
         label={!speech.supported ? "Read aloud (not supported in this browser)" : speech.state === "speaking" ? "Pause reading" : speech.state === "paused" ? "Resume reading" : "Read aloud"}
         icon={speech.state === "speaking" ? PauseIcon : speech.state === "paused" ? PlayIcon : HeadphonesIcon}
         enabled={hasEditor && speech.supported}
         pressed={speech.state !== "idle"}
-        tabStop={tab(5)}
+        tabStop={tab(8)}
         onClick={speech.state === "speaking" ? speech.pause : speech.state === "paused" ? speech.resume : speech.start}
       />
-      {speech.state !== "idle" && <ToolButton label="Stop reading" icon={SquareIcon} enabled tabStop={tab(6)} onClick={speech.stop} />}
+      {speech.state !== "idle" && <ToolButton label="Stop reading" icon={SquareIcon} enabled tabStop={tab(9)} onClick={speech.stop} />}
     </div>
   );
 }

@@ -162,6 +162,17 @@
   text-underline-offset: 3px;
 }
 
+/* Suggestions from Proofread: a dotted accent underline, stronger for the one picked in the sidebar. */
+.proofread-mark {
+  text-decoration: underline dotted var(--primary);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.proofread-mark-active {
+  background: color-mix(in oklab, var(--primary) 20%, transparent);
+  text-decoration-style: solid;
+}
+
 /* Muted scrollbars in the accent color (the book cover's color inside a project), so they stay quiet next to the writing. */
 * {
   scrollbar-width: thin;

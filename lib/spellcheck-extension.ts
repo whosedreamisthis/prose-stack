@@ -18,7 +18,7 @@ export const spellKey = new PluginKey<SpellState>("spellcheck");
 const RESCAN_DELAY_MS = 350;
 
 /** The text of a textblock with one character per document position, so a text offset is a position offset. */
-function blockText(block: PMNode): string {
+export function blockText(block: PMNode): string {
   let text = "";
   block.forEach((child) => {
     text += child.isText ? child.text : " ".repeat(child.nodeSize);

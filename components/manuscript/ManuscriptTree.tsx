@@ -2,11 +2,12 @@
 
 import { useId, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { BookmarkIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
+import { BookmarkIcon, CheckIcon, ClipboardCheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { createNode, renameNode, trashNode } from "@/actions/manuscript";
+import { useProofreadStore } from "@/lib/stores/proofread-store";
 import { setNodeLabel } from "@/actions/labels";
 import { ConfirmTrashDialog } from "@/components/layout/ConfirmTrashDialog";
 import { AddItem, ExportItem, RenameItem, RowMenu, TrashItem } from "@/components/manuscript/RowMenu";
@@ -276,6 +277,18 @@ export function ManuscriptTree({ projectId, projectTitle, nodes: serverNodes, la
             )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {node.type === "SCENE" && (
+          <DropdownMenuItem
+            onClick={() => {
+              // Opens the scene if it is not open yet; its editor runs the check as soon as it is ready.
+              useProofreadStore.getState().setRunOnOpen(node.id);
+              router.push(`/projects/${projectId}/manuscript?scene=${node.id}`);
+              setDrawerOpen(false);
+            }}
+          >
+            <ClipboardCheckIcon /> Proofread
+          </DropdownMenuItem>
+        )}
         <ExportItem type="node" id={node.id} projectId={projectId} name={node.title} />
         <TrashItem onClick={() => setConfirming(node)} />
       </RowMenu>
