@@ -2,7 +2,7 @@ import { Extension } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
-import { isMisspelled, loadSpellEngine, subscribeSpell } from "@/lib/spell-engine";
+import { isMisspelled, loadSpellEngineSoon, subscribeSpell } from "@/lib/spell-engine";
 import { findWords, shouldSkip } from "@/lib/spellcheck";
 
 interface SpellState {
@@ -47,7 +47,7 @@ function scan(view: EditorView): DecorationSet {
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     spellcheck: {
-      /** Turns the underlines on or off. The dictionary loads the first time it is turned on. */
+      /** Turns the underlines on or off. The dictionary loads soon after it is first turned on (see loadSpellEngineSoon). */
       setSpellcheck: (enabled: boolean) => ReturnType;
     };
   }
@@ -61,7 +61,7 @@ export const Spellcheck = Extension.create({
       setSpellcheck:
         (enabled) =>
         ({ tr, dispatch }) => {
-          if (enabled) loadSpellEngine();
+          if (enabled) loadSpellEngineSoon();
           if (dispatch) dispatch(tr.setMeta(spellKey, { enabled } satisfies SpellMeta).setMeta("addToHistory", false));
           return true;
         },

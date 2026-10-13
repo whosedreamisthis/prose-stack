@@ -14,38 +14,44 @@ import { getProject } from "@/lib/projects";
 
 type PageParams = PageProps<"/projects/[projectId]/manuscript">;
 
+/**
+ * The scene text itself. It streams in on its own, after the page around it: the outline already knows the scene's title and
+ * word count, so the heading and footer do not wait for the scene's content (one database round trip fewer before the first paint).
+ */
+async function SceneBody({ userId, projectId, sceneId, project }: { userId: string; projectId: string; sceneId: string; project: NonNullable<Awaited<ReturnType<typeof getProject>>> }) {
+  const scene = await getScene(userId, projectId, sceneId);
+  if (!scene) return <p className="text-sm text-muted-foreground">This scene could not be found.</p>;
+  return (
+    <SceneEditor
+      key={scene.id}
+      projectId={projectId}
+      formatting={toFormatting(project)}
+      scene={{ id: scene.id, title: scene.title, content: scene.content, updatedAt: scene.updatedAt.getTime() }}
+    />
+  );
+}
+
 async function SceneLoader({ params, searchParams }: { params: PageParams["params"]; searchParams: PageParams["searchParams"] }) {
   const [{ projectId }, query] = await Promise.all([params, searchParams]);
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
   const requested = Array.isArray(query.scene) ? query.scene[0] : query.scene;
-  // The requested scene is fetched alongside the outline instead of after it: one round trip, not two. getScene only
-  // returns the user's own scenes, so a stale id just returns null and the outline's pick is fetched instead.
-  const [project, nodes, stats, requestedScene] = await Promise.all([
-    getProject(user.id, projectId),
-    getManuscript(user.id, projectId),
-    getWordStats(projectId),
-    requested ? getScene(user.id, projectId, requested) : null,
-  ]);
+  const [project, nodes, stats] = await Promise.all([getProject(user.id, projectId), getManuscript(user.id, projectId), getWordStats(projectId)]);
   if (!project) notFound();
 
   const active = resolveActiveScene(nodes, requested);
-  const scene = requestedScene && active?.id === requested ? requestedScene : active ? await getScene(user.id, projectId, active.id) : null;
 
   return (
     <>
       <ActiveProjectSync projectId={project.id} />
-      <EditorColumn stats={<EditorStats stats={stats} savedSceneWords={scene?.wordCount ?? 0} />}>
-        {scene ? (
+      <EditorColumn stats={<EditorStats stats={stats} savedSceneWords={active?.wordCount ?? 0} />}>
+        {active ? (
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-            <h1 className="font-serif text-2xl font-semibold">{scene.title}</h1>
-            <SceneEditor
-              key={scene.id}
-              projectId={projectId}
-              formatting={toFormatting(project)}
-              scene={{ id: scene.id, title: scene.title, content: scene.content, updatedAt: scene.updatedAt.getTime() }}
-            />
+            <h1 className="font-serif text-2xl font-semibold">{active.title}</h1>
+            <Suspense fallback={<EditorSkeleton bodyOnly />}>
+              <SceneBody userId={user.id} projectId={projectId} sceneId={active.id} project={project} />
+            </Suspense>
           </div>
         ) : (
           <div className="mx-auto flex max-w-md flex-col gap-2 pt-16 text-center">

@@ -8,7 +8,7 @@ export function LabelChip({ label, className }: { label: LabelItem; className?: 
   return (
     <span
       className={cn("inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium", className)}
-      style={{ color: label.color, borderColor: `${label.color}66`, backgroundColor: `${label.color}1a` }}
+      style={{ color: `color-mix(in srgb, ${label.color} 55%, var(--foreground))`,borderColor: `${label.color}66`, backgroundColor: `${label.color}1a` }}
     >
       <BookmarkIcon className="size-3 shrink-0" aria-hidden />
       <span className="truncate">{label.name}</span>

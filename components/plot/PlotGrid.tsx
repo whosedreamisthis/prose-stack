@@ -429,7 +429,6 @@ function PointCard({
       <button
         type="button"
         ref={setNodeRef}
-        aria-label={`Plot point: ${name}`}
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
         onClick={onOpen}

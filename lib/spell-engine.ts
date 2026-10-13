@@ -56,6 +56,27 @@ export function loadSpellEngine() {
     .catch(() => setStatus("error"));
 }
 
+/** How long the page may sit untouched before the dictionary loads anyway. */
+const IDLE_LOAD_MS = 4000;
+let loadScheduled = false;
+
+/**
+ * Loads the dictionary (about half a megabyte) once the writer touches the page or a few seconds pass, so it does not compete
+ * with the first paint. Until it is in, the browser's own spell check covers the text.
+ */
+export function loadSpellEngineSoon() {
+  if (status !== "idle" || loadScheduled || typeof window === "undefined") return;
+  loadScheduled = true;
+  const events = ["pointerdown", "keydown", "focusin"] as const;
+  const timer = setTimeout(() => start(), IDLE_LOAD_MS);
+  function start() {
+    clearTimeout(timer);
+    for (const name of events) window.removeEventListener(name, start);
+    loadSpellEngine();
+  }
+  for (const name of events) window.addEventListener(name, start, { passive: true });
+}
+
 export function isMisspelled(word: string): boolean {
   if (!speller) return false;
   const normal = normalizeWord(word);
