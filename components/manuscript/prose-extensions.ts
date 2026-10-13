@@ -1,5 +1,6 @@
 import StarterKit from "@tiptap/starter-kit";
 import { SearchReplace } from "@/lib/search-replace-extension";
+import { Spellcheck } from "@/lib/spellcheck-extension";
 
 // Prose only: paragraphs, bold, italic and undo history.
 export const PROSE_EXTENSIONS = [
@@ -18,4 +19,5 @@ export const PROSE_EXTENSIONS = [
     link: false,
   }),
   SearchReplace,
+  Spellcheck,
 ];
