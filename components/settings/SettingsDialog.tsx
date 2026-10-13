@@ -152,17 +152,17 @@ export function SettingsDialog() {
   return (
     <>
       <Dialog open={open} onOpenChange={(next) => !next && requestClose()}>
-        <DialogContent className="h-[min(36rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="h-[min(36rem,calc(100dvh-2rem))] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 max-w-[calc(100%-1rem)] sm:max-w-2xl">
           <DialogHeader className="border-b px-4 py-3">
             <DialogTitle className="text-base">Settings</DialogTitle>
             <DialogDescription className="sr-only">Change this project&apos;s details and how the app looks.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex min-h-0 flex-col md:flex-row">
+          <div className="flex min-h-0 min-w-0 flex-col md:flex-row">
             <div
               role="tablist"
               aria-label="Settings"
-              className="flex shrink-0 gap-1 overflow-x-auto border-b p-2 md:w-44 md:flex-col md:overflow-visible md:border-r md:border-b-0"
+              className="grid shrink-0 grid-cols-4 gap-0.5 border-b p-1.5 md:flex md:w-44 md:flex-col md:gap-1 md:border-r md:border-b-0 md:p-2"
             >
               {SETTINGS_TABS.map(({ id, label }, index) => (
                 <button
@@ -179,7 +179,7 @@ export function SettingsDialog() {
                   onClick={() => setTab(id)}
                   onKeyDown={(e) => onTabKeyDown(e, index)}
                   className={cn(
-                    "flex shrink-0 items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+                    "flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-xs outline-none md:justify-between md:gap-2 md:px-3 md:text-left md:text-sm transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
                     tab === id && "bg-muted font-medium",
                   )}
                 >
@@ -199,7 +199,7 @@ export function SettingsDialog() {
               id={`settings-panel-${tab}`}
               aria-labelledby={`settings-tab-${tab}`}
               tabIndex={0}
-              className="min-h-0 flex-1 overflow-y-auto p-4 outline-none"
+              className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 outline-none sm:p-4"
             >
               {PANELS[tab]()}
               {error && (
@@ -210,10 +210,10 @@ export function SettingsDialog() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 p-4">
-            <div className="flex items-center">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
+            <div className="flex min-w-0 items-center">
               {tab === "labels" && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground sm:text-sm">
                   {autoSaves ? "Labels save automatically." : "Labels save automatically. Save applies to your other changes."}
                 </p>
               )}
@@ -228,7 +228,7 @@ export function SettingsDialog() {
                 Done
               </Button>
             ) : (
-              <div className="flex gap-2">
+              <div className="ml-auto flex gap-2">
                 <Button type="button" variant="outline" onClick={requestClose} disabled={pending}>
                   Cancel
                 </Button>
