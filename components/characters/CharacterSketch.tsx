@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Fragment,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { Fragment, useEffect, useId, useRef, useState, useTransition } from "react";
 import { Dices } from "lucide-react";
 import { toast } from "sonner";
 import { updateCharacter } from "@/actions/characters";
@@ -36,13 +29,7 @@ type Values = Omit<CharacterDetail, "id">;
  * The character's sketch. Each field saves when it loses focus, so there is no save button. The page remounts this
  * component per character (keyed by id), so the state below always belongs to one character.
  */
-export function CharacterSketch({
-  projectId,
-  character,
-}: {
-  projectId: string;
-  character: CharacterDetail;
-}) {
+export function CharacterSketch({ projectId, character }: { projectId: string; character: CharacterDetail }) {
   const formId = useId();
   const [values, setValues] = useState<Values>(character);
   const saved = useRef<Values>(character);
@@ -103,14 +90,10 @@ export function CharacterSketch({
     save({ role });
   };
 
-  const set = (key: keyof Values) => (value: string) =>
-    setValues((v) => ({ ...v, [key]: value }));
+  const set = (key: keyof Values) => (value: string) => setValues((v) => ({ ...v, [key]: value }));
 
   return (
-    <article
-      aria-label={`${character.name} sketch`}
-      className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-4"
-    >
+    <article aria-label={`${character.name} sketch`} className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-4">
       <header className="flex flex-wrap items-end gap-2">
         <div className="flex min-w-48 flex-1 flex-col gap-1.5">
           <Label htmlFor={`${formId}-name`}>Name</Label>
@@ -139,11 +122,7 @@ export function CharacterSketch({
                 </option>
               ))}
             </select>
-            <Button
-              type="button"
-              className="h-10 bg-primary text-white hover:bg-primary/90"
-              onClick={generate}
-            >
+            <Button type="button" className="h-10 bg-primary text-white hover:bg-primary/90" onClick={generate}>
               <Dices aria-hidden />
               Generate name
             </Button>
@@ -154,13 +133,7 @@ export function CharacterSketch({
       <div className="grid gap-4 sm:grid-cols-3">
         {SKETCH_FIELDS.filter((f) => f.short).map(({ key, label }) => (
           <Fragment key={key}>
-            <div
-              className={
-                WIDE_SHORT.has(key)
-                  ? "flex flex-col gap-1.5 sm:col-span-3"
-                  : "flex flex-col gap-1.5"
-              }
-            >
+            <div className={WIDE_SHORT.has(key) ? "flex flex-col gap-1.5 sm:col-span-3" : "flex flex-col gap-1.5"}>
               <Label htmlFor={`${formId}-${key}`}>{label}</Label>
               <Input
                 id={`${formId}-${key}`}
@@ -176,9 +149,7 @@ export function CharacterSketch({
                 <select
                   id={`${formId}-group`}
                   value={values.role}
-                  onChange={(e) =>
-                    changeRole(e.target.value as CharacterRoleKey)
-                  }
+                  onChange={(e) => changeRole(e.target.value as CharacterRoleKey)}
                   className="h-10 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                 >
                   {CHARACTER_ROLES.map((r) => (
@@ -206,11 +177,7 @@ export function CharacterSketch({
         </div>
       ))}
 
-      <p
-        role="status"
-        aria-live="polite"
-        className="h-4 text-xs text-muted-foreground"
-      >
+      <p role="status" aria-live="polite" className="h-4 text-xs text-muted-foreground">
         {pending ? "Saving…" : ""}
       </p>
     </article>

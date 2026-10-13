@@ -8,7 +8,7 @@ The app shell: left sidebar, right sidebar, and top navbar.
 
 ## Requirements
 - **Left sidebar:** collapsible tree/list for the current page (manuscript tree, character list, place list, etc.). Becomes a drawer on small screens.
-- **Right sidebar:** contextual panel, collapsible. In the scene editor it shows scene details (see [scene-sidebar-spec.md](scene-sidebar-spec.md)). Hidden or empty on pages with no context.
+- **Right sidebar:** contextual panel, collapsible. In the scene editor it shows scene details. Hidden or empty on pages with no context.
 - **Top navbar:** project switcher, spell check toggle, **Export to PDF**, settings, Clerk avatar (right side).
 - **Editor toolbar:** undo/redo, find & replace, font size, thesaurus, read aloud. Page-specific, and centered above the main pane (not the window) so it lines up with the writing area whichever sidebars are open.
 - **Editor column:** writing area and stats footer.

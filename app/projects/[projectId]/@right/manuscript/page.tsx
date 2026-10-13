@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import { NotesSkeleton } from "@/components/characters/NotesSkeleton";
 import { PendingSwitch } from "@/components/layout/PendingSwitch";
 import { RightPanel } from "@/components/layout/RightPanel";
-import { SceneNotesPanel } from "@/components/manuscript/SceneNotesPanel";
+import { SceneDetailsPanel } from "@/components/manuscript/SceneDetailsPanel";
 import { getCurrentUser } from "@/lib/auth";
-import { getManuscript } from "@/lib/manuscript";
+import { getManuscript, getNodeSummary } from "@/lib/manuscript";
 import { resolveActiveScene, sceneOrder } from "@/lib/manuscript-tree";
 import { listLabels } from "@/lib/labels";
 import { getPlot } from "@/lib/plot";
@@ -37,8 +37,9 @@ async function NotesLoader({ params, searchParams }: { params: SlotProps["params
   }
 
   const notes = requestedNotes && active.id === requested ? requestedNotes : await listSceneNotes(user.id, projectId, active.id);
+  const summary = await getNodeSummary(user.id, projectId, active.id);
   const scenes = sceneOrder(nodes).map((n) => ({ id: n.id, title: n.title }));
-  return <SceneNotesPanel key={active.id} projectId={projectId} sceneId={active.id} notes={notes} plot={plot} scenes={scenes} labels={labels} />;
+  return <SceneDetailsPanel key={active.id} projectId={projectId} sceneId={active.id} notes={notes} summary={summary} plot={plot} scenes={scenes} labels={labels} />;
 }
 
 export default function SceneNotesSlot(props: SlotProps) {

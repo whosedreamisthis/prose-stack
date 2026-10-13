@@ -74,6 +74,18 @@ export async function getScene(userId: string, projectId: string, nodeId: string
   return { ...node, content: (node.content as DocNode | null) ?? emptyDoc() };
 }
 
+/** The summary of a scene, chapter or part (empty when none). Cached until the node is saved, renamed or its summary changes. */
+export async function getNodeSummary(userId: string, projectId: string, nodeId: string): Promise<string> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(cacheTags.scene(nodeId), cacheTags.project(projectId));
+  const node = await prisma.manuscriptNode.findFirst({
+    where: { id: nodeId, projectId, type: { in: ["SCENE", "CHAPTER", "PART"] }, trashedAt: null, project: { userId } },
+    select: { summary: true },
+  });
+  return node?.summary ?? "";
+}
+
 /** Total words and today's starting count. Cached until a scene is saved; the day is part of the key so it rolls over at UTC midnight. */
 export function getWordStats(projectId: string): Promise<WordStats> {
   return getWordStatsFor(projectId, todayUtc().toISOString());

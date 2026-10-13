@@ -5,7 +5,7 @@ import { updateTag } from "next/cache"; // after the shared mock is registered, 
 const getCurrentUserMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUserMock() }));
 
-import { createNode, moveNode, renameNode, saveScene, saveSceneSummary, trashNode } from "@/actions/manuscript";
+import { createNode, moveNode, renameNode, saveScene, saveNodeSummary, trashNode } from "@/actions/manuscript";
 import { docFromText } from "@/lib/manuscript-text";
 
 function useInteractiveTransaction() {
@@ -206,10 +206,33 @@ describe("saveScene", () => {
   });
 });
 
-describe("saveSceneSummary", () => {
+describe("saveNodeSummary", () => {
+  it("saves for scenes, chapters and parts of the signed-in user's project, never trashed ones", async () => {
+    prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 1 });
+    const result = await saveNodeSummary({ projectId: "p1", nodeId: "c1", summary: "Mara arrives." });
+    expect(result.success).toBe(true);
+    expect(prismaMock.manuscriptNode.updateMany).toHaveBeenCalledWith({
+      where: { id: "c1", projectId: "p1", type: { in: ["SCENE", "CHAPTER", "PART"] }, trashedAt: null, project: { userId: "user-1" } },
+      data: { summary: "Mara arrives." },
+    });
+    expect(vi.mocked(updateTag)).toHaveBeenCalledWith("scene:c1");
+  });
+
+  it("fails when nothing matches (wrong project, trashed or missing)", async () => {
+    prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 0 });
+    const result = await saveNodeSummary({ projectId: "p1", nodeId: "gone", summary: "x" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a summary over 2000 characters", async () => {
+    const result = await saveNodeSummary({ projectId: "p1", nodeId: "s1", summary: "a".repeat(2001) });
+    expect(result.success).toBe(false);
+    expect(prismaMock.manuscriptNode.updateMany).not.toHaveBeenCalled();
+  });
+
   it("stores a blank summary as null", async () => {
     prismaMock.manuscriptNode.updateMany.mockResolvedValue({ count: 1 });
-    await saveSceneSummary({ projectId: "p1", nodeId: "s1", summary: "   " });
+    await saveNodeSummary({ projectId: "p1", nodeId: "s1", summary: "   " });
     expect(prismaMock.manuscriptNode.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { summary: null } }));
   });
 });

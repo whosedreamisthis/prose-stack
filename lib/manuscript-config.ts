@@ -55,10 +55,12 @@ export const saveSceneSchema = z.object({
   content: z.record(z.string(), z.unknown()),
 });
 
+export const MAX_SUMMARY_LENGTH = 2000;
+
 export const saveSummarySchema = z.object({
   projectId: idSchema,
   nodeId: idSchema,
-  summary: z.string().max(2000, "Summary must be 2000 characters or fewer"),
+  summary: z.string().max(MAX_SUMMARY_LENGTH, `Summary must be ${MAX_SUMMARY_LENGTH} characters or fewer`),
 });
 
 export type CreateNodeInput = z.input<typeof createNodeSchema>;

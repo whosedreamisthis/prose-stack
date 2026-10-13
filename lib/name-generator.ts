@@ -1,12 +1,5 @@
 export type NameGender =
-  | "any"
-  | "female"
-  | "male"
-  | "trans-woman"
-  | "trans-man"
-  | "gender-fluid"
-  | "non-binary"
-  | "genderless";
+  "any" | "female" | "male" | "trans-woman" | "trans-man" | "gender-fluid" | "non-binary" | "genderless";
 
 export const NAME_GENDERS: { value: NameGender; label: string }[] = [
   { value: "any", label: "Any" },
@@ -25,10 +18,7 @@ export const NAME_GENDERS: { value: NameGender; label: string }[] = [
  * gender fluid and non-binary characters get either pool at random, and genderless characters get a single name.
  * Pass a seed to get a repeatable name (used by the tests).
  */
-export async function generateName(
-  gender: NameGender = "any",
-  seed?: number,
-): Promise<string> {
+export async function generateName(gender: NameGender = "any", seed?: number): Promise<string> {
   const { faker } = await import("@faker-js/faker");
   if (seed !== undefined) faker.seed(seed);
   switch (gender) {
