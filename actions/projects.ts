@@ -65,11 +65,11 @@ export async function updateProject(projectId: string, input: UpdateProjectInput
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid project details." };
     }
-    const { title, subtitle, author } = parsed.data;
+    const { title, subtitle, author, coverColor } = parsed.data;
 
     const { count } = await prisma.project.updateMany({
       where: { id: projectId, userId: user.id },
-      data: { title, subtitle: subtitle || null, author },
+      data: { title, subtitle: subtitle || null, author, coverColor },
     });
     if (count === 0) return { success: false, error: NOT_FOUND };
 

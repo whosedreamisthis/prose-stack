@@ -167,7 +167,7 @@ describe("markProjectOpened", () => {
 });
 
 describe("updateProject", () => {
-  const edits = { title: "New Title", subtitle: "", author: "Grace" };
+  const edits = { title: "New Title", subtitle: "", author: "Grace", coverColor: "#7f1d1d" };
 
   beforeEach(() => {
     getCurrentUserMock.mockResolvedValue({ id: "user-1" });
@@ -189,11 +189,11 @@ describe("updateProject", () => {
 
   it("updates only the owner's project and only the editable fields", async () => {
     prismaMock.project.updateMany.mockResolvedValue({ count: 1 });
-    const result = await updateProject("p1", { ...edits, coverColor: "#000000" } as typeof edits);
+    const result = await updateProject("p1", { ...edits, coverDesign: "bold" } as typeof edits);
     expect(result.success).toBe(true);
     expect(prismaMock.project.updateMany).toHaveBeenCalledWith({
       where: { id: "p1", userId: "user-1" },
-      data: { title: "New Title", subtitle: null, author: "Grace" },
+      data: { title: "New Title", subtitle: null, author: "Grace", coverColor: "#7f1d1d" },
     });
   });
 

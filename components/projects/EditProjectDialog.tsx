@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { toast } from "sonner";
 import { updateProject } from "@/actions/projects";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateProjectSchema } from "@/lib/project-config";
+import { COVER_COLORS, updateProjectSchema } from "@/lib/project-config";
+import { cn } from "@/lib/utils";
 import type { ProjectSummary } from "@/types/projects";
 
 interface EditProjectDialogProps {
@@ -18,7 +19,7 @@ interface EditProjectDialogProps {
 }
 
 function toForm(project: ProjectSummary) {
-  return { title: project.title, subtitle: project.subtitle ?? "", author: project.author };
+  return { title: project.title, subtitle: project.subtitle ?? "", author: project.author, coverColor: project.coverColor };
 }
 
 export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDialogProps) {
@@ -58,7 +59,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit book</DialogTitle>
-          <DialogDescription>Change the name, subtitle or author shown on the cover.</DialogDescription>
+          <DialogDescription>Change the name, subtitle, author or color shown on the cover.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -89,6 +90,32 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
               onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
               required
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Cover color</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              {COVER_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  aria-label={`Cover color ${color}`}
+                  aria-pressed={form.coverColor === color}
+                  onClick={() => setForm((f) => ({ ...f, coverColor: color }))}
+                  className={cn(
+                    "size-7 rounded-full border border-border bg-(--swatch) ring-offset-2 ring-offset-background",
+                    form.coverColor === color && "ring-2 ring-ring",
+                  )}
+                  style={{ "--swatch": color } as CSSProperties}
+                />
+              ))}
+              <Input
+                type="color"
+                aria-label="Custom cover color"
+                value={form.coverColor}
+                onChange={(e) => setForm((f) => ({ ...f, coverColor: e.target.value }))}
+                className="h-7 w-10 p-0.5"
+              />
+            </div>
           </div>
           {error && (
             <p role="alert" className="text-sm text-destructive">

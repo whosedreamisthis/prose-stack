@@ -31,7 +31,7 @@ export const createProjectSchema = z.object({
 
 export type CreateProjectInput = z.input<typeof createProjectSchema>;
 
-export const updateProjectSchema = createProjectSchema.pick({ title: true, subtitle: true, author: true });
+export const updateProjectSchema = createProjectSchema.pick({ title: true, subtitle: true, author: true, coverColor: true });
 
 export type UpdateProjectInput = z.input<typeof updateProjectSchema>;
 
