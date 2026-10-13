@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { FontStyle } from "@/lib/book/blocks";
 import type { BookItem } from "@/lib/book/content";
 import {
@@ -12,6 +10,7 @@ import {
   type BookPage,
   type Measure,
 } from "@/lib/book/paginate";
+import { useBookNavStore } from "@/lib/stores/book-nav-store";
 import { LINE_SPACING_OPTIONS, type Formatting } from "@/lib/project-config";
 
 interface BookViewProps {
@@ -24,8 +23,6 @@ interface BookViewProps {
   initialPage: number;
 }
 
-/** Width at which two pages sit side by side. */
-const SPREAD_MIN_WIDTH = 760;
 const STYLES: FontStyle[] = [
   {},
   { bold: true },
@@ -148,7 +145,7 @@ function PageFace({
   );
 }
 
-/** The book as a reader sees it: fixed-size pages, a two-page spread on wide screens, and a page at a time on narrow ones. */
+/** The book as a reader sees it: fixed-size pages, one page at a time. */
 export function BookView({
   meta,
   items,
@@ -158,7 +155,7 @@ export function BookView({
 }: BookViewProps) {
   const [measure, setMeasure] = useState<Measure | null>(null);
   const [page, setPage] = useState(initialPage);
-  const [box, setBox] = useState({ width: 0 });
+  const [box, setBox] = useState({ width: 0, height: 0 });
   /** Which way the last page turn went, so the new pages slide in from that side. Null until the first turn. */
   const [turn, setTurn] = useState<"next" | "prev" | null>(null);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -186,10 +183,10 @@ export function BookView({
     const el = areaRef.current;
     if (!el) return;
     const observer = new ResizeObserver(() =>
-      setBox({ width: el.clientWidth }),
+      setBox({ width: el.clientWidth, height: el.clientHeight }),
     );
     observer.observe(el);
-    setBox({ width: el.clientWidth });
+    setBox({ width: el.clientWidth, height: el.clientHeight });
     return () => observer.disconnect();
   }, []);
 
@@ -198,13 +195,7 @@ export function BookView({
     [measure, meta, items, formatting],
   );
   const total = layout?.pages.length ?? 1;
-  const wide = box.width >= SPREAD_MIN_WIDTH;
   const current = Math.min(Math.max(1, page), total);
-  // In a spread the title page sits alone on the right; after it, even pages are on the left.
-  const left = wide ? (current % 2 === 0 ? current : current - 1) : current;
-  const shown = wide ? [left, left + 1] : [current];
-  const step = wide ? 2 : 1;
-  const lastLeft = wide ? (total % 2 === 0 ? total : total - 1) : total;
 
   const go = useCallback(
     (to: number) => {
@@ -226,7 +217,7 @@ export function BookView({
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    go(dx < 0 ? left + step : left - step);
+    go(dx < 0 ? current + 1 : current - 1);
   }
 
   // The new pages slide in from the side the turn is heading toward, unless the system asks for less motion.
@@ -246,7 +237,7 @@ export function BookView({
       ],
       { duration: 250, easing: "ease-out" },
     );
-  }, [left, turn]);
+  }, [current, turn]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -256,77 +247,36 @@ export function BookView({
           /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))
       )
         return;
-      if (e.key === "ArrowRight") go(left + step);
-      else if (e.key === "ArrowLeft") go(left - step);
+      if (e.key === "ArrowRight") go(current + 1);
+      else if (e.key === "ArrowLeft") go(current - 1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, left, step]);
+  }, [go, current]);
 
-  const scale = box.width
-    ? Math.min(
-        1.5,
-        (box.width - 16) / (wide ? PAGE.width * 2 + 8 : PAGE.width),
-        (typeof window === "undefined" ? 900 : window.innerHeight * 0.72) /
-          PAGE.height,
-      )
-    : 0.5;
+  // Fit the whole page in the space the book has, so a page never needs scrolling.
+  const scale =
+    box.width && box.height
+      ? Math.min(
+          1.5,
+          (box.width - 16) / PAGE.width,
+          (box.height - 16) / PAGE.height,
+        )
+      : 0.5;
   const hasChapters = (layout?.contents.length ?? 0) > 0;
-  const label = shown.filter((n) => n >= 1 && n <= total).join("–");
+
+  // The page controls live in the project's top bar, so hand them what they need.
+  const contents = layout?.contents;
+  useEffect(() => {
+    useBookNavStore.getState().setNav({ current, total, contents: contents ?? [], go });
+  }, [current, total, contents, go]);
+  useEffect(() => () => useBookNavStore.getState().setNav(null), []);
 
   return (
-    <div ref={areaRef} className="flex w-full flex-col items-center gap-4">
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Previous page"
-          disabled={left - step < (wide ? 0 : 1)}
-          onClick={() => go(left - step)}
-        >
-          <ChevronLeftIcon />
-        </Button>
-        <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          Page
-          <input
-            type="number"
-            min={1}
-            max={total}
-            value={current}
-            onChange={(e) => e.target.value && go(Number(e.target.value))}
-            aria-label="Go to page"
-            className="h-8 w-16 rounded-md border bg-background px-2 text-center text-foreground"
-          />
-          of {total}
-        </label>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Next page"
-          disabled={left >= lastLeft}
-          onClick={() => go(left + step)}
-        >
-          <ChevronRightIcon />
-        </Button>
-        {hasChapters && (
-          <select
-            aria-label="Go to chapter"
-            value=""
-            onChange={(e) => e.target.value && go(Number(e.target.value))}
-            className="h-8 max-w-48 rounded-md border bg-background px-2 text-sm"
-          >
-            <option value="">Go to…</option>
-            {layout?.contents.map((c) => (
-              <option key={`${c.kind}-${c.page}`} value={c.page}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+    <div ref={areaRef} className="relative flex h-full w-full flex-col items-center justify-center">
       <div
         role="group"
-        aria-label={`Page ${label}`}
+        aria-label={`Page ${current}`}
         ref={turnRef}
         className="flex touch-pan-y justify-center gap-2 select-none"
         aria-live="polite"
@@ -337,15 +287,12 @@ export function BookView({
         onPointerCancel={() => (swipeStart.current = null)}
       >
         {layout ? (
-          shown.map((n) => (
-            <PageFace
-              key={n}
-              page={layout.pages[n - 1] ?? null}
-              formatting={formatting}
-              fontCss={fontCss}
-              scale={scale}
-            />
-          ))
+          <PageFace
+            page={layout.pages[current - 1] ?? null}
+            formatting={formatting}
+            fontCss={fontCss}
+            scale={scale}
+          />
         ) : (
           <div
             style={{ width: PAGE.width * scale, height: PAGE.height * scale }}
@@ -354,7 +301,7 @@ export function BookView({
         )}
       </div>
       {layout && !hasChapters && (
-        <p className="text-sm text-muted-foreground">
+        <p className="absolute inset-x-0 bottom-2 text-center text-sm text-muted-foreground">
           No chapters yet. Add a chapter from the Manuscript menu.
         </p>
       )}

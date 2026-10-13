@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { PanelLeftIcon, PanelRightIcon } from "lucide-react";
+import { BookNavControls } from "@/components/book/BookNavControls";
 import { Hint } from "@/components/layout/Hint";
 import { PendingSection } from "@/components/layout/PendingSection";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ export function ProjectShell({ left, right, toolbar, children }: ProjectShellPro
             </Button>
           </Hint>
         </div>
+        <BookNavControls />
         <div className="flex items-center">
           {/* Small screens open the sidebar as an overlay (closed by default); larger screens collapse it. Both are CSS-switched. */}
           <Hint

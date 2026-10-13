@@ -26,7 +26,7 @@ Two separate things, built as two features:
 - **Title page first:** project title, subtitle, "by", author (empty ones left out), on its own page.
 - **Chapters start on a new page.** A part gets its own page with just its title, before its first chapter. A chapter page begins with the chapter title; scenes inside a chapter run on, separated by a centered `* * *` (`SCENE_BREAK`, shared with PDF export). Scene titles are not shown. Page numbers sit at the bottom (title page and part pages unnumbered), with a small running header (project title).
 - **Navigation:** previous and next buttons, Left/Right arrow keys, swipe on touch, a page-number jump, and a "Go to chapter" menu listing parts and chapters. The current page is kept in the URL (`?page=N`) so a refresh or link returns to it.
-- **Layout by screen:** a two-page spread on wide screens, one page on narrow screens. Pages run on with no blank pages: each chapter simply starts on the next page, so a chapter can begin on a left or right page of a spread.
+- **Layout by screen:** one page at a time on every screen size (no two-page spread). Pages run on with no blank pages: each chapter simply starts on the next page, so a chapter can begin on a left or right page of a spread.
 - **Page turn:** a plain switch first. A page-turn animation is an experiment to try once the view works, then keep or drop it.
 - **No contents page.**
 - Empty book: only the title page, with a hint to add a chapter.
@@ -45,7 +45,7 @@ Two separate things, built as two features:
 - Whole-book PDF export is an "Export as PDF" item in the Manuscript row's "…" menu, not a navbar button; it prints the Book view's pages (see [export-pdf-spec.md](export-pdf-spec.md)).
 - Each chapter starts on a new page, with no blank pages between.
 
-- Two-page spread on wide screens, one page on narrow.
+- One page at a time on every screen size.
 - No contents page.
 - Page breaks match whole-book PDF export exactly (shared page model).
 - Page-turn animation: try it after the view works, then decide.
