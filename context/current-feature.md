@@ -1,25 +1,20 @@
-# Current Feature: Character Name Generator
+# Current Feature
 
-A **Generate name** button on the character sketch that fills the name field with a random name via `@faker-js/faker`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- **Generate name** button next to the name field in the character sketch.
-- Each click generates a new random full name (`faker.person.fullName()`, default English) and puts it in the name field.
-- Runs client-side; faker is loaded lazily via dynamic import on first click so it doesn't bloat the main bundle.
-- No rate limit or external dependency (no AI API), so it works for demo users.
-- Clicking the button fills the name field with a new name each time.
-- A unit test covers the helper (faker seeded for determinism).
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/features/name-generator-spec.md`. Related: `characters-spec.md`.
-- No data changes; the name is saved through the normal character auto-save.
-- Possible later additions (out of scope): female/male pick, other languages/cultures, fantasy or genre/era-specific names via an AI model.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -51,3 +46,4 @@ In Progress
 - **Spell Check:** navbar toggle, nspell underlines and a hover popover with replacements, Add to dictionary and Ignore; see `lib/spell-engine.ts`, `lib/spellcheck-extension.ts`, `SpellSuggestPopover.tsx`.
 - **Scene Search:** search box above the outline finds scenes by title, summary, text or label, results under the Manuscript row; see `actions/search.ts`, `lib/scene-search.ts`, `SceneSearch.tsx`.
 - **Story Templates:** Structure sidebar section with built-in story templates, covered beats and scene links, a select in new-project and General settings, demo seed; see `lib/story-templates.ts`, `actions/story.ts`, `components/structure/`.
+- **Character Name Generator:** Generate name button with gender select on the character sketch, names from lazily loaded faker; see `lib/name-generator.ts`, `CharacterSketch.tsx`.
