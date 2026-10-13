@@ -29,7 +29,7 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid project details." };
     }
-    const { title, subtitle, author, coverDesign, coverColor } = parsed.data;
+    const { title, subtitle, author, coverDesign, coverColor, storyTemplateId } = parsed.data;
 
     const project = await prisma.$transaction(async (tx) => {
       // Lock the user row so concurrent creates for one user run one at a time and cannot pass the limit together.
@@ -37,7 +37,7 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
       const count = await tx.project.count({ where: { userId: user.id } });
       if (count >= MAX_PROJECTS_PER_USER) return null;
       const created = await tx.project.create({
-        data: { userId: user.id, title, subtitle: subtitle || null, author, coverDesign, coverColor },
+        data: { userId: user.id, title, subtitle: subtitle || null, author, coverDesign, coverColor, storyTemplateId },
         select: { id: true },
       });
       await seedManuscript(tx, created.id);

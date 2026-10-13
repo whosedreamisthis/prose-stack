@@ -14,6 +14,7 @@ const summarySelect = {
   fontFamily: true,
   fontSize: true,
   lineSpacing: true,
+  storyTemplateId: true,
   updatedAt: true,
 } as const;
 

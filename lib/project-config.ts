@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storyTemplateIdSchema } from "@/lib/story-config";
 
 export const MAX_PROJECTS_PER_USER = 5;
 
@@ -27,6 +28,7 @@ export const createProjectSchema = z.object({
   author: z.string().trim().min(1, "Author is required").max(80, "Author must be 80 characters or fewer"),
   coverDesign: z.enum(COVER_DESIGNS),
   coverColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Pick a valid color"),
+  storyTemplateId: storyTemplateIdSchema.default(null),
 });
 
 export type CreateProjectInput = z.input<typeof createProjectSchema>;

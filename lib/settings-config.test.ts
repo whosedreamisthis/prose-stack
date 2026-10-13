@@ -13,6 +13,7 @@ const saved: SettingsValues = {
   subtitle: "",
   author: "Ann",
   coverColor: "#1e3a5f",
+  storyTemplateId: null,
   theme: null,
   fontFamily: "Georgia",
   fontSize: 12,

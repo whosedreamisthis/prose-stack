@@ -122,6 +122,14 @@ export const prismaMock = {
     deleteMany: vi.fn(),
     aggregate: vi.fn(),
   },
+  beatProgress: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   dailyWordCount: {
     findUnique: vi.fn(),
     upsert: vi.fn(),

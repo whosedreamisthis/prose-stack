@@ -57,6 +57,24 @@ describe("createProject", () => {
     );
   });
 
+  it("stores the chosen story structure, or none, and rejects an unknown one", async () => {
+    prismaMock.project.count.mockResolvedValue(0);
+    prismaMock.project.create.mockResolvedValue({ id: "p1" });
+
+    await createProject({ ...input, storyTemplateId: "romance" });
+    expect(prismaMock.project.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ storyTemplateId: "romance" }) }),
+    );
+    await createProject(input);
+    expect(prismaMock.project.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ storyTemplateId: null }) }),
+    );
+
+    prismaMock.project.create.mockClear();
+    expect((await createProject({ ...input, storyTemplateId: "nope" })).success).toBe(false);
+    expect(prismaMock.project.create).not.toHaveBeenCalled();
+  });
+
   it("seeds Chapter 1 / Scene 1 in the new project", async () => {
     prismaMock.project.count.mockResolvedValue(0);
     prismaMock.project.create.mockResolvedValue({ id: "p1" });

@@ -41,9 +41,27 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
     void useEditorStore.persist.rehydrate();
   }, []);
 
-  if (!projectId) return null;
-
   const project = projects?.find((p) => p.id === projectId);
+  const settingsRequested = useSettingsStore((s) => s.openRequested);
+  const clearOpenRequest = useSettingsStore((s) => s.clearOpenRequest);
+
+  // The sidebar's "Choose a story structure" prompt asks for the settings; this holds the values to open them with.
+  useEffect(() => {
+    if (!settingsRequested) return;
+    clearOpenRequest(); // cleared even without a project, so the request cannot open the modal later
+    if (!project) return;
+    openSettings(project.id, {
+      title: project.title,
+      subtitle: project.subtitle ?? "",
+      author: project.author,
+      coverColor: project.coverColor,
+      storyTemplateId: project.storyTemplateId,
+      ...toFormatting(project),
+      theme,
+    });
+  }, [settingsRequested, project, theme, openSettings, clearOpenRequest]);
+
+  if (!projectId) return null;
 
   // Exports live in the outline's row menus.
   const actions: Action[] = [
@@ -59,6 +77,7 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
               subtitle: project.subtitle ?? "",
               author: project.author,
               coverColor: project.coverColor,
+              storyTemplateId: project.storyTemplateId,
               ...toFormatting(project),
               theme,
             })

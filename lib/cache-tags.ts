@@ -28,6 +28,8 @@ export const cacheTags = {
   plot: (projectId: string) => `plot:${projectId}`,
   /** The project's labels and how many items carry each. */
   labels: (projectId: string) => `labels:${projectId}`,
+  /** The project's story structure progress: covered beats and their scene links. */
+  structure: (projectId: string) => `structure:${projectId}`,
   /** The project's research tree (folders and item titles): the Research sidebar section. */
   research: (projectId: string) => `research:${projectId}`,
   /** One research item's full content, as shown in the main pane. */

@@ -21,6 +21,9 @@ import { getPlot } from "@/lib/plot";
 import { listArchive, listTrash } from "@/lib/trash";
 import { getProject } from "@/lib/projects";
 import { getResearch } from "@/lib/research";
+import { sceneOrder } from "@/lib/manuscript-tree";
+import { getStructure } from "@/lib/story";
+import { StructureSection } from "@/components/structure/StructureSection";
 
 interface ProjectSidebarProps {
   params: Promise<{ projectId: string }>;
@@ -31,7 +34,7 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const [project, nodes, characters, places, plot, labels, research, trash, archive] = await Promise.all([
+  const [project, nodes, characters, places, plot, labels, research, trash, archive, structure] = await Promise.all([
     getProject(user.id, projectId),
     getManuscript(user.id, projectId),
     listCharacters(user.id, projectId),
@@ -41,12 +44,18 @@ async function SidebarLoader({ params }: ProjectSidebarProps) {
     getResearch(user.id, projectId),
     listTrash(user.id, projectId),
     listArchive(user.id, projectId),
+    getStructure(user.id, projectId),
   ]);
   if (!project) return null;
+
+  const scenes = sceneOrder(nodes).map(({ id, title }) => ({ id, title }));
 
   return (
     <div className="flex flex-col gap-3">
       <ManuscriptTree projectId={projectId} projectTitle={project.title} nodes={nodes} labels={labels} />
+      <SidebarSection slug="structure" label="Structure">
+        <StructureSection projectId={projectId} structure={structure} scenes={scenes} />
+      </SidebarSection>
       <SidebarSection slug="plot" label="Plots" action={<AddPlotLineButton projectId={projectId} plot={plot} />}>
         <PlotLinesSection projectId={projectId} plot={plot} />
       </SidebarSection>
