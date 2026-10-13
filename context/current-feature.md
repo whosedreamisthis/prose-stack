@@ -1,27 +1,20 @@
-# Current Feature: Spell Check
+# Current Feature
 
-Spell checking in the scene editor, toggled from the top navbar, using the browser's native spellcheck. Spec: [spell-check-spec.md](features/spell-check-spec.md).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Complete -->
+
+Completed
 
 ## Goals
 
-- Navbar toggle (accessible icon button with `aria-pressed`), shown only on pages with the scene editor.
-- `nspell` + `dictionary-en` underline misspelled words through a Tiptap decoration extension; native spellcheck is the fallback while the dictionary loads or if it fails.
-- Hovering an underlined word opens a popover with replacement suggestions, Add to dictionary and Ignore; Ctrl/Cmd+. opens it from the keyboard.
-- Toggle works at runtime with no remount, so content, selection and cursor are kept.
-- Navbar button states are easy to tell apart: tinted when on, grayed out when off.
-- Setting persists per user in `localStorage`; default is on for new users.
-- Read the stored value after mount to avoid a hydration mismatch; wrap `localStorage` access in try/catch.
-- Applies only to the scene editor (including embedded chapter, part and full manuscript views); works for the demo user.
-- Keyboard accessible and reflects the current state.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Out of scope: grammar checking, other languages, per-project or server-synced custom words, auto-adding character/place names.
-- Code: `lib/spellcheck.ts`, `lib/spell-engine.ts`, `lib/spellcheck-extension.ts`, `components/manuscript/SpellSuggestPopover.tsx`; dictionary files in `public/dictionaries/en/`.
+<!-- Any extra notes -->
 
 ## Completed Features
 
@@ -50,3 +43,4 @@ In Progress
 - **Read Aloud:** toolbar button speaks the scene or selection in chunks with pause, resume and stop; see `hooks/useReadAloud.ts`, `lib/read-aloud.ts`, `EditorToolbar.tsx`.
 - **Research:** Research section under Places with nested folders, notes and links, drag and drop, story links, trash/archive, Utilities section, Empty trash; see `components/research/`, `actions/research.ts`, `lib/research*.ts`.
 - **Research Uploads:** upload images and files (JPEG/PNG/WebP/GIF, PDF/TXT/DOCX) into Research via UploadThing, with caps, progress rows, drag and drop; see `app/api/uploadthing/`, `lib/research-uploads.ts`.
+- **Spell Check:** navbar toggle, nspell underlines and a hover popover with replacements, Add to dictionary and Ignore; see `lib/spell-engine.ts`, `lib/spellcheck-extension.ts`, `SpellSuggestPopover.tsx`.
