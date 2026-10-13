@@ -22,6 +22,7 @@ export interface SettingsValues extends Formatting {
   title: string;
   subtitle: string;
   author: string;
+  coverColor: string;
   theme: ThemeChoice | null;
 }
 
@@ -33,6 +34,7 @@ export const updateProjectSettingsSchema = z
     title: fields.title.optional(),
     subtitle: z.string().trim().max(160, "Subtitle must be 160 characters or fewer").optional(),
     author: fields.author.optional(),
+    coverColor: fields.coverColor.optional(),
     fontFamily: fontNameSchema.optional(),
     fontSize: fontSizeSchema.optional(),
     lineSpacing: lineSpacingSchema.optional(),
@@ -48,7 +50,7 @@ export interface SettingsChanges {
   theme?: ThemeChoice | null;
 }
 
-const GENERAL_KEYS = ["title", "subtitle", "author"] as const;
+const GENERAL_KEYS = ["title", "subtitle", "author", "coverColor"] as const;
 const FORMATTING_KEYS = ["fontFamily", "fontSize", "lineSpacing"] as const;
 
 /** What differs between the saved values and the draft. Text is compared trimmed, as it is saved. */

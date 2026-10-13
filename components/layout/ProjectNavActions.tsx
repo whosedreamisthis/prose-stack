@@ -58,6 +58,7 @@ export function ProjectNavActions({ projects, theme = null }: ProjectNavActionsP
               title: project.title,
               subtitle: project.subtitle ?? "",
               author: project.author,
+              coverColor: project.coverColor,
               ...toFormatting(project),
               theme,
             })

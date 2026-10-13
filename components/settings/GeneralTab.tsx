@@ -1,5 +1,6 @@
 "use client";
 
+import { CoverColorPicker } from "@/components/projects/CoverColorPicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSettingsStore } from "@/lib/stores/settings-store";
@@ -41,6 +42,10 @@ export function GeneralTab() {
           aria-invalid={draft.author.trim() === ""}
           onChange={(e) => updateDraft({ author: e.target.value })}
         />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label>Cover color</Label>
+        <CoverColorPicker value={draft.coverColor} onChange={(coverColor) => updateDraft({ coverColor })} />
       </div>
     </div>
   );

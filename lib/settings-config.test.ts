@@ -12,6 +12,7 @@ const saved: SettingsValues = {
   title: "Book",
   subtitle: "",
   author: "Ann",
+  coverColor: "#1e3a5f",
   theme: null,
   fontFamily: "Georgia",
   fontSize: 12,

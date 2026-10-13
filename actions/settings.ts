@@ -24,10 +24,10 @@ export async function updateProjectSettings(projectId: string, input: UpdateProj
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid settings." };
     }
-    const { title, subtitle, author, fontFamily, fontSize, lineSpacing } = parsed.data;
+    const { title, subtitle, author, coverColor, fontFamily, fontSize, lineSpacing } = parsed.data;
 
     // Formatting is display only, so a formatting-only change keeps the project's "edited" date as it was.
-    const keepEditedDate = title === undefined && subtitle === undefined && author === undefined;
+    const keepEditedDate = title === undefined && subtitle === undefined && author === undefined && coverColor === undefined;
     const previous = keepEditedDate
       ? await prisma.project.findFirst({ where: { id: projectId, userId: user.id }, select: { updatedAt: true } })
       : null;
@@ -39,6 +39,7 @@ export async function updateProjectSettings(projectId: string, input: UpdateProj
         ...(title !== undefined && { title }),
         ...(subtitle !== undefined && { subtitle: subtitle || null }),
         ...(author !== undefined && { author }),
+        ...(coverColor !== undefined && { coverColor }),
         ...(fontFamily !== undefined && { fontFamily }),
         ...(fontSize !== undefined && { fontSize }),
         ...(lineSpacing !== undefined && { lineSpacing }),

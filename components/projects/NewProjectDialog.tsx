@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { CSSProperties, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createProject } from "@/actions/projects";
 import { BookCover } from "@/components/projects/BookCover";
+import { CoverColorPicker } from "@/components/projects/CoverColorPicker";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  COVER_COLORS,
   COVER_DESIGNS,
   DEFAULT_COVER_COLOR,
   DEFAULT_COVER_DESIGN,
@@ -19,7 +19,6 @@ import {
   type CreateProjectInput,
 } from "@/lib/project-config";
 import { useProjectStore } from "@/lib/stores/project-store";
-import { cn } from "@/lib/utils";
 
 type FormState = Required<CreateProjectInput>;
 
@@ -107,29 +106,7 @@ export function NewProjectDialog() {
             </div>
             <div className="flex flex-col gap-2">
               <Label>Cover color</Label>
-              <div className="flex flex-wrap items-center gap-2">
-                {COVER_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    aria-label={`Cover color ${color}`}
-                    aria-pressed={form.coverColor === color}
-                    onClick={() => update("coverColor", color)}
-                    className={cn(
-                      "size-7 rounded-full border border-border bg-(--swatch) ring-offset-2 ring-offset-background",
-                      form.coverColor === color && "ring-2 ring-ring",
-                    )}
-                    style={{ "--swatch": color } as CSSProperties}
-                  />
-                ))}
-                <Input
-                  type="color"
-                  aria-label="Custom cover color"
-                  value={form.coverColor}
-                  onChange={(e) => update("coverColor", e.target.value)}
-                  className="h-7 w-10 p-0.5"
-                />
-              </div>
+              <CoverColorPicker value={form.coverColor} onChange={(color) => update("coverColor", color)} />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="project-title">Title</Label>
